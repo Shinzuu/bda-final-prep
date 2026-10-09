@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 396" font-family="Inter, Segoe UI, system-ui, sans-serif"><style>.bx{fill:var(--d-box,#fff7ed);stroke:var(--d-line,#b45309);stroke-width:1.5}
+.bx2{fill:var(--d-box2,#eff6ff);stroke:var(--d-line2,#1d4ed8);stroke-width:1.5}
+.bx3{fill:var(--d-box3,#ecfdf3);stroke:var(--d-line3,#15803d);stroke-width:1.5}
+.ln{stroke:var(--d-ink,#44403c);stroke-width:1.5;fill:none}
+.t{fill:var(--d-ink,#1c1b19);font-size:14px}.tb{fill:var(--d-ink,#1c1b19);font-size:14px;font-weight:600}
+.ts{fill:var(--d-mute,#78716c);font-size:12px}</style><style>.tm{fill:var(--d-mute,#78716c);font-size:13px}
+.dm{fill:var(--d-line2,#1d4ed8)}.dw{fill:var(--d-line,#b45309)}
+.dl{stroke:var(--d-line2,#1d4ed8);stroke-width:2.5;fill:none;stroke-linejoin:round}
+.dc{stroke:var(--d-line2,#1d4ed8);stroke-width:1.8;fill:none}
+.rf{stroke:var(--d-mute,#78716c);stroke-width:1.2;stroke-dasharray:4 4;fill:none}
+.lw{stroke:var(--d-line,#b45309);stroke-width:1.8;fill:none}
+.dsh{stroke:var(--d-line,#b45309);stroke-width:1.5;stroke-dasharray:6 5;fill:none}</style><defs><marker id="ah-w09shneiderman" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--d-ink,#44403c)"/></marker></defs>
+<rect class="bx2" x="25" y="15" width="210" height="135" rx="8"/>
+<text class="tb" x="130.0" y="39" text-anchor="middle">Over time → line</text>
+<path class="ln" d="M50,55 L50,136 L210,136"/>
+<polyline class="dl" points="58.0,112.2 76.0,105.2 94.0,108.7 112.0,94.5 130.0,98.0 148.0,83.8 166.0,87.4 184.0,73.2 202.0,66.1"/>
+<rect class="bx2" x="255" y="15" width="210" height="135" rx="8"/>
+<text class="tb" x="360.0" y="39" text-anchor="middle">Category → bar</text>
+<rect class="dm" x="280" y="59" width="160.0" height="13" rx="2"/>
+<rect class="dm" x="280" y="78" width="124.8" height="13" rx="2"/>
+<rect class="dm" x="280" y="97" width="88.0" height="13" rx="2"/>
+<rect class="dm" x="280" y="116" width="56.0" height="13" rx="2"/>
+<path class="ln" d="M280,55 L280,136"/>
+<rect class="bx2" x="485" y="15" width="210" height="135" rx="8"/>
+<text class="tb" x="590.0" y="39" text-anchor="middle">Region → choropleth</text>
+<rect class="dm" x="512.0" y="57.0" width="49.3" height="36.5" rx="4" fill-opacity="0.9"/>
+<rect class="dm" x="565.3" y="57.0" width="49.3" height="36.5" rx="4" fill-opacity="0.35"/>
+<rect class="dm" x="618.7" y="57.0" width="49.3" height="36.5" rx="4" fill-opacity="0.6"/>
+<rect class="dm" x="512.0" y="97.5" width="49.3" height="36.5" rx="4" fill-opacity="0.5"/>
+<rect class="dm" x="565.3" y="97.5" width="49.3" height="36.5" rx="4" fill-opacity="0.15"/>
+<rect class="dm" x="618.7" y="97.5" width="49.3" height="36.5" rx="4" fill-opacity="0.75"/>
+<rect class="bx2" x="25" y="165" width="210" height="135" rx="8"/>
+<text class="tb" x="130.0" y="189" text-anchor="middle">Spread → histogram</text>
+<path class="ln" d="M50,205 L50,286 L210,286"/>
+<rect class="dm" x="54.0" y="277.0" width="15.4" height="9.0"/>
+<rect class="dm" x="70.9" y="263.5" width="15.4" height="22.5"/>
+<rect class="dm" x="87.8" y="241.0" width="15.4" height="45.0"/>
+<rect class="dm" x="104.7" y="218.5" width="15.4" height="67.5"/>
+<rect class="dm" x="121.6" y="211.0" width="15.4" height="75.0"/>
+<rect class="dm" x="138.4" y="229.8" width="15.4" height="56.2"/>
+<rect class="dm" x="155.3" y="252.2" width="15.4" height="33.8"/>
+<rect class="dm" x="172.2" y="271.0" width="15.4" height="15.0"/>
+<rect class="dm" x="189.1" y="280.0" width="15.4" height="6.0"/>
+<rect class="bx2" x="255" y="165" width="210" height="135" rx="8"/>
+<text class="tb" x="360.0" y="189" text-anchor="middle">X vs Y → scatter</text>
+<path class="ln" d="M280,205 L280,286 L440,286"/>
+<circle class="dm" cx="354.7" cy="250.2" r="3.2"/>
+<circle class="dm" cx="412.8" cy="222.6" r="3.2"/>
+<circle class="dm" cx="288.9" cy="280.0" r="3.2"/>
+<circle class="dm" cx="299.6" cy="268.9" r="3.2"/>
+<circle class="dm" cx="367.8" cy="244.0" r="3.2"/>
+<circle class="dm" cx="342.6" cy="253.5" r="3.2"/>
+<circle class="dm" cx="389.3" cy="244.9" r="3.2"/>
+<circle class="dm" cx="310.6" cy="261.1" r="3.2"/>
+<circle class="dm" cx="322.3" cy="253.7" r="3.2"/>
+<circle class="dm" cx="421.0" cy="216.8" r="3.2"/>
+<circle class="dm" cx="373.0" cy="239.5" r="3.2"/>
+<circle class="dm" cx="395.4" cy="238.6" r="3.2"/>
+<circle class="dm" cx="302.6" cy="270.1" r="3.2"/>
+<circle class="dm" cx="392.5" cy="223.1" r="3.2"/>
+<circle class="dm" cx="348.7" cy="245.2" r="3.2"/>
+<circle class="dm" cx="318.2" cy="258.7" r="3.2"/>
+<circle class="dm" cx="328.5" cy="255.9" r="3.2"/>
+<circle class="dm" cx="415.6" cy="228.5" r="3.2"/>
+<circle class="dm" cx="414.6" cy="218.2" r="3.2"/>
+<circle class="dm" cx="358.8" cy="243.7" r="3.2"/>
+<circle class="dm" cx="291.4" cy="280.0" r="3.2"/>
+<circle class="dm" cx="304.1" cy="260.1" r="3.2"/>
+<circle class="dm" cx="373.9" cy="233.6" r="3.2"/>
+<circle class="dm" cx="416.9" cy="217.4" r="3.2"/>
+<circle class="dm" cx="317.2" cy="259.0" r="3.2"/>
+<circle class="dm" cx="365.7" cy="243.2" r="3.2"/>
+<circle class="dm" cx="290.5" cy="265.2" r="3.2"/>
+<circle class="dm" cx="420.6" cy="218.2" r="3.2"/>
+<rect class="bx2" x="485" y="165" width="210" height="135" rx="8"/>
+<text class="tb" x="590.0" y="189" text-anchor="middle">Hierarchy → treemap</text>
+<rect class="dm" x="511.5" y="206.5" width="85.0" height="78.0" rx="3" fill-opacity="0.85"/>
+<rect class="dm" x="599.5" y="206.5" width="69.0" height="45.6" rx="3" fill-opacity="0.55"/>
+<rect class="dm" x="599.5" y="255.1" width="37.0" height="29.4" rx="3" fill-opacity="0.35"/>
+<rect class="dm" x="639.5" y="255.1" width="29.0" height="29.4" rx="3" fill-opacity="0.2"/>
+<rect class="bx3" x="40" y="338" width="130" height="46" rx="8"/>
+<text class="tb" x="105.0" y="366.0" text-anchor="middle">1 Overview</text>
+<rect class="bx3" x="255" y="338" width="180" height="46" rx="8"/>
+<text class="tb" x="345.0" y="366.0" text-anchor="middle">2 Zoom &amp; filter</text>
+<rect class="bx3" x="520" y="338" width="180" height="46" rx="8"/>
+<text class="tb" x="610.0" y="366.0" text-anchor="middle">3 Details on demand</text>
+<path class="ln" d="M170,361 L255,361" marker-end="url(#ah-w09shneiderman)"/>
+<path class="ln" d="M435,361 L520,361" marker-end="url(#ah-w09shneiderman)"/>
+<text class="tm" x="360" y="326" text-anchor="middle">Interaction order (the mantra)</text>
+</svg>

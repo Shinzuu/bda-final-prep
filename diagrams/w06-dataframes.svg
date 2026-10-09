@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 340" font-family="Inter, Segoe UI, system-ui, sans-serif"><style>.bx{fill:var(--d-box,#fff7ed);stroke:var(--d-line,#b45309);stroke-width:1.5}
+.bx2{fill:var(--d-box2,#eff6ff);stroke:var(--d-line2,#1d4ed8);stroke-width:1.5}
+.bx3{fill:var(--d-box3,#ecfdf3);stroke:var(--d-line3,#15803d);stroke-width:1.5}
+.ln{stroke:var(--d-ink,#44403c);stroke-width:1.5;fill:none}
+.t{fill:var(--d-ink,#1c1b19);font-size:14px}.tb{fill:var(--d-ink,#1c1b19);font-size:14px;font-weight:600}
+.ts{fill:var(--d-mute,#78716c);font-size:12px}</style><defs><marker id="ah-w06dataframes" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--d-ink,#44403c)"/></marker></defs><rect class="bx" x="22" y="20" width="160" height="64" rx="8"/>
+<text class="tb" x="102.0" y="47.5" text-anchor="middle">Spark SQL</text>
+<text class="t" x="102.0" y="66.5" text-anchor="middle">DataFrames</text>
+<rect class="bx" x="194" y="20" width="160" height="64" rx="8"/>
+<text class="tb" x="274.0" y="47.5" text-anchor="middle">MLlib</text>
+<text class="t" x="274.0" y="66.5" text-anchor="middle">distributed ML</text>
+<rect class="bx" x="366" y="20" width="160" height="64" rx="8"/>
+<text class="tb" x="446.0" y="47.5" text-anchor="middle">Structured</text>
+<text class="tb" x="446.0" y="66.5" text-anchor="middle">Streaming</text>
+<rect class="bx" x="538" y="20" width="160" height="64" rx="8"/>
+<text class="tb" x="618.0" y="47.5" text-anchor="middle">GraphX</text>
+<text class="t" x="618.0" y="66.5" text-anchor="middle">PageRank</text>
+<rect class="bx2" x="22" y="104" width="676" height="60" rx="8"/>
+<text class="tb" x="360.0" y="129.5" text-anchor="middle">Spark Core</text>
+<text class="t" x="360.0" y="148.5" text-anchor="middle">RDD API · DAG scheduler · task scheduler</text>
+<rect class="bx3" x="22" y="184" width="676" height="60" rx="8"/>
+<text class="tb" x="360.0" y="209.5" text-anchor="middle">Storage</text>
+<text class="t" x="360.0" y="228.5" text-anchor="middle">HDFS · S3 · Cassandra · HBase · Kafka · JDBC</text>
+<rect class="bx3" x="22" y="264" width="676" height="60" rx="8"/>
+<text class="tb" x="360.0" y="289.5" text-anchor="middle">Cluster Manager</text>
+<text class="t" x="360.0" y="308.5" text-anchor="middle">YARN · Kubernetes · Mesos · Standalone</text></svg>

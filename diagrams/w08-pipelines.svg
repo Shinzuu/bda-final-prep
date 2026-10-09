@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 330" font-family="Inter, Segoe UI, system-ui, sans-serif"><style>.bx{fill:var(--d-box,#fff7ed);stroke:var(--d-line,#b45309);stroke-width:1.5}
+.bx2{fill:var(--d-box2,#eff6ff);stroke:var(--d-line2,#1d4ed8);stroke-width:1.5}
+.bx3{fill:var(--d-box3,#ecfdf3);stroke:var(--d-line3,#15803d);stroke-width:1.5}
+.ln{stroke:var(--d-ink,#44403c);stroke-width:1.5;fill:none}
+.t{fill:var(--d-ink,#1c1b19);font-size:14px}.tb{fill:var(--d-ink,#1c1b19);font-size:14px;font-weight:600}
+.ts{fill:var(--d-mute,#78716c);font-size:12px}</style><defs><marker id="ah-w08pipelines" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--d-ink,#44403c)"/></marker></defs><text class="tb" x="180" y="36" text-anchor="middle">Point-to-point ETL</text>
+<text class="tb" x="560" y="36" text-anchor="middle">Event bus</text>
+<rect class="bx" x="60" y="70" width="70" height="40" rx="8"/>
+<text class="tb" x="95.0" y="95.0" text-anchor="middle">S1</text>
+<rect class="bx" x="230" y="70" width="70" height="40" rx="8"/>
+<text class="tb" x="265.0" y="95.0" text-anchor="middle">S2</text>
+<rect class="bx" x="60" y="230" width="70" height="40" rx="8"/>
+<text class="tb" x="95.0" y="255.0" text-anchor="middle">S3</text>
+<rect class="bx" x="230" y="230" width="70" height="40" rx="8"/>
+<text class="tb" x="265.0" y="255.0" text-anchor="middle">S4</text>
+<path class="ln" d="M130,90 L230,90" marker-end="url(#ah-w08pipelines)" marker-start="url(#ah-w08pipelines)"/>
+<path class="ln" d="M130,250 L230,250" marker-end="url(#ah-w08pipelines)" marker-start="url(#ah-w08pipelines)"/>
+<path class="ln" d="M95,110 L95,230" marker-end="url(#ah-w08pipelines)" marker-start="url(#ah-w08pipelines)"/>
+<path class="ln" d="M265,110 L265,230" marker-end="url(#ah-w08pipelines)" marker-start="url(#ah-w08pipelines)"/>
+<path class="ln" d="M130,110 L230,230" marker-end="url(#ah-w08pipelines)" marker-start="url(#ah-w08pipelines)"/>
+<path class="ln" d="M230,110 L130,230" marker-end="url(#ah-w08pipelines)" marker-start="url(#ah-w08pipelines)"/>
+<text class="ts" x="180" y="300" text-anchor="middle">N × (N − 1) jobs, no replay</text>
+<line class="ln" x1="350" y1="60" x2="350" y2="300" stroke-dasharray="4 4"/>
+<rect class="bx" x="390" y="70" width="80" height="40" rx="8"/>
+<text class="tb" x="430.0" y="95.0" text-anchor="middle">Src A</text>
+<rect class="bx" x="650" y="70" width="80" height="40" rx="8"/>
+<text class="tb" x="690.0" y="95.0" text-anchor="middle">Con 1</text>
+<path class="ln" d="M470,90 L510,140" marker-end="url(#ah-w08pipelines)"/>
+<path class="ln" d="M600,140 L650,90" marker-end="url(#ah-w08pipelines)"/>
+<rect class="bx" x="390" y="150" width="80" height="40" rx="8"/>
+<text class="tb" x="430.0" y="175.0" text-anchor="middle">Src B</text>
+<rect class="bx" x="650" y="150" width="80" height="40" rx="8"/>
+<text class="tb" x="690.0" y="175.0" text-anchor="middle">Con 2</text>
+<path class="ln" d="M470,170 L510,170" marker-end="url(#ah-w08pipelines)"/>
+<path class="ln" d="M600,170 L650,170" marker-end="url(#ah-w08pipelines)"/>
+<rect class="bx" x="390" y="230" width="80" height="40" rx="8"/>
+<text class="tb" x="430.0" y="255.0" text-anchor="middle">Src C</text>
+<rect class="bx" x="650" y="230" width="80" height="40" rx="8"/>
+<text class="tb" x="690.0" y="255.0" text-anchor="middle">Con 3</text>
+<path class="ln" d="M470,250 L510,200" marker-end="url(#ah-w08pipelines)"/>
+<path class="ln" d="M600,200 L650,250" marker-end="url(#ah-w08pipelines)"/>
+<rect class="bx2" x="510" y="110" width="90" height="120" rx="8"/>
+<text class="tb" x="555.0" y="167.0" text-anchor="middle">Kafka</text>
+<text class="ts" x="555.0" y="184.0" text-anchor="middle">message bus</text>
+<text class="ts" x="560" y="300" text-anchor="middle">N links, decoupled, replayable</text></svg>

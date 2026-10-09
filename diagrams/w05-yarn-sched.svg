@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 710 390" font-family="Inter, Segoe UI, system-ui, sans-serif">
+<style>.bx{fill:var(--d-box,#fff7ed);stroke:var(--d-line,#b45309);stroke-width:1.5}
+.bx2{fill:var(--d-box2,#eff6ff);stroke:var(--d-line2,#1d4ed8);stroke-width:1.5}
+.bx3{fill:var(--d-box3,#ecfdf3);stroke:var(--d-line3,#15803d);stroke-width:1.5}
+.ln{stroke:var(--d-ink,#44403c);stroke-width:1.5;fill:none}
+.t{fill:var(--d-ink,#1c1b19);font-size:14px}.tb{fill:var(--d-ink,#1c1b19);font-size:14px;font-weight:600}
+.ts{fill:var(--d-mute,#78716c);font-size:12px}</style>
+<defs><marker id="ah-w05c" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--d-ink,#44403c)"/></marker></defs>
+<rect class="bx" x="170" y="24" width="380" height="60" rx="8"/>
+<text class="tb" x="360.0" y="50.0" text-anchor="middle">ResourceManager</text>
+<text class="ts" x="360.0" y="68.0" text-anchor="middle">Capacity Scheduler, 5,000 nodes</text>
+<rect class="bx2" x="25" y="140" width="124" height="104" rx="8"/>
+<text class="tb" x="87.0" y="170.0" text-anchor="middle">production</text>
+<text class="t" x="87.0" y="188.0" text-anchor="middle">40%</text>
+<text class="ts" x="87.0" y="206.0" text-anchor="middle">Hive ETL</text>
+<text class="ts" x="87.0" y="224.0" text-anchor="middle">max 16,000</text>
+<line class="ln" x1="360" y1="84" x2="87.0" y2="138" marker-end="url(#ah-w05c)"/>
+<rect class="bx2" x="159" y="140" width="124" height="104" rx="8"/>
+<text class="tb" x="221.0" y="170.0" text-anchor="middle">spark</text>
+<text class="t" x="221.0" y="188.0" text-anchor="middle">25%</text>
+<text class="ts" x="221.0" y="206.0" text-anchor="middle">Spark</text>
+<text class="ts" x="221.0" y="224.0" text-anchor="middle">max 5,000</text>
+<line class="ln" x1="360" y1="84" x2="221.0" y2="138" marker-end="url(#ah-w05c)"/>
+<rect class="bx2" x="293" y="140" width="124" height="104" rx="8"/>
+<text class="tb" x="355.0" y="170.0" text-anchor="middle">samza</text>
+<text class="t" x="355.0" y="188.0" text-anchor="middle">15%</text>
+<text class="ts" x="355.0" y="206.0" text-anchor="middle">Samza</text>
+<text class="ts" x="355.0" y="224.0" text-anchor="middle">max 12,000</text>
+<line class="ln" x1="360" y1="84" x2="355.0" y2="138" marker-end="url(#ah-w05c)"/>
+<rect class="bx2" x="427" y="140" width="124" height="104" rx="8"/>
+<text class="tb" x="489.0" y="170.0" text-anchor="middle">adhoc</text>
+<text class="t" x="489.0" y="188.0" text-anchor="middle">10%</text>
+<text class="ts" x="489.0" y="206.0" text-anchor="middle">Analyst SQL</text>
+<text class="ts" x="489.0" y="224.0" text-anchor="middle">max 4,000</text>
+<line class="ln" x1="360" y1="84" x2="489.0" y2="138" marker-end="url(#ah-w05c)"/>
+<rect class="bx2" x="561" y="140" width="124" height="104" rx="8"/>
+<text class="tb" x="623.0" y="170.0" text-anchor="middle">reserve</text>
+<text class="t" x="623.0" y="188.0" text-anchor="middle">10%</text>
+<text class="ts" x="623.0" y="206.0" text-anchor="middle">burst</text>
+<text class="ts" x="623.0" y="224.0" text-anchor="middle">no size</text>
+<line class="ln" x1="360" y1="84" x2="623.0" y2="138" marker-end="url(#ah-w05c)"/>
+<rect class="bx3" x="25" y="290" width="660" height="44" rx="8"/>
+<text class="tb" x="355.0" y="317.0" text-anchor="middle">HDFS shared storage</text>
+<text class="ts" x="355" y="372" text-anchor="middle">Node 64 GB / 16 vCPU: CPU is the bottleneck in every queue</text>
+</svg>

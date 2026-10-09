@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 410" font-family="Inter, Segoe UI, system-ui, sans-serif">
+<style>.bx{fill:var(--d-box,#fff7ed);stroke:var(--d-line,#b45309);stroke-width:1.5}
+.bx2{fill:var(--d-box2,#eff6ff);stroke:var(--d-line2,#1d4ed8);stroke-width:1.5}
+.bx3{fill:var(--d-box3,#ecfdf3);stroke:var(--d-line3,#15803d);stroke-width:1.5}
+.ln{stroke:var(--d-ink,#44403c);stroke-width:1.5;fill:none}
+.t{fill:var(--d-ink,#1c1b19);font-size:14px}.tb{fill:var(--d-ink,#1c1b19);font-size:14px;font-weight:600}
+.ts{fill:var(--d-mute,#78716c);font-size:12px}</style>
+<defs><marker id="ah-w07e" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--d-ink,#44403c)"/></marker></defs>
+<text class="tb" x="160" y="28" text-anchor="middle">Hive + MapReduce</text>
+<text class="tb" x="440" y="28" text-anchor="middle">Presto</text>
+<rect class="bx3" x="70" y="45" width="180" height="40" rx="8"/>
+<text class="tb" x="160.0" y="70.0" text-anchor="middle">HDFS read</text>
+<rect class="bx2" x="70" y="107" width="180" height="40" rx="8"/>
+<text class="tb" x="160.0" y="132.0" text-anchor="middle">Map phase</text>
+<polyline class="ln" points="160,85 160,105" marker-end="url(#ah-w07e)"/>
+<rect class="bx" x="70" y="169" width="180" height="40" rx="8"/>
+<text class="tb" x="160.0" y="194.0" text-anchor="middle">HDFS write</text>
+<polyline class="ln" points="160,147 160,167" marker-end="url(#ah-w07e)"/>
+<rect class="bx2" x="70" y="231" width="180" height="40" rx="8"/>
+<text class="tb" x="160.0" y="256.0" text-anchor="middle">Reduce phase</text>
+<polyline class="ln" points="160,209 160,229" marker-end="url(#ah-w07e)"/>
+<rect class="bx" x="70" y="293" width="180" height="40" rx="8"/>
+<text class="tb" x="160.0" y="318.0" text-anchor="middle">HDFS write</text>
+<polyline class="ln" points="160,271 160,291" marker-end="url(#ah-w07e)"/>
+<rect class="bx3" x="350" y="45" width="180" height="40" rx="8"/>
+<text class="tb" x="440.0" y="70.0" text-anchor="middle">HDFS read</text>
+<rect class="bx2" x="350" y="125" width="180" height="120" rx="8"/>
+<text class="tb" x="440.0" y="182.0" text-anchor="middle">In-memory pipeline</text>
+<text class="ts" x="440.0" y="199.0" text-anchor="middle">split → stage → output</text>
+<rect class="bx3" x="350" y="293" width="180" height="40" rx="8"/>
+<text class="tb" x="440.0" y="318.0" text-anchor="middle">Client result</text>
+<polyline class="ln" points="440,85 440,123" marker-end="url(#ah-w07e)"/>
+<polyline class="ln" points="440,245 440,291" marker-end="url(#ah-w07e)"/>
+<text class="tb" x="160" y="375" text-anchor="middle">5–15 min</text>
+<text class="tb" x="440" y="375" text-anchor="middle">5–60 sec</text>
+<text class="ts" x="160" y="393" text-anchor="middle">disk write between stages</text>
+<text class="ts" x="440" y="393" text-anchor="middle">no intermediate disk writes</text>
+</svg>

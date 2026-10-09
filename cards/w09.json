@@ -1,0 +1,1299 @@
+{
+ "week": 9,
+ "title": "Data visualization",
+ "summary": "How to draw big data so people see the truth in it: Tufte's rules for clean, honest charts, Shneiderman's rule for interactive ones, and picking the chart from the question. Then the three problems scale adds (overplotting, latency, streaming), the tools that solve them, and the NYT COVID tracker as a worked case.",
+ "topics": [
+  {
+   "id": "tufte",
+   "chapter": 9,
+   "title": "Tufte: data-ink, chartjunk, lie factor",
+   "facts": [
+    "Edward Tufte, <i>The Visual Display of Quantitative Information</i> (1983). Motto: \"Above all else, show the data.\"",
+    "<b>Data-ink ratio</b> = ink encoding data ÷ total ink in the chart. Goal: make it as high as possible (maximum 1).",
+    "<b>Chartjunk</b>: ink that carries no data. Slide list: 3-D effects, gradient fills, redundant legends, heavy gridlines, decorative borders, vibrations, ducks.",
+    "<b>Lie factor</b> = size of effect shown in graphic ÷ size of effect in data. 1 = truthful, above 1 overstates, below 1 understates.",
+    "<b>Small multiples</b> (trellis or facet chart): the same small chart repeated per subset (district, year), all on the same axis scale.",
+    "<b>Sparkline</b>: a word-sized trend line placed inside text or a table cell, next to the number it describes."
+   ],
+   "mechanism": [
+    "List every element in the chart: bars, axes, gridlines, legend, title, borders, shading",
+    "For each element ask: if I erase it, does the chart lose information?",
+    "Erase it if not: 3-D depth, gradients, borders, a legend for a single series",
+    "Lighten what must stay: thin light axes, at most one light reference line",
+    "Label data directly on the axis instead of in a legend",
+    "Check the y-axis starts at 0 so the lie factor stays near 1"
+   ],
+   "why": [
+    "Non-data ink competes with the data for the reader's attention, so the trend takes longer to see.",
+    "3-D depth and perspective distort bar heights: never use 3-D for 2-D data.",
+    "A cut y-axis inflates differences; the lie factor puts a number on that distortion.",
+    "Small multiples let the eye compare all panels at once; a shared scale makes the comparison valid.",
+    "Limitation: the ratio is about what ink shows, not how little ink is used. One thick bar for one key value still scores high."
+   ],
+   "contrasts": [
+    {
+     "vs": "chart elements",
+     "head": [
+      "",
+      "Data-ink",
+      "Chartjunk"
+     ],
+     "rows": [
+      [
+       "What it is",
+       "Ink that encodes a value",
+       "Ink that encodes nothing"
+      ],
+      [
+       "Examples",
+       "Bar length, data point, trend line",
+       "3-D shading, gradient, heavy grid, single-series legend"
+      ],
+      [
+       "Erase test",
+       "Erasing loses information",
+       "Erasing loses nothing"
+      ],
+      [
+       "Effect on ratio",
+       "Raises it",
+       "Lowers it"
+      ]
+     ]
+    },
+    {
+     "vs": "Small multiples vs sparklines vs animation",
+     "head": [
+      "",
+      "Small multiples",
+      "Sparkline",
+      "Animation"
+     ],
+     "rows": [
+      [
+       "Shows",
+       "Same chart per subset, grid",
+       "Tiny trend inside text/table",
+       "One frame at a time"
+      ],
+      [
+       "Comparison",
+       "All subsets at once, same scale",
+       "Trend shape next to one number",
+       "Viewer must remember earlier frames"
+      ],
+      [
+       "Axes",
+       "Shared scale",
+       "None; shows shape and direction only",
+       "Changes over time"
+      ]
+     ]
+    }
+   ],
+   "scenarios": [
+    {
+     "cue": "a chart has 3-D bars, gradient fill, and a legend for one series",
+     "answer": "chartjunk; low data-ink ratio"
+    },
+    {
+     "cue": "the y-axis starts at 50, so a 10% rise looks like a doubling",
+     "answer": "lie factor ≈ 10"
+    },
+    {
+     "cue": "the same line chart drawn for every district in a grid, same y-scale",
+     "answer": "small multiples"
+    },
+    {
+     "cue": "a table of district case counts with a tiny trend line beside each number",
+     "answer": "sparklines"
+    },
+    {
+     "cue": "a dashboard designer removes gridlines and leaves one light line at the previous peak",
+     "answer": "raising the data-ink ratio"
+    }
+   ],
+   "calculation": {
+    "example": "<p><b>Lie factor (P2 slide 7).</b> y-axis starts at 50 instead of 0. Data rises +10%, but the bar doubles in height (+100%). Lie factor = 100 ÷ 10 = <b>10</b>.</p><p><b>Data-ink ratio.</b> 1,000 units of ink, 300 draw bars: 300 ÷ 1,000 = <b>0.3</b>. Remove 500 units of junk: 300 ÷ 500 = <b>0.6</b>.</p>",
+    "steps": [
+     "Given old and new data values → effect in data = (new − old) ÷ old",
+     "Given old and new drawn heights → effect shown = (new height − old height) ÷ old height",
+     "Given both effects → lie factor = shown ÷ data; compare with 1",
+     "Given data-ink and total ink → ratio = data-ink ÷ total ink",
+     "Given ink removed as junk → new total = old total − removed; data-ink unchanged; recompute ratio"
+    ],
+    "variants": [
+     "Revenue 100 → 110 (+10%); bars drawn 40 px → 60 px (+50%). Lie factor = 50 ÷ 10 = <b>5</b> (overstates)",
+     "400 data-ink + 600 decoration: ratio = 400 ÷ 1,000 = <b>0.4</b>; delete all decoration: 400 ÷ 400 = <b>1.0</b>",
+     "Data +20%, drawn +10%: lie factor = 10 ÷ 20 = <b>0.5</b> (understates)"
+    ]
+   },
+   "traps": [
+    "Data-ink ratio is not about saving ink or printing cost (MCQ option (c)).",
+    "Lie factor uses percentage changes, not raw heights: divide the two changes, not the two bars.",
+    "Small multiples need the same scale on every panel, or cross-panel comparison is invalid.",
+    "Lie factor below 1 is also a distortion (understating), not \"extra honest\"."
+   ],
+   "answers": {
+    "1": "The data-ink ratio is the share of a chart's ink that encodes data, and Tufte says to maximise it.",
+    "3": "Tufte's data-ink ratio = ink encoding data ÷ total ink; erase any element whose removal loses no information (chartjunk such as 3-D bars or a single-series legend). Example: a cluttered quarterly sales chart becomes flat bars, labels on the axis, no gridlines.",
+    "5": "<p><b>Definition:</b> data-ink ratio = ink encoding data ÷ total ink (Tufte, 1983); maximise it.</p><ol><li>List every element.</li><li>Erase what carries no data: 3-D, gradients, borders, redundant legend, heavy grid.</li><li>Lighten what stays; label directly; start y at 0.</li></ol><p><b>Example:</b> 300 of 1,000 ink units are data (0.3); remove 500 units of junk and it becomes 300 ÷ 500 = 0.6. Related tools: lie factor (shown effect ÷ data effect; a y-axis starting at 50 gives ≈ 10), small multiples, sparklines.</p><p><b>Limitation:</b> the ratio measures what ink shows, not minimal ink; some non-data ink (one reference line, axis labels) still helps reading.</p>"
+   },
+   "questions": [
+    {
+     "format": "mcq",
+     "q": "A bar chart's y-axis starts at 50. The data rises 10% but the bar looks twice as tall. The lie factor is about:",
+     "options": [
+      "10",
+      "1",
+      "0.1",
+      "2"
+     ],
+     "a": "Shown effect +100% ÷ data effect +10% = 10."
+    },
+    {
+     "format": "blank",
+     "q": "Ink in a chart that does not convey data is called ______.",
+     "a": "chartjunk"
+    },
+    {
+     "format": "define",
+     "q": "Define data-ink ratio and list four chartjunk elements.",
+     "a": "Ink encoding data ÷ total ink in the chart. Chartjunk: 3-D effects, gradient fills, redundant legends, heavy gridlines (also decorative borders)."
+    },
+    {
+     "format": "steps",
+     "q": "Describe how you would apply the data-ink principle to clean a cluttered bar chart.",
+     "a": "List each element; erase any whose removal loses no information (3-D, gradients, border, single-series legend); lighten axes and keep at most one light reference line; label bars on the axis; start y at 0."
+    },
+    {
+     "format": "why",
+     "q": "Why does Tufte say never use 3-D for 2-D data?",
+     "a": "Depth, shadow and perspective add ink with no data and distort the apparent heights, so comparisons between bars become wrong."
+    },
+    {
+     "format": "distinguish",
+     "q": "Distinguish small multiples from sparklines.",
+     "a": "Small multiples: a grid of the same full chart per subset on one shared scale, for comparison. Sparklines: a word-sized trend line with no axes, placed inline next to one number, showing shape and direction."
+    },
+    {
+     "format": "scenario",
+     "q": "A ministry report shows district dengue cases as 3-D cylinders with a gradient fill and a legend reading \"Cases\". The y-axis starts at 950; cases rose from 1,000 to 1,100, so the bar grows from 50 to 150 units above the axis and looks three times as tall.<br>i) Name the principle broken by the cylinders. ii) What is the data effect? iii) Name the measure of the axis distortion. iv) Give one fix.",
+     "a": "i) Data-ink ratio (chartjunk). ii) +10%. iii) Lie factor: shown +200% ÷ data +10% = <b>20</b>, a big overstatement. iv) Flat 2-D bars starting at 0, no legend."
+    },
+    {
+     "format": "one_step",
+     "q": "Data effect is +10%; the drawn bar grows by 50%. Lie factor?",
+     "a": "50 ÷ 10 = <b>5</b>; the chart overstates the change five times."
+    },
+    {
+     "format": "full_calc",
+     "q": "A chart uses 1,000 ink units; 300 draw the bars. (a) Data-ink ratio? (b) After 500 units of junk are removed? (c) Bars grow 40 → 60 px while sales go 100 → 110: lie factor?",
+     "a": "(a) 300 ÷ 1,000 = <b>0.3</b>. (b) 300 ÷ 500 = <b>0.6</b>. (c) shown (60 − 40) ÷ 40 = 50%; data 10%; lie factor = <b>5</b>."
+    },
+    {
+     "format": "long",
+     "q": "Explain Tufte's principles of analytical design: data-ink ratio, lie factor, small multiples, sparklines. Give an example of each.",
+     "a": "Data-ink ratio = data ink ÷ total ink; erase chartjunk (3-D bars become flat bars). Lie factor = shown effect ÷ data effect; an axis starting at 50 turns +10% into a doubling, factor 10. Small multiples: a 50-state grid of line charts on one scale. Sparklines: a tiny trend beside \"Dhaka 4,217\" in a table. Limitation: the ratio is a guide; one light reference line is still useful."
+    }
+   ],
+   "diagram": {
+    "file": "diagrams/w09-tufte.svg",
+    "caption": "A y-axis starting at 900 makes a 5% rise (1,000 → 1,050) look like a 50% jump, lie factor 10; starting at 0 keeps it at 1."
+   }
+  },
+  {
+   "id": "shneiderman",
+   "chapter": 9,
+   "title": "Shneiderman's mantra and choosing the chart",
+   "facts": [
+    "Ben Shneiderman, \"The Eyes Have It\" (1996). Mantra: <b>\"Overview first, zoom and filter, then details on demand.\"</b>",
+    "<b>Seven data types</b>: 1-D (linear), 2-D (map), 3-D (world), temporal, multi-dimensional, tree, network.",
+    "<b>Seven tasks</b> (P2 slide 9), the same for every data type: overview, zoom, filter, details-on-demand, relate, history, extract. P1 lists only the first five.",
+    "<b>Treemap</b> (Shneiderman, 1991): nested rectangles, area ∝ size. <b>Dynamic queries</b>: sliders and buttons that redraw the chart in under 100 ms (ancestor of Tableau's filter shelf).",
+    "<b>Anscombe's Quartet</b> (1973): same mean x 9.0, mean y 7.5, variance x 11.0, r 0.816, fit y = 3 + 0.5x; four different shapes.",
+    "<b>Pie chart</b>: only for ≤ 4 categories and the question \"what fraction of the whole?\" People judge angles worse than lengths.",
+    "<b>Choropleth</b>: regions shaded by a rate or proportion. For absolute counts use a proportional bubble map."
+   ],
+   "mechanism": [
+    "Overview: show the whole dataset first (national total, whole map)",
+    "Zoom: narrow to a region or time range of interest",
+    "Filter: drop items you do not need (dropdown, slider)",
+    "Details on demand: hover or click to get the raw record of one item",
+    "Relate: cross-highlight the same item across linked charts",
+    "To pick each chart: write the question, classify the data type, take the recommended chart, check the avoid list"
+   ],
+   "why": [
+    "The user needs global context before knowing what to filter; filtering first hides where to look.",
+    "Details for every item at once would swamp the screen, so they appear only on request.",
+    "Equal summary statistics can hide different shapes (Anscombe), so plot before trusting a mean: visualization is the first quality check.",
+    "Bar lengths on a common baseline are read more accurately than angles or areas.",
+    "Choropleths of raw counts just show where people live; rates remove population size."
+   ],
+   "contrasts": [
+    {
+     "vs": "Shneiderman's seven data types",
+     "head": [
+      "Data type",
+      "Example",
+      "Best chart"
+     ],
+     "rows": [
+      [
+       "1-D linear",
+       "Ranked list",
+       "Bar chart, histogram"
+      ],
+      [
+       "2-D map",
+       "Districts",
+       "Choropleth, bubble map"
+      ],
+      [
+       "3-D world",
+       "MRI, CT volumes",
+       "3-D scatter, volume render"
+      ],
+      [
+       "Temporal",
+       "Time series",
+       "Line, area, calendar heatmap"
+      ],
+      [
+       "Multi-dimensional / tree",
+       "Census (10+ vars) / file system",
+       "Scatterplot matrix, parallel coords / treemap, sunburst"
+      ],
+      [
+       "Network",
+       "Social graph",
+       "Force-directed graph, chord diagram"
+      ]
+     ]
+    },
+    {
+     "vs": "chart by question (P1 slide 14)",
+     "head": [
+      "Question",
+      "Use",
+      "Avoid"
+     ],
+     "rows": [
+      [
+       "How did X change over time?",
+       "Line, area, calendar heatmap",
+       "Pie chart"
+      ],
+      [
+       "Which category is largest?",
+       "Horizontal bar (more than 5 cats), grouped bar",
+       "3-D pie"
+      ],
+      [
+       "How is X spread across regions?",
+       "Choropleth (rate), bubble map (count)",
+       "Plain bar"
+      ],
+      [
+       "What is the spread of X?",
+       "Histogram, box plot, violin",
+       "Line chart"
+      ],
+      [
+       "Does X predict Y?",
+       "Scatterplot, scatterplot matrix",
+       "Bar chart"
+      ],
+      [
+       "Pattern across more than 3 variables?",
+       "Parallel coordinates, t-SNE/UMAP",
+       "3-D bar"
+      ]
+     ]
+    }
+   ],
+   "scenarios": [
+    {
+     "cue": "the dashboard opens on a national total, then a state dropdown, then a hover tooltip",
+     "answer": "Shneiderman's mantra"
+    },
+    {
+     "cue": "a date-range slider redraws the chart as it moves",
+     "answer": "dynamic query (zoom and filter)"
+    },
+    {
+     "cue": "disk usage by department drawn as nested rectangles sized by storage",
+     "answer": "treemap (tree data)"
+    },
+    {
+     "cue": "show how monthly cholera cases changed over three years",
+     "answer": "line chart (temporal)"
+    },
+    {
+     "cue": "show dengue cases per 100,000 people by district",
+     "answer": "choropleth map (2-D)"
+    }
+   ],
+   "calculation": null,
+   "traps": [
+    "Overview comes first. \"Filter first\" is the classic wrong option.",
+    "A pie chart for more than 5 categories is never recommended (T/F trap).",
+    "A histogram shows spread; a treemap shows hierarchy, not spread.",
+    "The same r = 0.816 does not mean the same relationship (Anscombe).",
+    "Seven data types (1-D … network) and seven tasks (overview … extract) are different lists; do not mix them."
+   ],
+   "answers": {
+    "1": "Shneiderman's mantra is \"overview first, zoom and filter, then details on demand\".",
+    "3": "Shneiderman (1996): show the whole data first, let the user zoom and filter, then give one item's details on request. The data type picks the chart: line for time, horizontal bar for categories, choropleth for regional rates, histogram for spread. Example: Google Maps shows the country, you zoom to a city, then click a shop.",
+    "5": "<p><b>Mantra:</b> overview first, zoom and filter, then details on demand (Shneiderman, 1996).</p><ol><li>Overview: whole dataset.</li><li>Zoom/filter: narrow the subset (sliders = dynamic queries).</li><li>Details on demand: raw record on hover or click.</li></ol><p><b>Chart by data type:</b> temporal → line; categorical → horizontal bar; 2-D → choropleth (rate); distribution → histogram; correlation → scatterplot; tree → treemap; network → force-directed graph. <b>Why plot at all:</b> Anscombe's four datasets share mean, variance and r = 0.816 but differ in shape. <b>Limitation:</b> the mantra fixes interaction order, not how clean the chart is; Tufte covers that.</p>"
+   },
+   "questions": [
+    {
+     "format": "mcq",
+     "q": "Which chart best shows the distribution and spread of a continuous variable?",
+     "options": [
+      "Histogram",
+      "Pie chart",
+      "Line chart",
+      "Treemap"
+     ],
+     "a": "Bins counts along the number line, so the shape and spread show."
+    },
+    {
+     "format": "blank",
+     "q": "Shneiderman's mantra: overview first, zoom and filter, then ______.",
+     "a": "details on demand"
+    },
+    {
+     "format": "define",
+     "q": "List Shneiderman's seven data types.",
+     "a": "1-D linear, 2-D map, 3-D world, temporal, multi-dimensional, tree, network."
+    },
+    {
+     "format": "steps",
+     "q": "Describe the mantra's steps on a sales dashboard.",
+     "a": "Overview: total sales map. Zoom and filter: pick a region and Q1 with a slider. Details on demand: hover a store to see its exact figures."
+    },
+    {
+     "format": "why",
+     "q": "Why is a bar chart better than a pie chart for 8 categories?",
+     "a": "People compare lengths on a shared baseline accurately but judge angles and arcs poorly, and more slices make it worse."
+    },
+    {
+     "format": "distinguish",
+     "q": "Distinguish zoom/filter from details on demand.",
+     "a": "Zoom/filter narrows the set of items shown (a region, a date range). Details on demand retrieves the full record of one item, by hover or click."
+    },
+    {
+     "format": "scenario",
+     "q": "A ride-share dashboard opens on a city map of all trips. A slider limits it to 6-9 pm. Clicking a driver shows trip history.<br>i) Which design rule is followed? ii) What is the slider? iii) What is the click? iv) Chart for trips per hour across a week?",
+     "a": "i) Shneiderman's mantra. ii) A dynamic query (zoom and filter). iii) Details on demand. iv) Line chart (temporal)."
+    },
+    {
+     "format": "long",
+     "q": "Explain Shneiderman's mantra and how the data type decides the chart. Apply both to a district health dashboard.",
+     "a": "Mantra: overview, zoom and filter, details on demand. Seven types: 1-D, 2-D, 3-D, temporal, multi-dimensional, tree, network. Dashboard: case trend (temporal) as line charts, district rates (2-D) as a choropleth, age spread as a histogram; overview = national total, filter = district dropdown and date slider, details = hover tooltip. Anscombe shows why to plot: equal statistics, different shapes. Limitation: the mantra fixes interaction order, not chart cleanliness."
+    }
+   ],
+   "diagram": {
+    "file": "diagrams/w09-shneiderman.svg",
+    "caption": "Pick the chart from the question and data type, then build the interaction in the mantra's order: overview, zoom and filter, details on demand."
+   }
+  },
+  {
+   "id": "overplotting",
+   "chapter": 9,
+   "title": "Overplotting: alpha, hexbin, KDE",
+   "facts": [
+    "<b>Overplotting</b>: with millions of points, dots cover each other and the scatterplot becomes a solid blob.",
+    "Three fixes in increasing sophistication: alpha transparency, hexbin aggregation, KDE density contours.",
+    "<b>Alpha transparency</b>: each point nearly see-through (slide: α = 0.02), so dense areas look darker.",
+    "<b>Hexbin</b>: hexagonal grid, count points per hex, colour by count. 10 million points become about 10,000 cells.",
+    "<b>KDE</b> (kernel density estimation): a smooth density surface drawn as contour lines; shows shape, modes and tails."
+   ],
+   "mechanism": [
+    "Spot the blob: the scatter shows only that data exists",
+    "Try alpha: set opacity low so stacked points darken the area",
+    "If dense areas all turn black, bin instead: divide the plane into hexagons",
+    "Count the points in each hexagon and colour it by the count",
+    "For shape, estimate a KDE and draw contours at chosen probability levels"
+   ],
+   "why": [
+    "Alpha keeps relative density, but stacked points saturate to full black at very high densities.",
+    "Hexbin keeps the count per area and draws thousands of cells instead of millions of dots, so it stays interactive.",
+    "KDE keeps the shape of the distribution: peaks (modes), clusters and tails.",
+    "Limitation of binning: individual points and outliers inside a cell are lost."
+   ],
+   "contrasts": [
+    {
+     "vs": "the three fixes",
+     "head": [
+      "",
+      "Alpha",
+      "Hexbin",
+      "KDE contour"
+     ],
+     "rows": [
+      [
+       "How",
+       "Low opacity per point",
+       "Count per hexagon, colour by count",
+       "Smooth density, contour lines"
+      ],
+      [
+       "Preserves",
+       "Relative density",
+       "Exact count per area",
+       "Shape, modes, tails"
+      ],
+      [
+       "Weakness",
+       "Saturates at high density",
+       "Hides points inside a cell",
+       "Smooths away detail; needs a bandwidth"
+      ],
+      [
+       "Marks drawn",
+       "All N points",
+       "≈ number of cells",
+       "A few contour lines"
+      ]
+     ]
+    }
+   ],
+   "scenarios": [
+    {
+     "cue": "a scatter of 10 million transactions is a solid colour",
+     "answer": "overplotting"
+    },
+    {
+     "cue": "the analyst needs the count of points in each region of the plot",
+     "answer": "hexbin"
+    },
+    {
+     "cue": "the analyst needs to see two peaks in the data",
+     "answer": "KDE density contour"
+    },
+    {
+     "cue": "points made 2% opaque, but the centre is still uniformly black",
+     "answer": "alpha saturation; switch to hexbin or KDE"
+    }
+   ],
+   "calculation": {
+    "example": "<p><b>Hexbin (P1 slide 17):</b> 10,000,000 points → ≈ 10,000 hex cells. Reduction = 10,000,000 ÷ 10,000 = <b>1,000×</b> fewer shapes.</p><p><b>Alpha saturation</b> (standard compositing, explains \"fails at very high densities\"): opacity after n stacked points = 1 − (1 − α)ⁿ. At α = 0.02, n = 100 gives <b>0.867</b>; n = 200 gives <b>0.982</b>.</p>",
+    "steps": [
+     "Given points and cells → reduction = points ÷ cells",
+     "Given α → single-point transparency = 1 − α",
+     "Given n stacked points → combined opacity = 1 − (1 − α)ⁿ",
+     "Given target opacity p → n = ln(1 − p) ÷ ln(1 − α)"
+    ],
+    "variants": [
+     "2,000,000 GPS pings into 500 hexes: 2,000,000 ÷ 500 = <b>4,000×</b>",
+     "α = 0.02, n = 10: 1 − 0.98¹⁰ = <b>0.183</b>",
+     "Points for 50% opacity at α = 0.02: ln 0.5 ÷ ln 0.98 ≈ 34.3, so <b>35</b> points"
+    ]
+   },
+   "traps": [
+    "Alpha is the simplest fix but still fails at very high density; do not call it the best.",
+    "Hexbin shows counts, KDE shows shape; do not swap what each preserves.",
+    "Hexbins are True for reducing overplotting (T/F)."
+   ],
+   "answers": {
+    "1": "Overplotting is when millions of scatter points overlap into a solid blob that shows nothing.",
+    "3": "Overplotting hides density because points cover each other. Fixes: alpha transparency (darker = denser), hexbin (count per hexagon), KDE contours (shape of the distribution). Example: 10 million points become ≈ 10,000 hex cells, 1,000× fewer shapes.",
+    "5": "<p><b>Definition:</b> one dot per record; at millions of records the dots merge into a blob.</p><ol><li>Alpha α = 0.02: keeps relative density; saturates when hundreds of points stack.</li><li>Hexbin: count per hexagon, colour by count; keeps exact density; 10 M points → ≈ 10,000 cells.</li><li>KDE contours: smooth density; keeps shape, modes, tails.</li></ol><p><b>Example:</b> 10 M mobile payments by amount and hour: hexbin shows the busiest cells, KDE shows a lunch and an evening peak. <b>Limitation:</b> binning hides individual outliers inside a cell.</p>"
+   },
+   "questions": [
+    {
+     "format": "mcq",
+     "q": "Which technique colours a grid of hexagons by the number of points inside each?",
+     "options": [
+      "Hexbin aggregation",
+      "Alpha transparency",
+      "KDE contour",
+      "Sparkline"
+     ],
+     "a": "Hexbin counts points per hexagon."
+    },
+    {
+     "format": "blank",
+     "q": "The slide sets each point's opacity to α = ______.",
+     "a": "0.02"
+    },
+    {
+     "format": "define",
+     "q": "Define overplotting and list its three fixes.",
+     "a": "Points in a big scatterplot overlap into a blob. Fixes: alpha transparency, hexbin aggregation, KDE density contours."
+    },
+    {
+     "format": "steps",
+     "q": "Describe how a hexbin plot is built.",
+     "a": "Divide the plot into a hexagonal grid; count points in each hexagon; colour each hexagon by its count; draw cells instead of points."
+    },
+    {
+     "format": "why",
+     "q": "Why does alpha transparency fail at very high densities?",
+     "a": "Opacity adds up as points stack (1 − 0.98ⁿ); after a few hundred points every dense pixel is near black, so dense regions cannot be told apart."
+    },
+    {
+     "format": "distinguish",
+     "q": "Distinguish hexbin from KDE contour.",
+     "a": "Hexbin is discrete: exact counts per hexagon. KDE is a smooth estimate drawn as contours: shows shape, peaks and tails, not counts."
+    },
+    {
+     "format": "scenario",
+     "q": "A telecom plots 20 million call records (duration vs hour). The chart is a solid block. Setting opacity to 2% still leaves the centre black.<br>i) Name the problem. ii) Why did 2% opacity fail? iii) Fix to read counts per region? iv) Fix to see how many peaks?",
+     "a": "i) Overplotting. ii) Alpha saturates at very high density. iii) Hexbin. iv) KDE density contour."
+    },
+    {
+     "format": "one_step",
+     "q": "10,000,000 points are binned into 10,000 hexes. How many times fewer shapes?",
+     "a": "10,000,000 ÷ 10,000 = <b>1,000</b>."
+    },
+    {
+     "format": "full_calc",
+     "q": "α = 0.02. (a) Opacity of 100 stacked points? (b) Of 200? (c) How many points to reach 50%?",
+     "a": "(a) 1 − 0.98¹⁰⁰ = <b>0.867</b>. (b) 1 − 0.98²⁰⁰ = <b>0.982</b>. (c) ln 0.5 ÷ ln 0.98 ≈ 34.3 → <b>35</b> points."
+    },
+    {
+     "format": "long",
+     "q": "What is overplotting? Explain three fixes and what each preserves.",
+     "a": "Millions of points merge into a blob. Alpha (α = 0.02) preserves relative density but saturates. Hexbin preserves count per area: 10 M points → ≈ 10,000 cells. KDE contours preserve shape, modes and tails. Limitation: binning hides outliers inside cells."
+    }
+   ],
+   "diagram": {
+    "file": "diagrams/w09-overplotting.svg",
+    "caption": "The same points as an overplotted scatter (a blob), a hexbin (count per hexagon) and KDE contours (two peaks revealed)."
+   }
+  },
+  {
+   "id": "latency",
+   "chapter": 9,
+   "title": "Latency: data cubes and AQP",
+   "facts": [
+    "Analysts expect a dashboard filter to answer in under 1 second; a Hive query over 100 billion rows takes minutes.",
+    "<b>Fact table</b>: one row per event (each sale). <b>Data cube</b>: pre-computed aggregates for combinations of dimensions, e.g. district × date × product × channel.",
+    "The cube is built by a scheduled (nightly) Spark/Hive job and holds millions of rows, not billions.",
+    "<b>AQP</b> (approximate query processing): answer from a sample in milliseconds. Tools: Apache DataSketches, BlinkDB.",
+    "Cube trade-off: staleness up to 24 h for speed. AQP trade-off: accuracy for speed."
+   ],
+   "mechanism": [
+    "A nightly Spark or Hive job scans the fact table once",
+    "It writes SUM/COUNT aggregates for each combination of dimensions",
+    "Tableau or Superset points at the cube, not the raw table",
+    "A filter such as \"Q1 2024 only\" reads millions of pre-summed rows",
+    "The answer returns in under 1 second; the cube refreshes on the next run"
+   ],
+   "why": [
+    "Reading millions of rows is far faster than scanning billions on every click.",
+    "Staleness: the cube is only as fresh as its last build (up to 24 h).",
+    "Fixed questions: only pre-computed dimensions can be sliced; a new one needs a rebuild.",
+    "Storage and batch compute grow with the number of dimension combinations.",
+    "AQP is fine for dashboards but not for financial reconciliation, where exact totals are required."
+   ],
+   "contrasts": [
+    {
+     "vs": "AQP and raw queries",
+     "head": [
+      "",
+      "Raw Hive query",
+      "Data cube",
+      "AQP"
+     ],
+     "rows": [
+      [
+       "Reads",
+       "All 100 B rows",
+       "Millions of pre-summed rows",
+       "A sample"
+      ],
+      [
+       "Latency",
+       "Minutes",
+       "Under 1 s",
+       "Milliseconds"
+      ],
+      [
+       "Accuracy",
+       "Exact, current",
+       "Exact, but stale",
+       "Approximate"
+      ],
+      [
+       "Cost",
+       "Slow every click",
+       "Nightly build, storage",
+       "Error margin"
+      ],
+      [
+       "Unfit for",
+       "Interactive use",
+       "Live data, new dimensions",
+       "Financial reconciliation"
+      ]
+     ]
+    }
+   ],
+   "scenarios": [
+    {
+     "cue": "a Tableau filter on a 100-billion-row Hive table takes minutes",
+     "answer": "latency challenge"
+    },
+    {
+     "cue": "a nightly job writes sales totals per district per day per product",
+     "answer": "data cube (pre-aggregation)"
+    },
+    {
+     "cue": "the dashboard shows yesterday's numbers in the morning",
+     "answer": "cube staleness trade-off"
+    },
+    {
+     "cue": "a dashboard returns an estimate in milliseconds from a sample",
+     "answer": "AQP (DataSketches, BlinkDB)"
+    }
+   ],
+   "calculation": {
+    "example": "<p>Slide: 100 billion fact rows; cube of millions of rows. Taking 5 million: 100,000,000,000 ÷ 5,000,000 = <b>20,000×</b> fewer rows to read; the cube is <b>99.995%</b> smaller.</p>",
+    "steps": [
+     "Given distinct values per dimension → finest cube rows ≤ d₁ × d₂ × … × dₖ",
+     "Given fact rows and cube rows → reduction = fact rows ÷ cube rows",
+     "Given k dimensions → group-by combinations = 2ᵏ (including the grand total)"
+    ],
+    "variants": [
+     "365 dates × 64 districts × 50 products × 4 channels = <b>4,672,000</b> rows at most",
+     "100 billion ÷ 4,672,000 ≈ <b>21,404×</b> fewer rows",
+     "k = 4 dimensions → 2⁴ = <b>16</b> group-by combinations"
+    ]
+   },
+   "traps": [
+    "The cube's trade-off is staleness (and fixed dimensions), not wrong answers; AQP's trade-off is accuracy.",
+    "The cube is built in batch ahead of time, not when the user clicks.",
+    "Finest cube size is an upper bound: only combinations that occur are stored."
+   ],
+   "answers": {
+    "1": "A data cube is a set of pre-computed aggregate tables over combinations of dimensions, read instead of the raw fact table.",
+    "3": "A nightly Spark/Hive job summarises a billion-row fact table into a cube of millions of rows, so a dashboard filter reads the cube in under 1 second. Trade-off: data up to 24 h stale. Example: 100 billion ÷ 5 million = 20,000× fewer rows.",
+    "5": "<p><b>Definition:</b> a data cube stores pre-computed aggregates (SUM, COUNT) for every combination of dimensions such as district × date × product × channel.</p><ol><li>Nightly Spark/Hive job scans the fact table once.</li><li>Writes the cube: millions of rows.</li><li>Tableau/Superset filters read the cube in under 1 s.</li></ol><p><b>Example:</b> 100 billion rows → 5 million: 20,000× fewer to read. <b>Limitation:</b> staleness up to 24 h, only pre-built dimensions; AQP is the alternative, trading accuracy for speed.</p>"
+   },
+   "questions": [
+    {
+     "format": "mcq",
+     "q": "What is the main trade-off of a nightly pre-aggregated data cube?",
+     "options": [
+      "Data can be up to 24 hours stale",
+      "Answers are approximate",
+      "Queries take minutes",
+      "It needs WebSockets"
+     ],
+     "a": "The cube is exact but only as fresh as its last build."
+    },
+    {
+     "format": "blank",
+     "q": "Approximate query processing tools named on the slide are Apache DataSketches and ______.",
+     "a": "BlinkDB"
+    },
+    {
+     "format": "define",
+     "q": "Define fact table and data cube.",
+     "a": "Fact table: one row per event. Data cube: pre-computed aggregates of the fact table for combinations of dimensions."
+    },
+    {
+     "format": "steps",
+     "q": "Explain how a data cube gives sub-second dashboard filters.",
+     "a": "Nightly job scans the fact table; writes aggregates per dimension combination; dashboard queries the cube (millions of rows) instead of billions; answer in under 1 s."
+    },
+    {
+     "format": "why",
+     "q": "Why is AQP unsuitable for financial reconciliation?",
+     "a": "It returns an estimate from a sample; reconciliation needs exact totals."
+    },
+    {
+     "format": "distinguish",
+     "q": "Distinguish a data cube from AQP.",
+     "a": "Cube: exact pre-computed aggregates, stale until rebuilt. AQP: computed on demand from a sample, current but approximate."
+    },
+    {
+     "format": "scenario",
+     "q": "A retailer's Superset dashboard sits on 100 billion sales rows in Hive. Each filter takes four minutes. Finance also needs exact monthly totals.<br>i) Name the challenge. ii) Fix for sub-second filters? iii) Its trade-off? iv) Why not use AQP for finance?",
+     "a": "i) Latency. ii) A pre-aggregated data cube. iii) Staleness up to 24 h. iv) AQP is approximate."
+    },
+    {
+     "format": "one_step",
+     "q": "A 100-billion-row fact table is summarised into 5 million cube rows. Reduction factor?",
+     "a": "100,000,000,000 ÷ 5,000,000 = <b>20,000</b>."
+    },
+    {
+     "format": "full_calc",
+     "q": "Dimensions: 365 dates, 64 districts, 50 products, 4 channels. (a) Max finest cube rows? (b) Reduction vs 100 billion rows? (c) Number of group-by combinations?",
+     "a": "(a) 365 × 64 × 50 × 4 = <b>4,672,000</b>. (b) 100,000,000,000 ÷ 4,672,000 ≈ <b>21,404</b>. (c) 2⁴ = <b>16</b>."
+    },
+    {
+     "format": "long",
+     "q": "Explain the latency challenge in big data visualization and two solutions with trade-offs.",
+     "a": "Analysts need sub-second filters but raw Hive queries over 100 B rows take minutes. Data cube: nightly pre-aggregation to millions of rows, read in under 1 s; trade-off staleness up to 24 h and fixed dimensions. AQP: sample-based estimate in milliseconds; trade-off accuracy, not for financial reconciliation."
+    }
+   ],
+   "diagram": {
+    "file": "diagrams/w09-latency.svg",
+    "caption": "A nightly job pre-aggregates the fact table into a cube read in under 1 s (exact but up to 24 h stale); AQP answers from a sample in milliseconds (approximate); a raw Hive query takes minutes."
+   }
+  },
+  {
+   "id": "streaming-tools",
+   "chapter": 9,
+   "title": "Streaming dashboards and tools",
+   "facts": [
+    "Pipeline: producers → <b>Kafka</b> (durable event log) → <b>Spark Structured Streaming</b> or Flink window aggregation → time-series DB → <b>Grafana</b> or Kibana.",
+    "Slide window: <b>1-minute tumbling</b> (fixed, non-overlapping) window. Time-series DBs: InfluxDB, Prometheus, Elasticsearch.",
+    "<b>Poll</b>: Grafana re-queries the DB on a schedule (5 s refresh). <b>Push</b>: for sub-second updates, a WebSocket server pushes to a D3.js chart.",
+    "Tools: business users → Tableau/Power BI; custom web charts → D3.js; real-time ops → Grafana; data-lake BI → Superset; logs → Kibana.",
+    "<b>D3.js</b> (Data-Driven Documents) binds data to DOM elements, so output is interactive SVG in the browser, not PNG/PDF files."
+   ],
+   "mechanism": [
+    "Events arrive at a Kafka topic in real time",
+    "Spark Structured Streaming or Flink aggregates over a window (e.g. 1-minute tumbling)",
+    "Aggregates are written to a time-series DB",
+    "Grafana or Kibana polls the DB every few seconds and redraws",
+    "For sub-second needs, the server pushes each aggregate over a WebSocket to a D3.js chart"
+   ],
+   "why": [
+    "A browser cannot redraw a chart for each of thousands of raw events per second; windows turn them into a few points per minute.",
+    "Grafana reads time-series DBs natively and auto-refreshes, so it suits ops monitoring with no custom code.",
+    "WebSocket push avoids polling delay, needed for live election counts or stock tickers.",
+    "Tableau and Power BI support only limited scheduled refresh; D3 can do real time but needs custom development."
+   ],
+   "contrasts": [
+    {
+     "vs": "tool landscape",
+     "head": [
+      "Tool",
+      "Best for",
+      "Real-time"
+     ],
+     "rows": [
+      [
+       "Tableau",
+       "Business dashboards, drag-and-drop",
+       "Limited"
+      ],
+      [
+       "Power BI",
+       "Microsoft ecosystem, executive reports",
+       "Limited"
+      ],
+      [
+       "D3.js",
+       "Custom interactive web charts",
+       "Yes (WebSocket)"
+      ],
+      [
+       "Grafana",
+       "Real-time metrics, ops dashboards",
+       "Yes (5 s poll)"
+      ],
+      [
+       "Superset",
+       "Open-source BI on data lakes (Hive, Spark SQL)",
+       "Limited"
+      ],
+      [
+       "Kibana",
+       "Log search on Elasticsearch",
+       "Yes"
+      ]
+     ]
+    },
+    {
+     "vs": "poll vs push",
+     "head": [
+      "",
+      "Poll (Grafana)",
+      "Push (WebSocket + D3)"
+     ],
+     "rows": [
+      [
+       "Who starts",
+       "Browser asks every few seconds",
+       "Server sends on each new value"
+      ],
+      [
+       "Latency",
+       "Seconds",
+       "Sub-second"
+      ],
+      [
+       "Effort",
+       "Configuration",
+       "Custom code"
+      ]
+     ]
+    }
+   ],
+   "scenarios": [
+    {
+     "cue": "server metrics and error rates, refresh every 5 seconds",
+     "answer": "Grafana"
+    },
+    {
+     "cue": "live election count updating many times a second in a news page",
+     "answer": "WebSocket push to D3.js"
+    },
+    {
+     "cue": "a manager wants drag-and-drop monthly sales reports",
+     "answer": "Tableau or Power BI"
+    },
+    {
+     "cue": "searching application logs stored in Elasticsearch",
+     "answer": "Kibana"
+    },
+    {
+     "cue": "open-source BI over Hive tables on a Hadoop data lake",
+     "answer": "Apache Superset"
+    }
+   ],
+   "calculation": {
+    "example": "<p>Pool A2: 10,000 tweets/s with a 1-minute tumbling window → 10,000 × 60 = <b>600,000</b> tweets summarised into one point per topic. Per 5 s refresh: <b>50,000</b> tweets. Per day: 10,000 × 86,400 = <b>864,000,000</b>.</p>",
+    "steps": [
+     "Given event rate and window length → events per window = rate × seconds",
+     "Given refresh interval → events between refreshes = rate × interval",
+     "Given update interval → updates per day = 86,400 s ÷ interval"
+    ],
+    "variants": [
+     "Update every 5 minutes (A1(b)): 24 × 60 ÷ 5 = <b>288</b> points per day",
+     "1,000 events/s, 1-min window: <b>60,000</b> events per point"
+    ]
+   },
+   "traps": [
+    "Tumbling windows do not overlap (each event counted once); sliding windows overlap.",
+    "D3 can do real time, but the 5 s ops dashboard answer is Grafana: native time-series support, no custom code.",
+    "D3.js output is SVG in the DOM, not static images (T/F).",
+    "Send aggregates, never raw events, to the browser."
+   ],
+   "answers": {
+    "1": "Grafana is the tool for real-time ops dashboards that poll a time-series database every few seconds.",
+    "3": "Streaming charts use Kafka → Spark Structured Streaming window aggregation → time-series DB → Grafana polling every 5 s. For sub-second updates the server pushes over a WebSocket to a D3.js chart. Example: 10,000 tweets/s in a 1-minute window gives one point per 600,000 tweets.",
+    "5": "<p><b>Problem:</b> live data (ride counts, fraud alerts) needs charts that update continuously.</p><ol><li>Events land in a Kafka topic.</li><li>Spark Structured Streaming/Flink aggregates per 1-minute tumbling window.</li><li>Results go to InfluxDB/Prometheus/Elasticsearch.</li><li>Grafana/Kibana polls every few seconds; or WebSocket pushes to D3.js for sub-second updates.</li></ol><p><b>Example:</b> 10,000 events/s → 600,000 per window → one point. Tools: Tableau/Power BI for business, Superset for data lakes. <b>Limitation:</b> window size trades smoothness for delay.</p>"
+   },
+   "questions": [
+    {
+     "format": "mcq",
+     "q": "Which tool suits a real-time ops dashboard with 5-second refresh?",
+     "options": [
+      "Grafana",
+      "Tableau",
+      "Power BI",
+      "D3.js"
+     ],
+     "a": "Native time-series DB support and 5 s auto-refresh; D3 needs custom code."
+    },
+    {
+     "format": "blank",
+     "q": "For sub-second updates the server pushes data to the browser over a ______.",
+     "a": "WebSocket"
+    },
+    {
+     "format": "define",
+     "q": "What is a tumbling window?",
+     "a": "A fixed-length, non-overlapping time window; each event falls in exactly one window."
+    },
+    {
+     "format": "steps",
+     "q": "List the stages of the streaming visualization architecture.",
+     "a": "Kafka topic → Spark Structured Streaming/Flink window aggregation → time-series DB → Grafana/Kibana poll, or WebSocket push to D3.js."
+    },
+    {
+     "format": "why",
+     "q": "Why aggregate before sending data to the browser?",
+     "a": "Thousands of raw events per second would overload rendering; a window turns them into one point per topic."
+    },
+    {
+     "format": "distinguish",
+     "q": "Distinguish Grafana polling from WebSocket push.",
+     "a": "Polling: the dashboard re-queries the DB every few seconds. Push: the server sends each update as it arrives, giving sub-second refresh, with custom code."
+    },
+    {
+     "format": "scenario",
+     "q": "A mobile payments firm wants a fraud room screen: transactions per minute, alert rate, refreshed every 5 s. Marketing wants monthly drag-and-drop reports.<br>i) Message log tool? ii) Window type? iii) Fraud screen tool? iv) Marketing tool?",
+     "a": "i) Kafka. ii) 1-minute tumbling window. iii) Grafana. iv) Tableau or Power BI."
+    },
+    {
+     "format": "one_step",
+     "q": "10,000 events/s, 1-minute tumbling window. Events per window?",
+     "a": "10,000 × 60 = <b>600,000</b>."
+    },
+    {
+     "format": "full_calc",
+     "q": "10,000 tweets/s. (a) Per 1-minute window? (b) Per 5 s refresh? (c) Per day?",
+     "a": "(a) <b>600,000</b>. (b) <b>50,000</b>. (c) 10,000 × 86,400 = <b>864,000,000</b>."
+    },
+    {
+     "format": "long",
+     "q": "Design a streaming visualization pipeline and justify the tool choices.",
+     "a": "Producers → Kafka (durable log) → Spark Structured Streaming 1-min tumbling window → InfluxDB/Prometheus → Grafana polling 5 s for ops; WebSocket → D3.js for sub-second public views. Grafana reads TSDBs natively; Tableau/Power BI have only limited refresh. Limitation: bigger windows smooth noise but delay alerts."
+    }
+   ],
+   "diagram": {
+    "file": "diagrams/w09-streaming-tools.svg",
+    "caption": "Kafka events are window-aggregated by Spark Streaming, then either stored in a time-series DB that Grafana/Kibana polls every 5 s, or pushed over a WebSocket to a D3.js chart for sub-second updates."
+   }
+  },
+  {
+   "id": "nyt-case",
+   "chapter": 9,
+   "title": "Case study: NYT COVID-19 tracker",
+   "facts": [
+    "NYT Graphics Desk: ≈ 50 journalists, designers and engineers; 6 million readers per day. Mike Bostock built D3.js there.",
+    "Data: Johns Hopkins CSSE, CDC, 50 state health departments, with inconsistent schemas, missing values and retroactive corrections.",
+    "Pipeline: Python scrapers → pandas cleaning → GitHub CSV → D3 charts updated every hour.",
+    "Design: 50-state small-multiples grid, no gridlines (one light line at the prior peak), 7-day rolling averages, county choropleths.",
+    "Mantra: national total (overview) → state dropdown and date slider (filter) → hover tooltip (details)."
+   ],
+   "mechanism": [
+    "Scrape data from many sources",
+    "Normalise schemas and fix missing values in pandas",
+    "Publish the clean CSV to GitHub",
+    "Compute 7-day rolling averages",
+    "Render D3 charts hourly, with data-table alternatives for screen readers"
+   ],
+   "why": [
+    "The hardest work was data cleaning across 50 states, not drawing charts.",
+    "Corrections made some daily changes negative, so charts had to allow negative bars.",
+    "A 7-day average removes day-of-week reporting dips; the window choice changes the story.",
+    "Small multiples let readers compare all states at once, unlike an animated map.",
+    "At 6 M readers a day, accessibility (tables, colour-blind-safe palettes) reaches many people."
+   ],
+   "contrasts": [
+    {
+     "vs": "7-day vs 14-day rolling average",
+     "head": [
+      "",
+      "7-day",
+      "14-day"
+     ],
+     "rows": [
+      [
+       "Removes weekly cycle",
+       "Yes",
+       "Yes"
+      ],
+      [
+       "Reacts to a real turn",
+       "Within days",
+       "Later"
+      ],
+      [
+       "Noise",
+       "More",
+       "Less"
+      ]
+     ]
+    }
+   ],
+   "scenarios": [
+    {
+     "cue": "a state revises yesterday's cases down, so today's change is negative",
+     "answer": "data quality shows up as a design problem (negative bars)"
+    },
+    {
+     "cue": "every chart has a data table for screen readers",
+     "answer": "accessibility lesson"
+    },
+    {
+     "cue": "a grid of 50 state charts replaces an animated map",
+     "answer": "small multiples beat animation"
+    },
+    {
+     "cue": "outside groups build 1,000+ dashboards from a published CSV",
+     "answer": "GitHub as data infrastructure"
+    }
+   ],
+   "calculation": null,
+   "traps": [
+    "The lesson is that cleaning, not rendering, was the biggest effort.",
+    "A rolling average is an editorial choice, not a neutral fix.",
+    "Deuteranopia and protanopia are red-green colour-blindness: avoid red/green scales."
+   ],
+   "answers": {
+    "1": "The NYT COVID tracker showed that cleaning data from 50 sources was harder than drawing the charts.",
+    "3": "The NYT scraped 50 state feeds, cleaned them in pandas, published CSV on GitHub and rendered hourly D3 charts. It used small multiples, no gridlines and a mantra-style flow (national → state → tooltip). Example lesson: corrections forced charts to show negative bars.",
+    "5": "<p><b>Case:</b> NYT Graphics Desk COVID-19 tracker (2020-2022), 6 M readers/day.</p><ol><li>Scrapers → pandas cleaning → GitHub CSV → hourly D3 charts.</li><li>Tufte: no gridlines, 50-state small multiples.</li><li>Shneiderman: national total → state dropdown → tooltip.</li><li>7-day rolling average to remove weekday dips.</li></ol><p><b>Lessons:</b> data quality is a visualisation problem; accessibility at scale; small multiples beat animation; rolling windows are editorial; open CSV enabled 1,000+ dashboards. <b>Limitation:</b> good design cannot fix bad source data.</p>"
+   },
+   "questions": [
+    {
+     "format": "mcq",
+     "q": "According to the NYT case, the biggest engineering effort was:",
+     "options": [
+      "Cleaning data across 50 state sources",
+      "Rendering SVG",
+      "Choosing colours",
+      "Building animations"
+     ],
+     "a": "Schema normalisation was the hidden half of the work."
+    },
+    {
+     "format": "blank",
+     "q": "The NYT smoothed day-of-week artefacts with a ______-day rolling average.",
+     "a": "7"
+    },
+    {
+     "format": "define",
+     "q": "List the five lessons of the NYT case.",
+     "a": "Data quality is a visualisation problem; accessibility is non-negotiable; small multiples beat animation; rolling averages are editorial; GitHub as data infrastructure."
+    },
+    {
+     "format": "steps",
+     "q": "Give the NYT daily data pipeline.",
+     "a": "Python scrapers → pandas cleaning → GitHub CSV → D3 charts updated hourly."
+    },
+    {
+     "format": "why",
+     "q": "Why did the NYT charts need negative bars?",
+     "a": "States retroactively revised counts down, so some daily changes were negative."
+    },
+    {
+     "format": "distinguish",
+     "q": "Distinguish small multiples from an animated map for showing spread.",
+     "a": "Small multiples show all states at once on one scale. Animation shows one frame at a time, so the viewer must remember past frames."
+    },
+    {
+     "format": "scenario",
+     "q": "A news site runs a dengue tracker for 64 districts. Weekend counts drop, some districts revise counts down, and readers include colour-blind users.<br>i) Fix for weekend dips? ii) What must the bar chart allow? iii) One accessibility step? iv) Layout to compare all districts?",
+     "a": "i) 7-day rolling average. ii) Negative bars. iii) A data table alternative, or colour-blind-safe palette. iv) Small multiples."
+    },
+    {
+     "format": "long",
+     "q": "Explain how the NYT COVID tracker applied Tufte and Shneiderman, and two lessons.",
+     "a": "Tufte: no gridlines except a light reference at the prior peak; 50-state small multiples on one scale. Shneiderman: national total, state dropdown and date slider, hover tooltip. Lessons: cleaning 50 schemas was the hardest part; 7-day vs 14-day averages change the story, so the choice carries ethical weight."
+    }
+   ],
+   "diagram": {
+    "file": "diagrams/w09-nyt-case.svg",
+    "caption": "Illustrative NYT-style small multiples: one 7-day-average chart per state on a shared y-scale, no gridlines, one light reference line at the prior peak."
+   }
+  }
+ ],
+ "pool": [
+  {
+   "src": "MCQ",
+   "n": "Q1",
+   "q": "Edward Tufte's “data-ink ratio” principle states that a visualization should:",
+   "options": [
+    "(a) Use more colours to highlight different categories of data",
+    "(b) Maximise the fraction of ink devoted to representing actual data, removing all decorative elements",
+    "(c) Use ink sparingly to reduce printing costs",
+    "(d) Always include data labels using a different ink colour from the chart body"
+   ],
+   "topic": "tufte",
+   "a": "<b>(b) Maximise the fraction of ink devoted to representing actual data, removing all decorative elements</b><br>The ratio is about what the ink encodes, not saving ink."
+  },
+  {
+   "src": "MCQ",
+   "n": "Q2",
+   "q": "Which visualization type is most appropriate for showing the distribution and spread of a continuous variable?",
+   "options": [
+    "(a) Pie chart",
+    "(b) Line chart",
+    "(c) Histogram",
+    "(d) Treemap"
+   ],
+   "topic": "shneiderman",
+   "a": "<b>(c) Histogram</b><br>Bins along the number line show shape and spread."
+  },
+  {
+   "src": "MCQ",
+   "n": "Q3",
+   "q": "Shneiderman's visualization mantra begins with which step?",
+   "options": [
+    "(a) Details first, then overview",
+    "(b) Overview first, zoom and filter, then details on demand",
+    "(c) Filter first, then provide an overview",
+    "(d) Details on demand first, then zoom out"
+   ],
+   "topic": "shneiderman",
+   "a": "<b>(b) Overview first, zoom and filter, then details on demand</b><br>Filtering only makes sense after the overview shows what to filter."
+  },
+  {
+   "src": "MCQ",
+   "n": "Q4",
+   "q": "Which visualization tool is best suited for a real-time production operations dashboard monitoring server metrics and application error rates with 5-second refresh intervals?",
+   "options": [
+    "(a) Tableau",
+    "(b) D3.js",
+    "(c) Power BI",
+    "(d) Grafana"
+   ],
+   "topic": "streaming-tools",
+   "a": "<b>(d) Grafana</b><br>Native time-series DB integration with 5 s auto-refresh; D3 would need custom code."
+  },
+  {
+   "src": "True/False",
+   "n": "1",
+   "q": "A pie chart is a recommended choice for comparing more than 5 categories.",
+   "topic": "shneiderman",
+   "a": "<b>False.</b> People judge angles poorly. Corrected: use a horizontal bar chart; pies only for ≤ 4 categories."
+  },
+  {
+   "src": "True/False",
+   "n": "2",
+   "q": "Hexbin plots are an effective technique for reducing overplotting when visualising millions of data points.",
+   "topic": "overplotting",
+   "a": "<b>True.</b> Counting points per hexagon turns 10 million dots into ≈ 10,000 coloured cells."
+  },
+  {
+   "src": "True/False",
+   "n": "3",
+   "q": "D3.js generates static PNG or PDF image files as its primary output format.",
+   "topic": "streaming-tools",
+   "a": "<b>False.</b> Corrected: D3.js binds data to DOM elements and produces interactive SVG in the browser."
+  },
+  {
+   "src": "True/False",
+   "n": "4",
+   "q": "Choropleth maps are used to visualise the geographic distribution of a quantitative variable.",
+   "topic": "shneiderman",
+   "a": "<b>True.</b> Regions are shaded by a value, best a rate such as cases per 100,000."
+  },
+  {
+   "src": "Descriptive",
+   "n": "D1",
+   "q": "Explain Tufte's data-ink ratio principle. Provide a “before and after” example: describe a cluttered bar chart (what chart-junk elements are present) and then describe the clean version after applying the principle.",
+   "topic": "tufte",
+   "a": "<p><b>Principle:</b> data-ink ratio = ink encoding data ÷ total ink; maximise it. If erasing an element loses no information, erase it.</p><table><tr><th>Before (quarterly sales)</th><th>After</th></tr><tr><td>Title \"CHART TITLE!!!\"</td><td>Plain short title</td></tr><tr><td>Legend for one series</td><td>No legend; Q1-Q4 on the x-axis</td></tr><tr><td>3-D bars with shadows</td><td>Flat 2-D bars, one colour</td></tr><tr><td>Gradient fill, border</td><td>Removed</td></tr><tr><td>Heavy dark gridlines</td><td>None, or one light line; y starts at 0</td></tr></table><p>Same data, but almost all remaining ink is data, so the trend reads at once.</p>"
+  },
+  {
+   "src": "Descriptive",
+   "n": "D2",
+   "q": "What is overplotting? Describe three techniques to address it when visualising millions of data points in a scatterplot. For each technique, explain what information it preserves that the original overplotted chart lost.",
+   "topic": "overplotting",
+   "a": "<p><b>Overplotting:</b> millions of dots overlap into a blob that only says \"data exists here\".</p><table><tr><th>Technique</th><th>How</th><th>Preserves</th></tr><tr><td>Alpha transparency</td><td>Each point α = 0.02; stacks look darker</td><td>Relative density (fails at very high density)</td></tr><tr><td>Hexbin</td><td>Count points per hexagon, colour by count; 10 M → ≈ 10,000 cells</td><td>Actual count per area</td></tr><tr><td>KDE contour</td><td>Smooth density, contour lines</td><td>Shape, modes (peaks), tails</td></tr></table>"
+  },
+  {
+   "src": "Descriptive",
+   "n": "D3",
+   "q": "What is a data cube? How does pre-aggregating a billion-row fact table into a data cube enable interactive visualization at sub-second latency? What is the trade-off of this approach?",
+   "topic": "latency",
+   "a": "<p><b>Data cube:</b> pre-computed aggregates (SUM, COUNT) of a fact table for combinations of dimensions, e.g. district × date × product × channel.</p><ul><li>A nightly Spark/Hive job builds it once.</li><li>It holds millions of rows, not billions.</li><li>Tableau/Superset filters read the cube, so they answer in under 1 s instead of minutes.</li></ul><p><b>Trade-off:</b> staleness up to 24 h; only pre-built dimensions can be sliced; extra storage. Alternative: AQP (sampling) trades accuracy for speed.</p>"
+  },
+  {
+   "src": "Analytical",
+   "n": "A1",
+   "q": "Public Health Dashboard Design:\nA DGHS public health dashboard needs to communicate:\n(a) COVID-19 confirmed case counts by district over 24 months\n(b) Real-time hospitalisation rate updated every 5 minutes\n(c) Demographic breakdown (age group, gender) of confirmed cases\nFor each sub-requirement: specify the appropriate visualization type, justify using Shneiderman's data-type taxonomy, identify which big data visualization challenge applies (if any), and name the tool you would use. Apply Tufte's data-ink principle to state one specific chart-junk element to eliminate.",
+   "topic": "shneiderman",
+   "a": "<table><tr><th>Req.</th><th>Data type</th><th>Chart</th><th>Challenge</th><th>Tool</th></tr><tr><td>(a) Cases by district, 24 months</td><td>Temporal (+ 2-D map)</td><td>Small multiples of line charts, same scale; choropleth of rate per 100,000</td><td>Latency: pre-aggregate to daily counts per district</td><td>Tableau / Power BI</td></tr><tr><td>(b) Hospitalisation every 5 min</td><td>Temporal (live)</td><td>Stat panel + sparkline, 24 h line chart</td><td>Streaming</td><td>Grafana on InfluxDB/Prometheus</td></tr><tr><td>(c) Age × gender</td><td>Categorical / multi-dimensional</td><td>Grouped horizontal bar</td><td>None (small table)</td><td>Tableau / Power BI</td></tr></table><p><b>Sizes:</b> (a) 730 days × 64 districts = <b>46,720</b> rows after aggregation. (b) 24 × 60 ÷ 5 = <b>288</b> points per day, so 5 s polling is ample.</p><p><b>Mantra:</b> national total → district dropdown and date slider → hover tooltip.</p><p><b>Chartjunk to remove:</b> 3-D effect on the demographic bars (also heavy gridlines on the line charts).</p>"
+  },
+  {
+   "src": "Analytical",
+   "n": "A2",
+   "q": "Streaming Sentiment Visualization:\nDesign a complete visualization system for a streaming Twitter (X) sentiment analysis pipeline processing 10,000 tweets per second. Specify: (a) which Kafka aggregation window you would use and why; (b) which chart types best convey sentiment drift over time and topic clustering; (c) how you would handle the velocity challenge at the visualization layer without overloading the browser; (d) which tools form the pipeline from Kafka to browser render.",
+   "topic": "streaming-tools",
+   "a": "<p><b>Givens:</b> 10,000 tweets/s → <b>600,000</b> per minute, <b>864,000,000</b> per day.</p><p><b>(a)</b> 1-minute tumbling window per topic: count, mean sentiment, % positive/neutral/negative. One point replaces 600,000 tweets, smooths noise, still shows drift. Optional 15-min sliding window for a smoother trend.</p><p><b>(b)</b> Drift: line chart (or 100% stacked area) per topic as small multiples. Clustering: t-SNE/UMAP scatter drawn as hexbin or KDE to avoid overplotting.</p><p><b>(c)</b> Send only window aggregates (one refresh of 5 s replaces 50,000 tweets); keep a rolling buffer of the last 60 points; throttle redraws; pre-bin the cluster view server-side.</p><p><b>(d)</b> X API → Kafka → Spark Structured Streaming/Flink → InfluxDB/Prometheus or Elasticsearch → Grafana (5 s poll) or Kibana; WebSocket → D3.js for sub-second views.</p>"
+  },
+  {
+   "src": "Discussion",
+   "n": "Lesson 1",
+   "q": "Data quality is a visualisation problem: the NYT's biggest engineering effort was cleaning data, not drawing charts; retroactive state corrections forced D3 charts to support negative bars (days where cases were revised down)",
+   "topic": "nyt-case",
+   "a": "<p><b>Claim:</b> a chart is only as right as its data.</p><p><b>For:</b> most NYT work was normalising 50 state schemas; downward revisions made daily changes negative, so chart design had to show negative bars.</p><p><b>Against:</b> cleaning is really a data-engineering task, and no chart design can fix bad source data. Even so, the chart must show corrections honestly (negative bars) rather than hide them.</p>"
+  },
+  {
+   "src": "Discussion",
+   "n": "Lesson 2",
+   "q": "Accessibility is non-negotiable at 6M readers/day: every chart had a data table alternative for screen readers; colour scales were tested for colour-blindness (deuteranopia, protanopia)",
+   "topic": "nyt-case",
+   "a": "<p><b>Claim:</b> at 6 M readers a day, even a small share of blind or colour-blind readers is many people.</p><p><b>For:</b> a screen reader cannot describe the shapes of a chart, so a data table gives blind readers the same facts; avoiding red/green scales serves red-green colour-blind readers of public-health data.</p><p><b>Against:</b> tables and testing cost time on daily deadlines and restrict palettes; the NYT judged it worth paying.</p>"
+  },
+  {
+   "src": "Discussion",
+   "n": "Lesson 3",
+   "q": "Small multiples beat animation: the 50-state grid (Tufte small multiples) was more actionable than an animated map of spreading cases",
+   "topic": "nyt-case",
+   "a": "<p><b>Claim:</b> showing every state at once beats one frame at a time.</p><p><b>For:</b> a shared scale lets readers compare states side by side and find their own without waiting or remembering frames.</p><p><b>Against:</b> animation grabs attention and shows geographic spread vividly; 50 small charts can be dense on a phone. Grid for analysis, animation for a headline.</p>"
+  },
+  {
+   "src": "Discussion",
+   "n": "Lesson 4",
+   "q": "Rolling averages are editorial decisions: choosing 7-day vs. 14-day average changes what story the chart tells; these are journalistic choices with ethical weight",
+   "topic": "nyt-case",
+   "a": "<p><b>Claim:</b> the window length shapes the story readers see.</p><p><b>For 7-day:</b> removes weekend reporting dips and reacts to a real turn within days.</p><p><b>For 14-day:</b> smoother, fewer false alarms, but hides a turning point longer.</p><p>Readers made health decisions from it, so the choice should be stated on the chart.</p>"
+  },
+  {
+   "src": "Discussion",
+   "n": "Lesson 5",
+   "q": "GitHub as data infrastructure: publishing the raw CSV on GitHub enabled 1,000+ derivative dashboards worldwide within days",
+   "topic": "nyt-case",
+   "a": "<p><b>Claim:</b> open data multiplies the value of expensive cleaning.</p><p><b>For:</b> others reused it for 1,000+ dashboards; version history makes corrections traceable and numbers checkable.</p><p><b>Against:</b> GitHub is not a database; others can misread the data, and the publisher must keep files consistent as corrections arrive.</p>"
+  },
+  {
+   "src": "Live Exercise",
+   "n": "Task",
+   "q": "Live Exercise — D3.js Bar Chart with Tufte Styling\nTask (25 minutes, pairs)\nBuild a minimal D3.js bar chart that follows Tufte's data-ink principles:\n1. No gridlines (or only a single light reference line)\n2. y-axis starts at 0\n3. No fill gradient — use a flat colour\n4. Tooltip on hover (Shneiderman: details-on-demand)\n5. Add a sparkline for each bar showing the 7-day trend\nDataset: weekly Kafka message counts for 5 topics (generate 7×5 random values).\nExtension: add a dropdown filter to select one topic and zoom into its 7-day line chart.",
+   "code": "&lt;!DOCTYPE html&gt;\n&lt;meta charset=\"utf-8\"&gt;\n&lt;style&gt;\n  .bar { fill: steelblue; }\n  .bar:hover { fill: #b5651d; }\n  .axis path, .axis line {\n    stroke: #ccc; stroke-width: 0.5px; }\n  .tooltip {\n    position: absolute; background: #fff;\n    border: 1px solid #ccc; padding: 6px;\n    font-size: 11px; pointer-events: none; }\n&lt;/style&gt;\n&lt;body&gt;\n&lt;script src=\n  \"https://d3js.org/d3.v7.min.js\"&gt;&lt;/script&gt;\n&lt;script&gt;\nconst topics = [\"orders\",\"clicks\",\n                \"errors\",\"logins\",\"search\"];\nconst data = topics.map(t =&gt; ({\n  topic: t,\n  count: Math.floor(Math.random()*50000)\n         + 10000\n}));\nconst svg = d3.select(\"body\").append(\"svg\")\n  .attr(\"width\", 500).attr(\"height\", 300);\nconst x = d3.scaleBand()\n  .domain(data.map(d=&gt;d.topic))\n  .range([50,480]).padding(0.3);\nconst y = d3.scaleLinear()\n  .domain([0, d3.max(data,d=&gt;d.count)])\n  .range([260, 20]);\nsvg.append(\"g\").attr(\"transform\",\"translate(0,260)\")\n  .call(d3.axisBottom(x));\nsvg.append(\"g\").attr(\"transform\",\"translate(50,0)\")\n  .call(d3.axisLeft(y).ticks(4));\nsvg.selectAll(\".bar\").data(data).join(\"rect\")\n  .attr(\"class\",\"bar\")\n  .attr(\"x\",d=&gt;x(d.topic))\n  .attr(\"y\",d=&gt;y(d.count))\n  .attr(\"width\",x.bandwidth())\n  .attr(\"height\",d=&gt;260-y(d.count));\n&lt;/script&gt;",
+   "topic": "tufte",
+   "a": "<p><b>Key code</b> (added to the skeleton; 7 daily values per topic, bar = weekly sum; SVG height raised to 340 for the sparklines; CSS <code>.ref { stroke: #ddd; stroke-dasharray: 3 3; }</code>):</p><pre>const data = topics.map(t =&gt; { const days = d3.range(7)\n  .map(() =&gt; Math.floor(Math.random()*50000) + 10000);\n  return {topic: t, days, count: d3.sum(days)}; });\nsvg.selectAll(\"g\").attr(\"class\",\"axis\");   // skeleton forgot this\nconst mean = d3.mean(data, d =&gt; d.count);  // one light line at the mean\nsvg.append(\"line\").attr(\"class\",\"ref\").attr(\"x1\",50).attr(\"x2\",480).attr(\"y1\",y(mean)).attr(\"y2\",y(mean));\nconst tip = d3.select(\"body\").append(\"div\").attr(\"class\",\"tooltip\").style(\"opacity\",0);\nsvg.selectAll(\".bar\").on(\"mouseover\",(e,d)=&gt;tip.style(\"opacity\",1)\n      .style(\"left\",(e.pageX+8)+\"px\").style(\"top\",(e.pageY-28)+\"px\")\n      .html(d.topic+\": \"+d.count))\n    .on(\"mouseout\",()=&gt;tip.style(\"opacity\",0));\nconst sx = d3.scaleLinear().domain([0,6]).range([0,x.bandwidth()]);\ndata.forEach(d =&gt; { const sy = d3.scaleLinear()\n  .domain(d3.extent(d.days)).range([325,290]);\n  svg.append(\"path\").attr(\"fill\",\"none\").attr(\"stroke\",\"#555\").attr(\"transform\",`translate(${x(d.topic)},0)`)\n   .attr(\"d\", d3.line().x((v,i)=&gt;sx(i)).y(v=&gt;sy(v))(d.days)); });</pre><ol><li><b>Gridlines:</b> D3 axes draw none; add only one dashed light line at the mean.</li><li><b>y from 0:</b> domain <code>[0, max]</code>; a higher start would push the lie factor above 1.</li><li><b>Flat colour:</b> <code>fill: steelblue</code>, no gradient.</li><li><b>Tooltip:</b> mouseover shows topic and count; mouseout hides it. This is details on demand.</li><li><b>Sparkline:</b> 7-point line, no axes, under each bar, own min-max scale (shape, not size).</li></ol><p><b>Extension:</b> a <code>select</code> of the 5 topics; on change, fade other bars and draw that topic's 7-day line chart below.</p><p><b>Expected:</b> 5 flat bars; tallest reaches y = 20 (240 px); bar width ≈ 56.8 px (step 430 ÷ 5.3 ≈ 81.1); weekly totals between 70,000 and 419,993.</p>"
+  }
+ ],
+ "formulas": [
+  {
+   "name": "Data-ink ratio",
+   "formula": "ink encoding data ÷ total ink",
+   "note": "Maximise it; 1 is the ceiling"
+  },
+  {
+   "name": "Lie factor",
+   "formula": "effect shown in graphic ÷ effect in data",
+   "note": "1 truthful; above 1 overstates; below 1 understates"
+  },
+  {
+   "name": "Hexbin reduction",
+   "formula": "points ÷ hex cells",
+   "note": "10 M ÷ 10,000 = 1,000×"
+  },
+  {
+   "name": "Alpha stacking",
+   "formula": "opacity = 1 − (1 − α)ⁿ",
+   "note": "α = 0.02: n = 100 → 0.867, saturates"
+  },
+  {
+   "name": "Cube rows",
+   "formula": "≤ d₁ × d₂ × … × dₖ; reduction = fact rows ÷ cube rows",
+   "note": "100 B ÷ 5 M = 20,000×"
+  },
+  {
+   "name": "Group-by combinations",
+   "formula": "2ᵏ for k dimensions",
+   "note": "k = 4 → 16"
+  },
+  {
+   "name": "Events per window",
+   "formula": "rate × window seconds",
+   "note": "10,000/s × 60 = 600,000"
+  },
+  {
+   "name": "Updates per day",
+   "formula": "86,400 ÷ refresh seconds",
+   "note": "Every 5 min → 288"
+  }
+ ],
+ "mock": {
+  "a": {
+   "marks": 4,
+   "q": "A ride-hailing company in Chattogram shows a live map of 2 million driver GPS pings. The scatter is a solid blob. A filter on the 80-billion-row trip table in Hive takes minutes.<br>i) Name the problem with the map. ii) Which fix shows the count of pings per area? iii) Name the problem with the filter. iv) Which fix gives sub-second filters, and its trade-off?",
+   "a": "i) Overplotting. ii) Hexbin aggregation. iii) Latency. iv) A pre-aggregated data cube; data can be up to 24 h stale."
+  },
+  "b": {
+   "marks": 6,
+   "q": "The same company's report shows trips per district as 3-D bars with a gradient, a one-series legend, and a y-axis starting at 900. Trips rose from 1,000 to 1,050, but the bar grew from 100 px to 150 px.<br>i) Name two chartjunk elements. ii) Compute the effect in the data. iii) Compute the effect shown. iv) Compute the lie factor and say what it means.",
+   "a": "i) 3-D bars, gradient fill (also the single-series legend). ii) (1,050 − 1,000) ÷ 1,000 = <b>5%</b>. iii) (150 − 100) ÷ 100 = <b>50%</b>. iv) 50 ÷ 5 = <b>10</b>: the chart overstates the rise ten times; start y at 0."
+  },
+  "or_a": {
+   "marks": 4,
+   "q": "A news site builds a live election dashboard. It opens on a national map, has a party dropdown, and shows a constituency's full result on click.<br>i) Which design rule does this follow? ii) What is the dropdown? iii) What is the click? iv) Data type of constituency results on a map?",
+   "a": "i) Shneiderman's mantra. ii) Zoom and filter (dynamic query). iii) Details on demand. iv) 2-D (map)."
+  },
+  "or_b": {
+   "marks": 6,
+   "q": "Votes arrive at 2,000 events per second through Kafka. Results must refresh in under a second on the public page, and every 5 seconds on the operations screen.<br>i) Events in a 1-minute tumbling window? ii) Events between two 5 s refreshes? iii) Tool for the ops screen, and why? iv) Delivery method for the public page?",
+   "a": "i) 2,000 × 60 = <b>120,000</b>. ii) 2,000 × 5 = <b>10,000</b>. iii) Grafana: reads the time-series DB natively and auto-refreshes every 5 s. iv) WebSocket push to a D3.js chart."
+  }
+ }
+}

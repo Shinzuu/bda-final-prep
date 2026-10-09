@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 310" font-family="Inter, Segoe UI, system-ui, sans-serif"><style>.bx{fill:var(--d-box,#fff7ed);stroke:var(--d-line,#b45309);stroke-width:1.5}
+.bx2{fill:var(--d-box2,#eff6ff);stroke:var(--d-line2,#1d4ed8);stroke-width:1.5}
+.bx3{fill:var(--d-box3,#ecfdf3);stroke:var(--d-line3,#15803d);stroke-width:1.5}
+.ln{stroke:var(--d-ink,#44403c);stroke-width:1.5;fill:none}
+.t{fill:var(--d-ink,#1c1b19);font-size:14px}.tb{fill:var(--d-ink,#1c1b19);font-size:14px;font-weight:600}
+.ts{fill:var(--d-mute,#78716c);font-size:12px}</style><style>.tm{fill:var(--d-mute,#78716c);font-size:13px}
+.dm{fill:var(--d-line2,#1d4ed8)}.dw{fill:var(--d-line,#b45309)}
+.dl{stroke:var(--d-line2,#1d4ed8);stroke-width:2.5;fill:none;stroke-linejoin:round}
+.dc{stroke:var(--d-line2,#1d4ed8);stroke-width:1.8;fill:none}
+.rf{stroke:var(--d-mute,#78716c);stroke-width:1.2;stroke-dasharray:4 4;fill:none}
+.lw{stroke:var(--d-line,#b45309);stroke-width:1.8;fill:none}
+.dsh{stroke:var(--d-line,#b45309);stroke-width:1.5;stroke-dasharray:6 5;fill:none}</style><defs><marker id="ah-w09streamingtools" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--d-ink,#44403c)"/></marker></defs>
+<rect class="bx2" x="20" y="40" width="150" height="60" rx="8"/>
+<text class="tb" x="95.0" y="66.0" text-anchor="middle">Producers</text>
+<text class="tm" x="95.0" y="85.0" text-anchor="middle">bKash, Pathao</text>
+<rect class="bx2" x="215" y="40" width="140" height="60" rx="8"/>
+<text class="tb" x="285.0" y="66.0" text-anchor="middle">Apache Kafka</text>
+<text class="tm" x="285.0" y="85.0" text-anchor="middle">event log</text>
+<rect class="bx" x="400" y="40" width="180" height="60" rx="8"/>
+<text class="tb" x="490.0" y="66.0" text-anchor="middle">Spark Streaming</text>
+<text class="tm" x="490.0" y="85.0" text-anchor="middle">1-min tumbling</text>
+<path class="ln" d="M170,70 L215,70" marker-end="url(#ah-w09streamingtools)"/>
+<path class="ln" d="M355,70 L400,70" marker-end="url(#ah-w09streamingtools)"/>
+<rect class="bx2" x="400" y="175" width="180" height="60" rx="8"/>
+<text class="tb" x="490.0" y="201.0" text-anchor="middle">Time-series DB</text>
+<text class="tm" x="490.0" y="220.0" text-anchor="middle">InfluxDB</text>
+<rect class="bx3" x="615" y="175" width="125" height="60" rx="8"/>
+<text class="tb" x="677.5" y="201.0" text-anchor="middle">Grafana</text>
+<text class="tm" x="677.5" y="220.0" text-anchor="middle">Kibana</text>
+<path class="ln" d="M490,100 L490,175" marker-end="url(#ah-w09streamingtools)"/>
+<path class="ln" d="M580,205 L615,205" marker-end="url(#ah-w09streamingtools)"/>
+<rect class="bx" x="215" y="175" width="140" height="60" rx="8"/>
+<text class="tb" x="285.0" y="201.0" text-anchor="middle">WebSocket</text>
+<text class="tm" x="285.0" y="220.0" text-anchor="middle">server push</text>
+<rect class="bx3" x="20" y="175" width="150" height="60" rx="8"/>
+<text class="tb" x="95.0" y="201.0" text-anchor="middle">D3.js chart</text>
+<text class="tm" x="95.0" y="220.0" text-anchor="middle">browser</text>
+<path class="ln" d="M430,100 L320,175" marker-end="url(#ah-w09streamingtools)"/>
+<path class="ln" d="M215,205 L170,205" marker-end="url(#ah-w09streamingtools)"/>
+<text class="tb" x="570" y="270" text-anchor="middle">Poll: every 5 s</text>
+<text class="tm" x="570" y="290" text-anchor="middle">ops dashboards</text>
+<text class="tb" x="187" y="270" text-anchor="middle">Push: sub-second</text>
+<text class="tm" x="187" y="290" text-anchor="middle">tickers, live counts</text>
+</svg>

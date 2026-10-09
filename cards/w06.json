@@ -1,0 +1,1260 @@
+{
+ "week": 6,
+ "title": "Apache Spark: RDDs and in-memory computing",
+ "summary": "Spark keeps working data in RAM so iterative jobs stop paying MapReduce's disk cost on every pass. The chapter covers how Spark is built, how RDDs recover from failures through lineage, lazy evaluation, the narrow/wide split that decides shuffles and stages, and DataFrames.",
+ "topics": [
+  {
+   "id": "mr-vs-spark",
+   "chapter": 6,
+   "title": "Why Spark: the MapReduce iteration bottleneck",
+   "facts": [
+    "MapReduce writes every intermediate result to HDFS (the cluster's shared disk) before the next step can start.",
+    "Iterative algorithms (K-Means, logistic regression, PageRank) pass over the same data many times, so MapReduce pays disk I/O every iteration.",
+    "Spark reads the data from HDFS once, caches it in RAM, and runs every later iteration from memory.",
+    "Slide example: K-Means, 100 iterations over 50 GB. MapReduce does 10 TB of disk I/O, Spark 50 GB: about 200× less.",
+    "Spark is 10–100× faster on iterative work. For single-pass ETL over data larger than RAM the gain is only 2–5×.",
+    "Use Spark for ML, graphs, interactive queries, streaming, or more than 2 iterations over the same data."
+   ],
+   "mechanism": [
+    "Iteration 1 reads the dataset from HDFS",
+    "Spark keeps the partitions in Executor RAM as a cached RDD",
+    "Each later iteration reads the cached partitions from memory, not from disk",
+    "No intermediate result goes back to HDFS between iterations",
+    "Only the final result is written out to storage"
+   ],
+   "why": [
+    "RAM is much faster to read than disk, and Spark also skips the HDFS write after every step.",
+    "Memory multiplies the benefit of reuse. A job that reads each byte once has nothing to cache.",
+    "Spark runs on the same hardware as MapReduce. The speed comes from memory, not from more CPU cores.",
+    "Limitation: if the data does not fit in cluster RAM, partitions spill to disk or are evicted and recomputed.",
+    "Limitation: Spark needs about 8 GB per Executor. MapReduce stays reasonable for single-pass batch jobs on very large clusters where that memory cost is prohibitive, or when existing MapReduce code is stable and fast enough."
+   ],
+   "contrasts": [
+    {
+     "vs": "MapReduce",
+     "head": [
+      "",
+      "MapReduce",
+      "Spark"
+     ],
+     "rows": [
+      [
+       "Intermediate storage",
+       "Disk (HDFS) after every step",
+       "Memory (spills to disk if needed)"
+      ],
+      [
+       "Programming model",
+       "Map + Reduce only",
+       "map, filter, join, groupBy, SQL, ML, streaming"
+      ],
+      [
+       "Iterative algorithms",
+       "Slow: disk per iteration",
+       "Fast: cached RDD, 10–100×"
+      ],
+      [
+       "Fault tolerance",
+       "Re-execute task from HDFS",
+       "Recompute from lineage"
+      ],
+      [
+       "Streaming / interactive",
+       "Not native / over 30 s",
+       "Structured Streaming / sub-second shell"
+      ],
+      [
+       "Languages / learning curve",
+       "Java; low (2 functions)",
+       "Python, Scala, Java, R; moderate"
+      ]
+     ]
+    }
+   ],
+   "scenarios": [
+    {
+     "cue": "a model is trained with 50 passes over the same transaction table",
+     "answer": "iterative workload: Spark with the data cached in RAM"
+    },
+    {
+     "cue": "a nightly job reads 5 TB of logs once, converts the format and writes it out",
+     "answer": "single-pass ETL: Spark gains only 2–5×; MapReduce is acceptable"
+    },
+    {
+     "cue": "analysts want sub-second answers while exploring data in a shell",
+     "answer": "Spark interactive queries (MapReduce takes over 30 s)"
+    },
+    {
+     "cue": "the working data is larger than the cluster's total RAM",
+     "answer": "Spark spills or evicts and recomputes, so it loses most of its edge"
+    }
+   ],
+   "calculation": {
+    "example": "<p>K-Means on 50 GB (50,000 MB), 100 iterations. HDFS 500 MB/s (write assumed equal to read), RAM 5,000 MB/s.</p><table><tr><th></th><th>MapReduce</th><th>Spark</th></tr><tr><td>HDFS I/O</td><td>100 × (50 + 50) = 10,000 GB = 10 TB</td><td>50 GB (read once)</td></tr><tr><td>Time per pass</td><td>100 s read + 100 s write = 200 s</td><td>first 100 s, then 10 s from RAM</td></tr><tr><td>Total time</td><td>100 × 200 = 20,000 s ≈ 5.56 h</td><td>100 + 99 × 10 = 1,090 s ≈ 18.2 min</td></tr></table><p>Disk I/O ratio 10,000 / 50 = <b>200×</b>. Time speedup 20,000 / 1,090 ≈ <b>18.3×</b>.</p>",
+    "steps": [
+     "Given D = 50 GB, k = 100, MapReduce reads and writes D each iteration → MR I/O = 100 × (50 + 50) = 10,000 GB = 10 TB",
+     "Given Spark reads HDFS only in iteration 1 → Spark HDFS I/O = 50 GB",
+     "Given 10,000 GB and 50 GB → disk I/O ratio = 10,000 / 50 = 200×",
+     "Given 50,000 MB at 500 MB/s → one HDFS pass = 100 s; one MR iteration (read + write) = 200 s",
+     "Given 200 s per iteration → T_MR = 100 × 200 = 20,000 s ≈ 5.56 h",
+     "Given RAM at 5,000 MB/s → one RAM pass = 10 s; T_Spark = 100 + 99 × 10 = 1,090 s ≈ 18.2 min",
+     "Given 20,000 s and 1,090 s → speedup = 20,000 / 1,090 ≈ 18.3×"
+    ],
+    "variants": [
+     "D = 20 GB, k = 30, HDFS 400 MB/s, RAM 4,000 MB/s: MR I/O = 30 × 40 = 1,200 GB (60× Spark's 20 GB); T_MR = 30 × 100 = 3,000 s; T_Spark = 50 + 29 × 5 = 195 s; speedup ≈ 15.4×",
+     "Part 2 slide: 10 iterations over 100 GB at 100 MB/s, reads only: 10 × 100,000 / 100 = 10,000 s ≈ 2.8 h (the slide's “≈ 3 hours”)",
+     "Per-iteration benchmark (RDD paper): logistic regression 127 s vs 0.96 s → 127 / 0.96 ≈ 132×; K-Means 150 s vs 5 s → 30×"
+    ]
+   },
+   "traps": [
+    "The 200× is disk I/O, not time. Here RAM is only 10× faster than HDFS, so the time speedup is about 18×.",
+    "Spark iterations 2–100 still read 50 GB each, from RAM. That is 99 RAM passes, not 100.",
+    "If the HDFS write speed is not given, say you assume it equals the read speed.",
+    "Spark does not skip the shuffle. Wide operations like reduceByKey still shuffle."
+   ],
+   "answers": {
+    "1": "MapReduce writes every intermediate result to HDFS, so iterative algorithms pay disk I/O on every pass; Spark caches the data in RAM once.",
+    "3": "Iterative jobs read the same data many times. MapReduce reads and writes HDFS each iteration, while Spark reads HDFS once and serves later iterations from RAM. Example: 100 K-Means iterations on 50 GB cost 10 TB of disk I/O in MapReduce and 50 GB in Spark.",
+    "5": "MapReduce stores every intermediate result on HDFS. Iterative algorithms such as K-Means re-read the same data each pass, so they pay read + write per iteration. Spark reads the input once, caches the partitions in Executor RAM and runs iterations 2 to k from memory, writing only the final result. Example: 50 GB, 100 iterations, HDFS 500 MB/s, RAM 5,000 MB/s. MapReduce: 10 TB of I/O, 20,000 s. Spark: 50 GB from HDFS, 1,090 s, about 18× faster. Limitation: single-pass jobs, or data larger than RAM, gain only 2–5×, and Spark needs about 8 GB per Executor."
+   },
+   "questions": [
+    {
+     "format": "mcq",
+     "q": "Why is Spark much faster than MapReduce for iterative algorithms?",
+     "options": [
+      "It caches the working data in RAM and reuses it across iterations",
+      "It uses more CPU cores per node",
+      "It writes intermediate results to SSDs",
+      "It never shuffles data"
+     ],
+     "a": "MapReduce re-reads and re-writes HDFS every iteration; Spark reads once and iterates in memory."
+    },
+    {
+     "format": "blank",
+     "q": "MapReduce writes every intermediate result to ______ before the next step can begin.",
+     "a": "HDFS (disk)"
+    },
+    {
+     "format": "define",
+     "q": "Define an iterative algorithm and give two examples from the slides.",
+     "a": "An algorithm that passes over the same data repeatedly, each pass using the previous result. Examples: K-Means clustering, logistic regression (also PageRank)."
+    },
+    {
+     "format": "steps",
+     "q": "Describe how Spark runs a 100-iteration K-Means job on 50 GB.",
+     "a": "Iteration 1 reads 50 GB from HDFS; the partitions are cached in Executor RAM; iterations 2–100 read from memory; nothing is written to HDFS between iterations; only the final centroids are written out."
+    },
+    {
+     "format": "why",
+     "q": "Why does Spark gain only 2–5× on single-pass ETL over data larger than RAM?",
+     "a": "Each byte is read once, so there is nothing to reuse from the cache; and data larger than RAM spills to disk, so Spark does disk I/O much like MapReduce."
+    },
+    {
+     "format": "distinguish",
+     "q": "Distinguish MapReduce and Spark on intermediate storage and fault tolerance.",
+     "a": "Storage: MapReduce writes to HDFS after every step; Spark keeps data in memory, spilling only if needed. Fault tolerance: MapReduce re-executes the task from HDFS input; Spark recomputes lost partitions from lineage."
+    },
+    {
+     "format": "scenario",
+     "q": "A bank trains a fraud model: 30 passes over 20 GB of transactions. A second team converts 5 TB of logs once a night.<br>i) Which job suits Spark best? ii) Why? iii) What gain should the log job expect from Spark? iv) Give one reason to keep MapReduce.",
+     "a": "i) The 30-pass fraud model. ii) It reuses the same 20 GB every pass, so caching in RAM removes 29 HDFS reads and all intermediate writes. iii) Small, about 2–5×, because the data is read once and is larger than RAM. iv) Spark needs about 8 GB per Executor; for a single-pass batch job on a very large cluster that memory cost can be prohibitive, and stable MapReduce code that is fast enough need not be rewritten."
+    },
+    {
+     "format": "one_step",
+     "q": "One MapReduce iteration over 50 GB takes 200 s. How long do 100 iterations take?",
+     "a": "100 × 200 = 20,000 s ≈ 5.56 hours."
+    },
+    {
+     "format": "full_calc",
+     "q": "D = 20 GB, 30 iterations, HDFS 400 MB/s read and write, RAM 4,000 MB/s. Find MR disk I/O, Spark HDFS I/O, both times and the speedup.",
+     "a": "MR I/O = 30 × (20 + 20) = 1,200 GB. Spark = 20 GB (60× less). HDFS pass = 20,000 / 400 = 50 s, so T_MR = 30 × 100 = 3,000 s. RAM pass = 20,000 / 4,000 = 5 s, so T_Spark = 50 + 29 × 5 = 195 s. Speedup = 3,000 / 195 ≈ <b>15.4×</b>."
+    },
+    {
+     "format": "long",
+     "q": "Explain why MapReduce fails for iterative algorithms and how Spark solves it. When would you still choose MapReduce?",
+     "a": "Use the 5-mark answer: the disk-per-iteration cost, Spark's read-once cache, the 50 GB / 100-iteration numbers, and the limits (single pass, data larger than RAM, about 8 GB per Executor, stable MapReduce code)."
+    }
+   ],
+   "diagram": {
+    "file": "diagrams/w06-mr-vs-spark.svg",
+    "caption": "MapReduce writes to HDFS between every job, while Spark reads the 50 GB once into a RAM cache that feeds every later iteration."
+   }
+  },
+  {
+   "id": "spark-arch",
+   "chapter": 6,
+   "title": "Spark architecture",
+   "facts": [
+    "Three tiers: Driver Program, Cluster Manager, Executors.",
+    "Driver: runs the user's main(), creates SparkContext, builds the DAG (directed acyclic graph of steps) and coordinates execution.",
+    "Cluster Manager: allocates cluster resources. Options: YARN, Kubernetes, Mesos or Spark Standalone.",
+    "Executors: JVM processes on Worker Nodes. They run tasks and store cached RDD partitions in memory.",
+    "Spark 1.x entry point: SparkContext. Spark 2.x+: SparkSession unifies SQL, DataFrames and RDDs.",
+    "In Spark 2.x+ the SparkContext is still reachable as <code>spark.sparkContext</code>."
+   ],
+   "mechanism": [
+    "The Driver starts and creates a SparkSession (and its SparkContext)",
+    "The Driver asks the Cluster Manager for resources",
+    "The Cluster Manager launches Executors on the Worker Nodes",
+    "The Driver turns the program into a DAG, splits it into stages and tasks, and schedules the tasks on Executors",
+    "Executors run the tasks and keep cached partitions in RAM",
+    "Results go back to the Driver, or an action writes them to storage",
+    "If an Executor stops responding, the Driver marks its partitions lost and reschedules the work"
+   ],
+   "why": [
+    "A separate Cluster Manager lets the same Spark program run on YARN, Kubernetes, Mesos or Standalone.",
+    "Executors hold the cache, so data stays in RAM next to the tasks that reuse it.",
+    "The Driver sees the whole DAG, so it can plan stages and know which partitions to rebuild after a failure.",
+    "Cost: every Executor needs memory, about 8 GB minimum."
+   ],
+   "contrasts": [
+    {
+     "vs": "Driver vs Executor",
+     "head": [
+      "",
+      "Driver",
+      "Executor"
+     ],
+     "rows": [
+      [
+       "How many",
+       "One per application",
+       "Many, on Worker Nodes"
+      ],
+      [
+       "Runs",
+       "main(), SparkContext/SparkSession",
+       "Tasks sent by the Driver"
+      ],
+      [
+       "Job",
+       "Builds the DAG, schedules, coordinates",
+       "Computes partitions"
+      ],
+      [
+       "Holds",
+       "The plan (DAG, lineage)",
+       "Cached RDD partitions in RAM"
+      ]
+     ]
+    },
+    {
+     "vs": "SparkContext vs SparkSession",
+     "head": [
+      "",
+      "SparkContext",
+      "SparkSession"
+     ],
+     "rows": [
+      [
+       "Version",
+       "Spark 1.x entry point",
+       "Spark 2.x+ entry point"
+      ],
+      [
+       "Covers",
+       "RDDs",
+       "SQL, DataFrames and RDDs"
+      ],
+      [
+       "Access",
+       "<code>SparkContext(...)</code>",
+       "<code>SparkSession.builder...getOrCreate()</code>; context via <code>spark.sparkContext</code>"
+      ]
+     ]
+    }
+   ],
+   "scenarios": [
+    {
+     "cue": "the process that builds the plan and hands out tasks",
+     "answer": "Driver"
+    },
+    {
+     "cue": "Spark runs on the company's existing Hadoop resource manager",
+     "answer": "Cluster Manager = YARN"
+    },
+    {
+     "cue": "a JVM on a worker machine runs tasks and keeps partitions in RAM",
+     "answer": "Executor"
+    },
+    {
+     "cue": "Spark 3 code starts with spark.read and spark.sql",
+     "answer": "SparkSession, the unified entry point"
+    }
+   ],
+   "calculation": null,
+   "traps": [
+    "Spark does not need YARN. Kubernetes, Mesos and Standalone also work.",
+    "Cached data lives in the Executors, not in the Driver.",
+    "SparkContext did not disappear in Spark 2; it sits inside SparkSession."
+   ],
+   "answers": {
+    "1": "Spark has three tiers: a Driver that builds the DAG and schedules tasks, a Cluster Manager that allocates resources, and Executors that run tasks and cache data.",
+    "3": "The Driver runs main(), creates the SparkContext/SparkSession and turns the program into a DAG of tasks. The Cluster Manager (YARN, Kubernetes, Mesos or Standalone) gives it resources. Executors, JVMs on Worker Nodes, run the tasks and hold cached partitions, e.g. a cached training set reused by each K-Means iteration.",
+    "5": "Spark uses a three-tier architecture. The Driver runs the user's main(), creates the SparkSession (SparkContext in Spark 1.x), builds the DAG of transformations and schedules tasks. The Cluster Manager (YARN, Kubernetes, Mesos or Spark Standalone) allocates resources and launches Executors on Worker Nodes. Executors are JVM processes that run tasks and store cached RDD partitions in memory. Flow: Driver → Cluster Manager → Executors run tasks → results to the Driver or to storage. If an Executor dies, the Driver uses lineage to rebuild its partitions elsewhere. Limitation: each Executor needs about 8 GB of RAM."
+   },
+   "questions": [
+    {
+     "format": "mcq",
+     "q": "Which Spark component stores cached RDD partitions in memory?",
+     "options": [
+      "Executor",
+      "Driver",
+      "Cluster Manager",
+      "SparkSession"
+     ],
+     "a": "Executors are JVMs on Worker Nodes that run tasks and hold the cache."
+    },
+    {
+     "format": "blank",
+     "q": "In Spark 2.x+, ______ unifies SQL, DataFrames and RDDs under one entry point.",
+     "a": "SparkSession"
+    },
+    {
+     "format": "define",
+     "q": "List the three tiers of Spark's architecture and one job of each.",
+     "a": "Driver: builds the DAG and schedules tasks. Cluster Manager: allocates resources. Executors: run tasks and cache partitions."
+    },
+    {
+     "format": "steps",
+     "q": "Describe how a Spark application gets from main() to running tasks.",
+     "a": "Driver creates SparkSession → asks the Cluster Manager for resources → Executors launch on Worker Nodes → Driver builds the DAG, splits it into stages/tasks and schedules them → Executors run tasks and cache data → results return to the Driver or are written to storage."
+    },
+    {
+     "format": "why",
+     "q": "Why is the Cluster Manager a separate tier?",
+     "a": "So the same Spark program can run on different resource managers (YARN, Kubernetes, Mesos, Standalone) without change."
+    },
+    {
+     "format": "distinguish",
+     "q": "Distinguish the Driver and an Executor.",
+     "a": "One Driver per application runs main(), builds the DAG and schedules. Many Executors on Worker Nodes run the tasks and hold cached partitions."
+    },
+    {
+     "format": "scenario",
+     "q": "A company runs PySpark on its Hadoop cluster. One worker crashes mid-job.<br>i) Which Cluster Manager is likely used? ii) Which component notices the crash? iii) What was lost on that worker? iv) Is the job restarted from scratch?",
+     "a": "i) YARN. ii) The Driver, which coordinates the tasks. iii) The Executor's running tasks and its cached partitions. iv) No: the Driver rebuilds only the lost partitions from lineage."
+    },
+    {
+     "format": "long",
+     "q": "Explain Spark's architecture with a labelled sketch.",
+     "a": "Driver (SparkSession, DAG) on top → Cluster Manager (YARN/K8s/Mesos/Standalone) → Worker 1..n each with an Executor (tasks + cache); arrows: Driver schedules tasks on Executors. Then the 5-mark answer."
+    }
+   ],
+   "diagram": {
+    "file": "diagrams/w06-spark-arch.svg",
+    "caption": "The Driver asks the Cluster Manager for resources, then schedules tasks on Executors that run on Worker Nodes and hold the cache."
+   }
+  },
+  {
+   "id": "rdd",
+   "chapter": 6,
+   "title": "RDDs and lineage-based fault tolerance",
+   "facts": [
+    "RDD (Resilient Distributed Dataset): a read-only, partitioned collection of records.",
+    "Created only two ways: by transforming an existing RDD (map, filter) or by loading from stable storage (HDFS, S3).",
+    "Five properties: immutable, partitioned, lazy, lineage, resilient.",
+    "Lineage: the record of transformations that derived an RDD from its parent RDDs.",
+    "Resilient: lost partitions are recomputed from lineage, not replicated. “The computation is the backup.”",
+    "Persistence levels: MEMORY_ONLY, MEMORY_AND_DISK, DISK_ONLY, MEMORY_ONLY_SER, OFF_HEAP. <code>cache()</code> = MEMORY_ONLY."
+   ],
+   "mechanism": [
+    "An Executor crashes and Part 2 of mappedRDD is lost",
+    "Spark detects the lost partition",
+    "It traces the lineage: mappedRDD came from filteredRDD, which came from inputRDD",
+    "It re-reads only Part 2 of the input from HDFS",
+    "It re-applies filter, then map, to that one partition",
+    "Part 2 is restored without restarting the whole job"
+   ],
+   "why": [
+    "Replicating in-memory data 3 times would triple RAM use and send every write over the network. Lineage stores only the steps.",
+    "You pay only when a failure happens, and only for the lost partitions.",
+    "Immutability makes replay safe: the same steps on the same input give the same partition.",
+    "Limitation: cheap for narrow dependencies, expensive for wide ones. Checkpoint long lineage chains to HDFS.",
+    "Cache an RDD only if more than one action reuses it. Caching single-use RDDs wastes RAM and evicts other data (LRU)."
+   ],
+   "contrasts": [
+    {
+     "vs": "HDFS replication",
+     "head": [
+      "",
+      "HDFS replication",
+      "RDD lineage"
+     ],
+     "rows": [
+      [
+       "What is kept",
+       "3 copies of the data",
+       "The list of transformations"
+      ],
+      [
+       "Cost with no failure",
+       "3× storage and network writes",
+       "Almost none"
+      ],
+      [
+       "Recovery",
+       "Read another copy",
+       "Recompute lost partitions from parents"
+      ],
+      [
+       "Weak spot",
+       "Storage overhead",
+       "Wide dependencies and long chains (fix: checkpoint)"
+      ]
+     ]
+    }
+   ],
+   "scenarios": [
+    {
+     "cue": "a worker dies and Spark rebuilds only the missing piece by re-running filter and map",
+     "answer": "lineage-based recovery"
+    },
+    {
+     "cue": "an iterative job's chain of steps grows very long and recovery gets slow",
+     "answer": "checkpoint the RDD to HDFS"
+    },
+    {
+     "cue": "every iteration of a training loop reads the same lookup data",
+     "answer": "cache()/persist() it (MEMORY_ONLY)"
+    },
+    {
+     "cue": "a student tries to change one element of an RDD in place",
+     "answer": "not possible: RDDs are immutable; map to a new RDD"
+    }
+   ],
+   "calculation": null,
+   "traps": [
+    "Checkpointing is an optional add-on for long chains. Lineage is the main mechanism.",
+    "Copying each partition to two Executors is replication, which RDDs avoid.",
+    "<code>cache()</code> is lazy. Nothing is stored until an action runs.",
+    "Resilient means recomputable, not replicated."
+   ],
+   "answers": {
+    "1": "An RDD is a read-only, partitioned collection of records that Spark rebuilds from its lineage if a partition is lost.",
+    "3": "An RDD is an immutable, partitioned collection created from storage or from another RDD. “Resilient” means a lost partition is recomputed from lineage, not restored from a copy. Example: lose Part 2 of mappedRDD → re-read input Part 2, re-apply filter then map.",
+    "5": "An RDD is a read-only, partitioned collection of records, created from stable storage or by transforming another RDD. It is immutable, partitioned across Executors, lazy, and remembers its lineage. Resilient means fault tolerance without copies. Recovery: Spark detects the lost partition, traces lineage (mappedRDD ← filteredRDD ← inputRDD), re-reads only that input partition from HDFS, re-applies filter then map, and the partition is back without restarting the job. Sketch: inputRDD → filter → filteredRDD → map → mappedRDD [Part 2 lost]. Limitation: wide dependencies and long chains make recovery expensive, so checkpoint long chains to HDFS."
+   },
+   "questions": [
+    {
+     "format": "mcq",
+     "q": "How does an RDD tolerate the loss of a partition?",
+     "options": [
+      "It recomputes the partition from its lineage",
+      "It reads a replica on another Executor",
+      "It replays a write-ahead log on the Driver",
+      "It restores the latest 60-second checkpoint"
+     ],
+     "a": "RDDs keep the recipe, not copies; Spark re-runs the steps for the lost partition."
+    },
+    {
+     "format": "blank",
+     "q": "Lineage-based recovery is efficient for ______ dependencies but expensive for ______ dependencies.",
+     "a": "narrow; wide"
+    },
+    {
+     "format": "define",
+     "q": "List the five key properties of an RDD.",
+     "a": "Immutable, partitioned, lazy, lineage, resilient."
+    },
+    {
+     "format": "steps",
+     "q": "List the steps Spark takes to recover a lost partition of mappedRDD.",
+     "a": "Detect the lost partition → trace lineage to filteredRDD and inputRDD → re-read that input partition from HDFS → re-apply filter then map → partition restored, job continues."
+    },
+    {
+     "format": "why",
+     "q": "Why does Spark use lineage instead of replicating RDDs in memory?",
+     "a": "Replication would triple RAM use and network writes on every step. Lineage costs almost nothing until a failure, and then only the lost partitions are recomputed."
+    },
+    {
+     "format": "distinguish",
+     "q": "Distinguish HDFS-style replication from RDD lineage.",
+     "a": "Replication stores 3 copies and reads another copy on failure. Lineage stores the transformations and recomputes the lost partition from its parents."
+    },
+    {
+     "format": "scenario",
+     "q": "A 200-iteration PageRank job caches its rank RDD. A worker fails at iteration 150.<br>i) What lets Spark rebuild the lost ranks? ii) Why might that be slow here? iii) What should the programmer have done? iv) Is a copy of the partition read from another node?",
+     "a": "i) Lineage. ii) The chain is 150 steps long and PageRank joins (wide), so many ancestors must be recomputed. iii) Checkpoint the RDD to HDFS every so often. iv) No, RDDs are not replicated; the partition is recomputed."
+    },
+    {
+     "format": "long",
+     "q": "Explain the RDD, what “resilient” means and how a lost partition is recovered. Include a diagram.",
+     "a": "Use the 5-mark answer and draw inputRDD → filteredRDD → mappedRDD with Part 2 crossed out and the recovery path back to HDFS."
+    }
+   ],
+   "diagram": {
+    "file": "diagrams/w06-rdd.svg",
+    "caption": "When Part 2 of mappedRDD is lost, Spark follows the lineage back to inputRDD and re-runs filter and map for that one partition."
+   }
+  },
+  {
+   "id": "lazy-eval",
+   "chapter": 6,
+   "title": "Transformations, actions and lazy evaluation",
+   "facts": [
+    "Transformation: builds the DAG and returns a new RDD, without running. map, filter, flatMap, distinct, reduceByKey, join, groupByKey, cache.",
+    "Action: triggers DAG execution and returns a value to the Driver or writes to storage. collect, count, first, take(n), reduce, saveAsTextFile, foreach.",
+    "Rule: no transformation executes until an action is called.",
+    "Lazy evaluation: Spark only records transformations in the DAG and runs them when an action is called.",
+    "Slide example: <code>rdd.filter(x &gt; 1000).first()</code> stops after the first matching element."
+   ],
+   "mechanism": [
+    "Each transformation is recorded in the DAG; no data is read",
+    "An action such as count() or collect() is called",
+    "Spark analyses the full DAG",
+    "It applies the Catalyst optimizer (DataFrames) or the DAG scheduler (RDDs)",
+    "It pipelines compatible steps, e.g. filter and map in one pass over each partition, with no intermediate disk writes",
+    "It executes only the partitions it needs and returns the result"
+   ],
+   "why": [
+    "Spark sees the whole plan before running anything, so it can optimise it.",
+    "Pipelining saves extra passes and intermediate writes.",
+    "Early stop: first() and take(n) read only as much as they need.",
+    "The recorded plan is also the lineage that fault recovery replays."
+   ],
+   "contrasts": [
+    {
+     "vs": "action",
+     "head": [
+      "",
+      "Transformation",
+      "Action"
+     ],
+     "rows": [
+      [
+       "Runs",
+       "Lazily: only recorded",
+       "Eagerly: starts the job"
+      ],
+      [
+       "Returns",
+       "A new RDD",
+       "A value to the Driver, or output to storage"
+      ],
+      [
+       "Examples",
+       "map, filter, flatMap, reduceByKey, join, cache",
+       "count, collect, first, take(n), reduce, saveAsTextFile"
+      ],
+      [
+       "Effect on DAG",
+       "Adds a node",
+       "Executes the DAG"
+      ]
+     ]
+    }
+   ],
+   "scenarios": [
+    {
+     "cue": "the script runs instantly until count() is added, then takes minutes",
+     "answer": "lazy evaluation: the action triggered the work"
+    },
+    {
+     "cue": "only one sample transaction above 50,000 BDT is needed",
+     "answer": "first() or take(1): Spark stops early"
+    },
+    {
+     "cue": "the result must be saved to HDFS",
+     "answer": "saveAsTextFile, an action"
+    },
+    {
+     "cue": "filter and map run in one pass over each partition with no disk writes",
+     "answer": "pipelining within a stage"
+    }
+   ],
+   "calculation": null,
+   "traps": [
+    "cache() is a transformation (lazy), not an action.",
+    "reduceByKey is a transformation; reduce is an action.",
+    "map and filter exist in PySpark, not only in Scala.",
+    "A transformation's result is not written to HDFS automatically."
+   ],
+   "answers": {
+    "1": "Lazy evaluation means Spark records transformations in a DAG and runs nothing until an action is called.",
+    "3": "Transformations (map, filter) return a new RDD and only add to the DAG; actions (count, collect) run the DAG and return a value or write output. Waiting lets Spark optimise and pipeline the whole plan. Example: in <code>rdd.filter(x &gt; 1000).first()</code>, Spark stops at the first match.",
+    "5": "A transformation (map, filter, flatMap, reduceByKey) returns a new RDD and only records a step in the DAG. An action (count, collect, first, saveAsTextFile) triggers execution and returns a value to the Driver or writes to storage. When an action is called, Spark analyses the DAG, optimises it (Catalyst or the DAG scheduler), pipelines steps like filter and map into one pass per partition, and runs only the partitions it needs. Example: <code>rdd.filter(x &gt; 1000).first()</code> reads until it finds one value above 1000 and stops; eager execution would filter the whole dataset first. Limitation: nothing runs until the action, so errors appear late."
+   },
+   "questions": [
+    {
+     "format": "mcq",
+     "q": "Which of these is an action?",
+     "options": [
+      "count()",
+      "map()",
+      "reduceByKey()",
+      "cache()"
+     ],
+     "a": "count() runs the DAG and returns a number to the Driver; the others are transformations."
+    },
+    {
+     "format": "blank",
+     "q": "No ______ executes until an ______ is called.",
+     "a": "transformation; action"
+    },
+    {
+     "format": "define",
+     "q": "Define a transformation and an action, with two examples each.",
+     "a": "Transformation: returns a new RDD lazily (map, filter). Action: triggers execution, returns a value or writes output (count, collect)."
+    },
+    {
+     "format": "steps",
+     "q": "What does Spark do when an action is called?",
+     "a": "Analyses the full DAG → optimises it (Catalyst/DAG scheduler) → pipelines compatible transformations into one pass per partition → executes only the partitions needed."
+    },
+    {
+     "format": "why",
+     "q": "Why does Spark not execute transformations immediately?",
+     "a": "Seeing the whole plan first lets it optimise, pipeline steps without intermediate writes, and skip work, e.g. first() stops at the first match."
+    },
+    {
+     "format": "distinguish",
+     "q": "Distinguish reduce and reduceByKey.",
+     "a": "reduce(f) is an action that returns one aggregate value to the Driver. reduceByKey(f) is a transformation that returns a new RDD with one value per key."
+    },
+    {
+     "format": "scenario",
+     "q": "A student writes <code>big = rdd.filter(lambda t: t[2] &gt; 50000)</code>, sees it finish in 0.01 s, then adds <code>big.first()</code>.<br>i) Why was the first line so fast? ii) Is first() a transformation or action? iii) How much data does first() read? iv) Name the property shown.",
+     "a": "i) filter is a transformation; it was only recorded. ii) Action. iii) Only until the first matching record is found. iv) Lazy evaluation."
+    },
+    {
+     "format": "long",
+     "q": "Describe Spark's lazy evaluation model using <code>rdd.filter(x &gt; 1000).first()</code>.",
+     "a": "Use the 5-mark answer: transformation vs action, the four steps on an action, the early-stop example, the advantage over eager execution."
+    }
+   ],
+   "diagram": {
+    "file": "diagrams/w06-lazy-eval.svg",
+    "caption": "Transformations are only recorded; the action saveAsTextFile runs the DAG, with narrow steps pipelined in Stage 1 and the reduceByKey shuffle starting Stage 2."
+   }
+  },
+  {
+   "id": "narrow-wide",
+   "chapter": 6,
+   "title": "Narrow vs wide dependencies, stages and shuffle",
+   "facts": [
+    "Narrow dependency: each output partition depends on at most one input partition. map, filter, flatMap, union, mapPartitions, coalesce.",
+    "Wide dependency: an output partition may depend on many input partitions. groupByKey, reduceByKey, aggregateByKey, sortByKey, join, repartition, distinct.",
+    "Wide dependency ⇒ shuffle (data sent across the network) ⇒ stage boundary (a new stage).",
+    "Narrow steps are pipelined in one stage. A lost narrow partition is rebuilt from one parent partition; a wide one needs all parent partitions.",
+    "Prefer reduceByKey over groupByKey: it combines locally before the shuffle, like a MapReduce Combiner.",
+    "Hash partitioner (default): <code>key.hashCode() % numPartitions</code>. Co-partitioning two RDDs on the same key removes the join shuffle."
+   ],
+   "mechanism": [
+    "The Driver reads the DAG from the action back to the input",
+    "Consecutive narrow transformations are grouped into one stage and pipelined",
+    "Each wide transformation cuts a stage boundary",
+    "Each stage runs as one task per partition",
+    "Tasks before the boundary write shuffle output to local disk",
+    "Tasks after the boundary fetch their keys from every earlier task over the network"
+   ],
+   "why": [
+    "A shuffle costs network traffic, disk writes and a barrier where every task must finish. It is Spark's main cost.",
+    "Minimising wide dependencies is the main Spark tuning skill.",
+    "reduceByKey sends at most one record per key per partition; groupByKey sends every pair.",
+    "GraySort 2013: Spark sorted 100 TB in 23 min on 206 nodes (Hadoop: 72 min, 2,100 nodes), mainly through a cheaper sort-based shuffle.",
+    "Limitation: some shuffles cannot be avoided, e.g. a global sort or a join on un-partitioned data."
+   ],
+   "contrasts": [
+    {
+     "vs": "wide",
+     "head": [
+      "",
+      "Narrow",
+      "Wide"
+     ],
+     "rows": [
+      [
+       "Dependency",
+       "1-to-1 (at most one parent partition)",
+       "All-to-all (many parent partitions)"
+      ],
+      [
+       "Examples",
+       "map, filter, flatMap, union, coalesce",
+       "groupByKey, reduceByKey, join, repartition, distinct"
+      ],
+      [
+       "Data movement",
+       "None",
+       "Shuffle across the network"
+      ],
+      [
+       "Stages",
+       "Pipelined in one stage",
+       "Starts a new stage"
+      ],
+      [
+       "Recovery",
+       "Recompute one parent partition",
+       "Recompute from all parent partitions"
+      ]
+     ]
+    },
+    {
+     "vs": "groupByKey",
+     "head": [
+      "",
+      "reduceByKey",
+      "groupByKey"
+     ],
+     "rows": [
+      [
+       "Local combine",
+       "Yes, before the shuffle",
+       "No"
+      ],
+      [
+       "Records shuffled",
+       "At most one per key per partition",
+       "Every (key, value) pair"
+      ],
+      [
+       "Result",
+       "One value per key",
+       "All values per key (list)"
+      ]
+     ]
+    }
+   ],
+   "scenarios": [
+    {
+     "cue": "word counts are slow and the Spark UI shows huge shuffle bytes from groupByKey",
+     "answer": "switch to reduceByKey (local combine)"
+    },
+    {
+     "cue": "two RDDs are partitioned on customer_id and joined with no shuffle",
+     "answer": "co-partitioning makes the join narrow"
+    },
+    {
+     "cue": "filter then map run back to back in one stage",
+     "answer": "narrow dependencies, pipelined"
+    },
+    {
+     "cue": "losing one partition after a groupByKey forces many parent partitions to rerun",
+     "answer": "wide dependency recovery is expensive"
+    }
+   ],
+   "calculation": {
+    "example": "<p>A2: input → filteredRDD → mappedRDD → reducedRDD (groupByKey), 10 partitions. The Executor with reducedRDD partitions 3 and 7 crashes.</p><table><tr><th>Case</th><th>Work redone</th></tr><tr><td>All narrow (comparison)</td><td>Partitions 3 and 7 only: 2 / 10 = 20%; 2 × 4 = 8 partition computations</td></tr><tr><td>Wide, shuffle files survive</td><td>Only the 2 Stage-2 tasks, re-fetching from all 10 map outputs</td></tr><tr><td>Wide, worst case (shuffle files lost)</td><td>Stage 1 again: 10 input + 10 filter + 10 map = 30, plus 2 reduce tasks</td></tr></table><p>Shuffle size: 4 partitions × 1,000 pairs, 50 distinct words each. groupByKey 4,000 records; reduceByKey ≤ 4 × 50 = 200, 95% less.</p>",
+    "steps": [
+     "Given filter and map are narrow and groupByKey is wide → Stage 1 = input → filter → map; Stage 2 = groupByKey",
+     "Given partitions 3 and 7 lost with only narrow steps → redo 2 / 10 = 20% of the work",
+     "Given groupByKey → each lost partition needs data from all 10 mappedRDD partitions",
+     "Given shuffle files lost → rerun Stage 1: 10 + 10 + 10 = 30 partition computations, then 2 reduce tasks",
+     "Given 4 partitions × 1,000 pairs → groupByKey shuffles 4,000 records",
+     "Given 50 distinct words per partition → reduceByKey shuffles at most 4 × 50 = 200, i.e. 1 − 200/4,000 = 95% less",
+     "Given numPartitions = 4 and a key with hash 17 → 17 % 4 = 1, so partition 1"
+    ],
+    "variants": [
+     "Hashes 42, 10, 23, 31 with numPartitions = 4 → partitions 2, 2, 3, 3",
+     "3 of 12 partitions lost, all narrow → 3 / 12 = 25% of the work redone",
+     "8 partitions × 500 pairs, 20 distinct keys each → groupByKey 4,000; reduceByKey ≤ 160; 96% less",
+     "GraySort ratios: 72 / 23 ≈ 3.1× faster; 2,100 / 206 ≈ 10.2× fewer nodes; (72 × 2,100) / (23 × 206) = 151,200 / 4,738 ≈ 32× better efficiency per node"
+    ]
+   },
+   "traps": [
+    "reduceByKey is still wide. It shuffles, only less data.",
+    "coalesce is narrow (no shuffle); repartition is wide.",
+    "join is narrow only when both RDDs are co-partitioned on the key.",
+    "Part 2 slide 2 says “3.5× fewer machines”, but 2,100 / 206 ≈ 10.2×, as slide 14 says."
+   ],
+   "answers": {
+    "1": "A wide dependency is one where an output partition needs data from many input partitions, which forces a shuffle and a new stage.",
+    "3": "In a narrow dependency (map, filter) each output partition needs at most one input partition, so steps pipeline in one stage. In a wide dependency (groupByKey, join) data is shuffled across the network and a new stage starts. Example: load → filter → map is Stage 1; reduceByKey starts Stage 2.",
+    "5": "Narrow dependency: each output partition depends on at most one input partition (map, filter, union, coalesce). No data moves, steps pipeline in one stage, and a lost partition is rebuilt from one parent. Wide dependency: an output partition depends on many input partitions (groupByKey, reduceByKey, join, distinct). Data is shuffled across the network, a stage boundary appears, and recovery may need all parent partitions. Example: load → filter(amount &gt; 1000) → map(fee) = Stage 1; reduceByKey(sum) → saveAsTextFile = Stage 2. Tuning: prefer reduceByKey, which combines locally (4,000 vs 200 records in the slide-style example). Limitation: sorts and un-partitioned joins always need a shuffle."
+   },
+   "questions": [
+    {
+     "format": "mcq",
+     "q": "Which transformation does NOT cause a shuffle?",
+     "options": [
+      "filter",
+      "groupByKey",
+      "reduceByKey",
+      "distinct"
+     ],
+     "a": "filter is narrow: each output partition comes from one input partition."
+    },
+    {
+     "format": "blank",
+     "q": "A wide dependency requires a ______, which creates a ______ boundary.",
+     "a": "shuffle; stage"
+    },
+    {
+     "format": "define",
+     "q": "Define a narrow dependency and list three narrow transformations.",
+     "a": "Each output partition depends on at most one input partition. map, filter, flatMap (also union, coalesce)."
+    },
+    {
+     "format": "steps",
+     "q": "How does Spark split a DAG into stages?",
+     "a": "Walk the DAG from the action back to the input; group consecutive narrow steps into one pipelined stage; cut a new stage at each wide (shuffle) step; run each stage as one task per partition."
+    },
+    {
+     "format": "why",
+     "q": "Why should you prefer reduceByKey over groupByKey?",
+     "a": "reduceByKey combines values locally in each partition before the shuffle, so far fewer records cross the network; groupByKey ships every pair."
+    },
+    {
+     "format": "distinguish",
+     "q": "Distinguish coalesce and repartition.",
+     "a": "coalesce reduces partitions without a shuffle (narrow). repartition reshuffles all data (wide)."
+    },
+    {
+     "format": "scenario",
+     "q": "A word count over 4 partitions (1,000 pairs each, 50 distinct words per partition) uses groupByKey and the shuffle is slow.<br>i) Is groupByKey narrow or wide? ii) How many records does it shuffle? iii) What should replace it? iv) At most how many records would that shuffle?",
+     "a": "i) Wide. ii) 4 × 1,000 = 4,000. iii) reduceByKey. iv) 4 × 50 = 200 (95% fewer)."
+    },
+    {
+     "format": "one_step",
+     "q": "numPartitions = 4. A key's hashCode is 23. Which partition does it go to?",
+     "a": "23 % 4 = 3 → partition 3."
+    },
+    {
+     "format": "full_calc",
+     "q": "A job input → filter → map → groupByKey runs on 10 partitions. The Executor with output partitions 3 and 7 dies and its shuffle files are lost. How many partition computations are redone, and how does this compare with an all-narrow job?",
+     "a": "Stage 1 reruns on all 10: 10 input reads + 10 filter + 10 map = 30, then 2 reduce tasks (32). All-narrow: only partitions 3 and 7 at 4 levels = 2 × 4 = 8, i.e. 20% of the work."
+    },
+    {
+     "format": "long",
+     "q": "Explain narrow and wide dependencies, how they form stages, and their effect on fault recovery and performance.",
+     "a": "Use the 5-mark answer, draw the 1-to-1 vs all-to-all partition diagram, and cite the GraySort lesson that shuffle is the bottleneck."
+    }
+   ],
+   "diagram": {
+    "file": "diagrams/w06-narrow-wide.svg",
+    "caption": "In a narrow dependency each child partition reads one parent partition; in a wide one every child reads from every parent, which forces a shuffle and a new stage."
+   }
+  },
+  {
+   "id": "dataframes",
+   "chapter": 6,
+   "title": "DataFrames, Spark SQL and the ecosystem",
+   "facts": [
+    "DataFrame: a distributed collection organised into named columns with a schema, like a database table or a distributed Pandas DataFrame.",
+    "Built on RDDs internally; every DataFrame operation compiles to an RDD plan when it runs.",
+    "Catalyst optimizer rewrites query plans: predicate pushdown, join reordering, constant folding.",
+    "DataFrames are 10–100× faster than RDDs for structured data. Use them unless you need low-level control.",
+    "Supports SQL and method chaining. Reads Parquet, ORC, CSV, JSON, Hive tables, JDBC.",
+    "On Spark Core: Spark SQL, MLlib (ML), Structured Streaming, GraphX (graphs). HBase is a storage source, not a component."
+   ],
+   "mechanism": [
+    "Load the data: <code>df = spark.read.parquet(path)</code>",
+    "Register a SQL view: <code>df.createOrReplaceTempView(\"health_records\")</code>",
+    "Run the query: <code>spark.sql(\"SELECT ... GROUP BY ...\")</code>",
+    "Catalyst rewrites the plan, e.g. pushes the WHERE filter down to the scan",
+    "The optimised plan runs as RDD stages on the Executors",
+    "Write the result: <code>result.write.mode(\"overwrite\").csv(path)</code>"
+   ],
+   "why": [
+    "The schema tells Catalyst what each column is, so it can optimise the query; raw RDD lambdas are opaque to it.",
+    "One engine covers SQL, ML, streaming and graphs, so there is no separate system per workload.",
+    "MLlib trains iteratively on cached data, which is where Spark is strongest.",
+    "Limitation: DataFrames give less low-level control than RDDs."
+   ],
+   "contrasts": [
+    {
+     "vs": "RDD",
+     "head": [
+      "",
+      "DataFrame",
+      "RDD"
+     ],
+     "rows": [
+      [
+       "Structure",
+       "Named columns + schema",
+       "Records with no schema"
+      ],
+      [
+       "Optimiser",
+       "Catalyst",
+       "DAG scheduler only"
+      ],
+      [
+       "Speed (structured data)",
+       "10–100× faster",
+       "Baseline"
+      ],
+      [
+       "API",
+       "SQL + method chaining",
+       "Functional (map, filter, lambdas)"
+      ],
+      [
+       "Use when",
+       "Default for structured data",
+       "Low-level control needed"
+      ]
+     ]
+    },
+    {
+     "vs": "ecosystem parts",
+     "head": [
+      "",
+      "Does",
+      "Example"
+     ],
+     "rows": [
+      [
+       "Spark SQL",
+       "Structured queries on DataFrames",
+       "District-wise disease counts"
+      ],
+      [
+       "MLlib",
+       "Distributed ML in memory",
+       "k-means, logistic regression, random forest"
+      ],
+      [
+       "Structured Streaming",
+       "Stream as an ever-growing table; watermarks, exactly-once with Kafka",
+       "Real-time events"
+      ],
+      [
+       "GraphX",
+       "Graph algorithms",
+       "PageRank, connected components"
+      ],
+      [
+       "HBase",
+       "Not Spark: a NoSQL store Spark can read",
+       "Data source"
+      ]
+     ]
+    }
+   ],
+   "scenarios": [
+    {
+     "cue": "analysts run SELECT ... GROUP BY over Parquet health records",
+     "answer": "Spark SQL on a DataFrame"
+    },
+    {
+     "cue": "a fraud model is trained with logistic regression across the cluster",
+     "answer": "MLlib"
+    },
+    {
+     "cue": "live payment events, with late data handled by watermarks",
+     "answer": "Structured Streaming"
+    },
+    {
+     "cue": "ranking pages by their links",
+     "answer": "GraphX (PageRank)"
+    },
+    {
+     "cue": "a NoSQL table that Spark reads from",
+     "answer": "HBase: a data source, not part of Spark"
+    }
+   ],
+   "calculation": null,
+   "traps": [
+    "HBase is not a Spark ecosystem component.",
+    "DataFrames do not replace the engine: they compile down to RDDs.",
+    "Catalyst optimises DataFrames/SQL; RDD code goes through the DAG scheduler only."
+   ],
+   "answers": {
+    "1": "A DataFrame is a distributed table with named columns and a schema, optimised by Catalyst.",
+    "3": "A DataFrame organises distributed data into named columns with a schema, like a SQL table. Because Catalyst can see the schema and the whole query, it rewrites the plan (e.g. predicate pushdown), making DataFrames 10–100× faster than RDDs on structured data. Example: <code>spark.sql(\"SELECT district, COUNT(*) ... GROUP BY district\")</code>.",
+    "5": "A DataFrame is a distributed collection organised into named columns with a schema, built on RDDs. It supports SQL and method chaining and reads Parquet, ORC, CSV, JSON, Hive and JDBC. Flow: read Parquet → register a temp view → spark.sql query → Catalyst optimises (predicate pushdown, join reordering, constant folding) → runs as RDD stages → write CSV. Example: district-wise confirmed disease counts for 2024, top 20. Around it sit Spark SQL, MLlib, Structured Streaming and GraphX on Spark Core, with storage such as HDFS, S3 or HBase underneath. Limitation: less low-level control than RDDs."
+   },
+   "questions": [
+    {
+     "format": "mcq",
+     "q": "What makes DataFrames faster than RDDs for structured data?",
+     "options": [
+      "The Catalyst optimizer rewrites the query plan using the schema",
+      "They skip the Executors",
+      "They store data in HBase",
+      "They never use RDDs"
+     ],
+     "a": "Catalyst sees columns and the whole query, so it can push filters down and reorder joins."
+    },
+    {
+     "format": "blank",
+     "q": "A DataFrame is a distributed collection organised into named ______ with a ______.",
+     "a": "columns; schema"
+    },
+    {
+     "format": "define",
+     "q": "List the four libraries that sit on Spark Core.",
+     "a": "Spark SQL, MLlib, Structured Streaming, GraphX."
+    },
+    {
+     "format": "steps",
+     "q": "Give the steps of the slide's Spark SQL example.",
+     "a": "Read Parquet into a DataFrame → createOrReplaceTempView → spark.sql query (WHERE, GROUP BY, ORDER BY, LIMIT) → Catalyst optimises → write the result as CSV."
+    },
+    {
+     "format": "why",
+     "q": "Why use DataFrames instead of RDDs by default?",
+     "a": "Catalyst can optimise a schema-aware query before running it, giving 10–100× speed on structured data. Use RDDs only for low-level control."
+    },
+    {
+     "format": "distinguish",
+     "q": "Distinguish a DataFrame and an RDD.",
+     "a": "DataFrame: named columns, schema, Catalyst-optimised, SQL. RDD: records with no schema, functional API, no query optimiser, more control."
+    },
+    {
+     "format": "scenario",
+     "q": "A health agency stores records as Parquet on HDFS. It wants district-wise disease counts, a disease-risk model, and live alerts from clinics.<br>i) Which API answers the counts? ii) Which library trains the model? iii) Which handles live alerts? iv) What optimises the count query?",
+     "a": "i) Spark SQL / DataFrames. ii) MLlib. iii) Structured Streaming. iv) The Catalyst optimizer."
+    },
+    {
+     "format": "long",
+     "q": "Explain the DataFrame API and the Spark ecosystem.",
+     "a": "Use the 5-mark answer and sketch the stack: Spark SQL | MLlib | Structured Streaming | GraphX over Spark Core, over storage and the Cluster Manager."
+    }
+   ],
+   "diagram": {
+    "file": "diagrams/w06-dataframes.svg",
+    "caption": "Spark SQL, MLlib, Structured Streaming and GraphX all run on Spark Core, which reads from storage and gets resources from a Cluster Manager."
+   }
+  }
+ ],
+ "pool": [
+  {
+   "src": "MCQ",
+   "n": "Q1",
+   "q": "What makes Spark significantly faster than MapReduce for iterative algorithms?",
+   "options": [
+    "(a) Spark uses more CPU cores per node",
+    "(b) Spark writes intermediate results to faster SSDs",
+    "(c) Spark caches intermediate data as RDDs in memory",
+    "(d) Spark skips the shuffle phase entirely"
+   ],
+   "topic": "mr-vs-spark",
+   "a": "<p><b>(c) Spark caches intermediate data as RDDs in memory</b></p><p>Later iterations read from RAM instead of re-reading and re-writing HDFS; the hardware is the same.</p>"
+  },
+  {
+   "src": "MCQ",
+   "n": "Q2",
+   "q": "How does Spark achieve fault tolerance in RDDs without full data replication?",
+   "options": [
+    "(a) Checkpointing to HDFS every 60 seconds",
+    "(b) Tracking lineage and recomputing lost partitions from parent RDDs",
+    "(c) Copying each RDD partition twice across two Executors",
+    "(d) Using a write-ahead log on the Driver node"
+   ],
+   "topic": "rdd",
+   "a": "<p><b>(b) Tracking lineage and recomputing lost partitions from parent RDDs</b></p><p>The recipe is kept, not copies; (c) is replication.</p>"
+  },
+  {
+   "src": "MCQ",
+   "n": "Q3",
+   "q": "Which of the following is <b>NOT</b> a component of the Spark ecosystem?",
+   "options": [
+    "(a) MLlib",
+    "(b) GraphX",
+    "(c) Structured Streaming",
+    "(d) HBase"
+   ],
+   "topic": "dataframes",
+   "a": "<p><b>(d) HBase</b></p><p>HBase is a separate NoSQL database on HDFS; Spark can only read it as a data source.</p>"
+  },
+  {
+   "src": "MCQ",
+   "n": "Q4",
+   "q": "In Spark, a “transformation” such as map() or filter() is:",
+   "options": [
+    "(a) Immediately executed when called and materialised to memory",
+    "(b) Lazily evaluated — only executed when a subsequent action is called",
+    "(c) Automatically persisted to HDFS after execution",
+    "(d) Only available in the Scala API, not in PySpark"
+   ],
+   "topic": "lazy-eval",
+   "a": "<p><b>(b) Lazily evaluated — only executed when a subsequent action is called</b></p><p><code>rdd.filter(f)</code> alone does nothing; <code>rdd.filter(f).count()</code> runs it.</p>"
+  },
+  {
+   "src": "True/False",
+   "n": "1",
+   "q": "Spark can only run on top of Hadoop YARN and has no other deployment option.",
+   "topic": "spark-arch",
+   "a": "<p><b>False.</b> The Cluster Manager can be YARN, Kubernetes, Mesos or Spark Standalone.</p>"
+  },
+  {
+   "src": "True/False",
+   "n": "2",
+   "q": "RDDs are mutable — individual elements can be modified in place after creation.",
+   "topic": "rdd",
+   "a": "<p><b>False.</b> RDDs are immutable; every transformation creates a new RDD.</p>"
+  },
+  {
+   "src": "True/False",
+   "n": "3",
+   "q": "Spark's DataFrame API provides schema-aware, named-column operations similar to SQL tables.",
+   "topic": "dataframes",
+   "a": "<p><b>True.</b> A DataFrame has named columns and a schema, like a relational table, and accepts SQL.</p>"
+  },
+  {
+   "src": "True/False",
+   "n": "4",
+   "q": "MapReduce is generally better than Spark for machine learning workloads that require many iterations over the same dataset.",
+   "topic": "mr-vs-spark",
+   "a": "<p><b>False.</b> Spark is better: it caches the data in RAM and is 10–100× faster on iterative work, while MapReduce hits disk every iteration.</p>"
+  },
+  {
+   "src": "Descriptive",
+   "n": "D1",
+   "q": "Explain the concept of a <b>Resilient Distributed Dataset (RDD)</b>. What does <i>“resilient”</i> mean in this context? How does Spark recover a lost RDD partition without replication?",
+   "topic": "rdd",
+   "a": "<p><b>RDD:</b> a read-only, partitioned collection of records, created from stable storage (HDFS, S3) or by transforming another RDD. Properties: immutable, partitioned, lazy, lineage, resilient.</p><p><b>Resilient:</b> it survives a node failure by recomputing lost partitions from its lineage (the steps that built it) instead of keeping 3 copies. The computation is the backup.</p><p><b>Recovery:</b></p><ol><li>Spark detects Part 2 of mappedRDD is lost.</li><li>Traces lineage: mappedRDD ← filteredRDD ← inputRDD.</li><li>Re-reads input Part 2 from HDFS.</li><li>Re-applies filter, then map.</li><li>Part 2 restored; the job is not restarted.</li></ol><p><b>Diagram:</b> draw the lineage chain shown in the diagram in the RDD card: inputRDD → filteredRDD → mappedRDD, with Part 2 of mappedRDD crossed out and the recovery path going back to inputRDD Part 2 on HDFS.</p><p>Cheap for narrow dependencies; checkpoint long chains.</p>"
+  },
+  {
+   "src": "Descriptive",
+   "n": "D2",
+   "q": "Differentiate between <b>Spark transformations</b> and <b>actions</b>. Give two concrete examples of each. Why does Spark not execute transformations immediately?",
+   "topic": "lazy-eval",
+   "a": "<table><tr><th></th><th>Transformation</th><th>Action</th></tr><tr><td>Runs</td><td>Lazily, only recorded in the DAG</td><td>Immediately, triggers the DAG</td></tr><tr><td>Returns</td><td>A new RDD</td><td>A value to the Driver, or output to storage</td></tr><tr><td>Examples</td><td><code>map(f)</code>, <code>filter(f)</code></td><td><code>count()</code>, <code>collect()</code></td></tr></table><p><b>Why wait:</b> with the whole DAG in view, Spark can</p><ul><li>optimise the plan (DAG scheduler, or Catalyst for DataFrames);</li><li>pipeline filter and map in one pass, with no intermediate disk writes;</li><li>run only the partitions needed, e.g. <code>first()</code> stops at the first match.</li></ul>"
+  },
+  {
+   "src": "Descriptive",
+   "n": "D3",
+   "q": "Describe Spark's <b>lazy evaluation model</b>. What is the advantage of deferring computation until an action is called? Use the example <code>rdd.filter(x &gt; 1000).first()</code> to illustrate.",
+   "topic": "lazy-eval",
+   "a": "<p><b>Model:</b> transformations are only recorded in the DAG. When an action is called, Spark analyses the DAG, optimises it, pipelines compatible steps in one pass per partition, and runs only the partitions it needs.</p><p><b>Advantages:</b> less work (early stop, skipped partitions), no intermediate disk writes, whole-plan optimisation.</p><p><b>Example:</b></p><ol><li><code>filter(x &gt; 1000)</code>: recorded, no data read.</li><li><code>first()</code>: action; Spark starts reading the first partition.</li><li>It returns the first value above 1000 and stops.</li><li>Eager execution would filter the entire dataset, then keep one value.</li></ol>"
+  },
+  {
+   "src": "Analytical",
+   "n": "A1",
+   "q": "<b>Iterative I/O Cost Analysis:</b> You need to train a K-Means clustering model over <b>50 GB</b> of bKash transaction data with <b>100 iterations</b>. Assume HDFS read speed = 500 MB/s and RAM cache read speed = 5,000 MB/s.<ul><li>Calculate the total HDFS I/O for MapReduce (all 100 iterations)</li><li>Calculate the total I/O for Spark (50 GB fits in cluster RAM)</li><li>Estimate the wall-clock time for each approach</li><li>Under what conditions would Spark NOT outperform MapReduce?</li></ul>",
+   "topic": "mr-vs-spark",
+   "a": "<p><b>Given:</b> D = 50 GB = 50,000 MB, k = 100, HDFS 500 MB/s (write assumed = read), RAM 5,000 MB/s.</p><table><tr><th></th><th>MapReduce</th><th>Spark</th></tr><tr><td>HDFS I/O</td><td>100 × (50 + 50) = <b>10 TB</b></td><td><b>50 GB</b> (read once); RAM reads 99 × 50 = 4,950 GB</td></tr><tr><td>Per pass</td><td>50,000/500 = 100 s read + 100 s write = 200 s</td><td>100 s first, then 50,000/5,000 = 10 s</td></tr><tr><td>Total time</td><td>100 × 200 = <b>20,000 s ≈ 5.56 h</b></td><td>100 + 99 × 10 = <b>1,090 s ≈ 18.2 min</b></td></tr></table><p>Disk I/O 200× less; time speedup 20,000 / 1,090 ≈ <b>18.3×</b>.</p><p><b>Spark does not win when:</b> the job is single-pass (nothing to reuse); the data does not fit in RAM (spill or evict and recompute); Executor memory (~8 GB minimum) is too costly; stable MapReduce code is already fast enough.</p>"
+  },
+  {
+   "src": "Analytical",
+   "n": "A2",
+   "q": "<b>RDD Failure Recovery Trace:</b> A Spark job computes <code>input</code> &rarr; <code>filteredRDD</code> &rarr; <code>mappedRDD</code> &rarr; <code>reducedRDD</code> over 10 partitions. Mid-execution, the Executor holding partitions 3 and 7 of <code>reducedRDD</code> crashes. Trace the complete recovery sequence: what does the Driver detect, which partitions of which RDDs need to be recomputed, and what is the worst-case recovery cost if <code>reducedRDD</code> involves a <b>wide</b> dependency (<code>groupByKey</code>)?",
+   "topic": "narrow-wide",
+   "a": "<p><b>Stages:</b> filter, map narrow → Stage 1 (input → filteredRDD → mappedRDD). groupByKey wide → Stage 2 (reducedRDD).</p><p><b>Driver detects:</b> the Executor is lost; tasks for reducedRDD partitions 3 and 7 failed. The other 8 partitions are fine.</p><p><b>Lineage:</b> reducedRDD ← groupByKey ← mappedRDD ← map ← filteredRDD ← filter ← input.</p><table><tr><th>Case</th><th>Recomputed</th></tr><tr><td>If all narrow</td><td>Partitions 3 and 7 at each level: 2 × 4 = 8 computations (20%)</td></tr><tr><td>Wide, shuffle files survive</td><td>Only reducedRDD 3 and 7, re-fetching from all 10 mappedRDD outputs</td></tr><tr><td>Wide, worst case</td><td>Shuffle output lost too: all 10 input, filteredRDD and mappedRDD partitions (30) + reshuffle + reducedRDD 3, 7 (2) ≈ the whole job</td></tr></table><p><b>Limit the cost:</b> reduceByKey instead of groupByKey, cache mappedRDD, checkpoint long chains.</p>"
+  },
+  {
+   "src": "Discussion",
+   "n": "1",
+   "q": "<b>In-memory is a multiplier, not a panacea</b>: Spark is 10&ndash;100&times; faster on iterative workloads; for single-pass ETL over data larger than RAM, gains are smaller (2&ndash;5&times;)",
+   "topic": "mr-vs-spark",
+   "a": "<p><b>Claim:</b> memory speeds up reuse; it does not fix every workload.</p><p><b>For:</b> iterative jobs reuse the working set. RDD paper: logistic regression 127 s vs 0.96 s per iteration (132×).</p><p><b>Against:</b> single-pass ETL reads each byte once, and data larger than RAM spills to disk, so the gain falls to 2–5×.</p><p>Choose by workload: more than 2 iterations favours Spark.</p>"
+  },
+  {
+   "src": "Discussion",
+   "n": "2",
+   "q": "<b>The lineage model scales elegantly</b>: re-computing a lost partition from lineage is cheaper than maintaining 3&times; replicated in-memory state",
+   "topic": "rdd",
+   "a": "<p><b>Claim:</b> lineage beats replication for in-memory data.</p><p><b>For:</b> 3× replication triples RAM and network writes on every step; lineage costs nothing until a failure and then rebuilds only lost partitions.</p><p><b>Against:</b> with wide dependencies or long chains, one lost partition can need many ancestors recomputed, so checkpoints are still needed.</p>"
+  },
+  {
+   "src": "Discussion",
+   "n": "3",
+   "q": "<b>Shuffle is the bottleneck</b>: both at GraySort and in production; minimising wide dependencies (shuffle) is the primary Spark tuning skill",
+   "topic": "narrow-wide",
+   "a": "<p><b>Claim:</b> shuffles dominate Spark's cost.</p><p><b>For:</b> a shuffle moves data over the network, writes to disk and forces a stage barrier. Spark's GraySort win came from a cheaper shuffle: sort-based shuffle (about 120 TB less I/O), all 8 SSDs as shuffle directories, one sortByKey. Tuning: reduceByKey over groupByKey, co-partition before joins.</p><p><b>Against:</b> sorts and un-partitioned joins need a shuffle; you minimise it, you cannot remove it.</p>"
+  },
+  {
+   "src": "Discussion",
+   "n": "4",
+   "q": "<b>Benchmark marketing is real</b>: GraySort made Spark famous; it also hid cases where Spark's JVM memory overhead hurt performance (many small files, high-cardinality <code>groupBy</code>)",
+   "topic": "narrow-wide",
+   "a": "<p><b>Claim:</b> a headline benchmark sells a system but shows one workload.</p><p><b>For:</b> 100 TB in 23 min on 206 nodes vs Hadoop's 72 min on 2,100 drove Spark's adoption.</p><p><b>Against:</b> it ran on tuned large nodes (244 GB RAM, 8 SSDs). Many small files (per-task overhead) and high-cardinality groupBy (too many keys for JVM memory, GC pauses) were not tested.</p><p>Test on your own workload.</p>"
+  },
+  {
+   "src": "Discussion",
+   "n": "5",
+   "q": "<b>Open-source velocity</b>: the Apache Spark community grew to 1,000+ contributors in 5 years; Databricks&rsquo; business model (cloud + support) aligned commercial incentives with open-source development",
+   "topic": "dataframes",
+   "a": "<p><b>Claim:</b> a free engine plus a paid service sped up Spark.</p><p><b>For:</b> Databricks earns from cloud and support, not licences, so improving open Spark helps its business. 1,000+ contributors in 5 years produced Spark SQL, MLlib, Structured Streaming, GraphX.</p><p><b>Against:</b> one company steering the project can shape the roadmap and push features to its paid product first (lock-in risk).</p>"
+  },
+  {
+   "src": "Live Exercise",
+   "n": "Task",
+   "q": "<b>Task (25 minutes, pairs)</b><br>Run the following PySpark script locally (Spark local mode).<br><b>Goal</b>: build and inspect an RDD lineage; observe lazy evaluation; compare cached vs. uncached timing.",
+   "code": "from pyspark import SparkContext\nimport time\nsc = SparkContext(\"local[4]\", \"RDDDemo\")\nsc.setLogLevel(\"WARN\")\n# Build lineage (lazy - no compute yet)\nlines = sc.textFile(\"README.md\")\nwords = lines.flatMap(lambda l: l.split())\npairs = words.map(lambda w: (w.lower(), 1))\ncounts = pairs.reduceByKey(lambda a, b: a+b)\n# Inspect lineage BEFORE action\nprint(counts.toDebugString().decode())\n# First action - triggers full DAG\nt0 = time.time()\nn = counts.count()\nprint(f\"count={n}  time={time.time()-t0:.2f}s\")\n# Cache and re-run\ncounts.cache()\ncounts.count()          # warm up cache\nt1 = time.time()\nn = counts.count()      # served from cache\nprint(f\"cached count={n} \"\n      f\"time={time.time()-t1:.4f}s\")\nsc.stop()",
+   "topic": "rdd",
+   "a": "<p><code>local[4]</code> = local mode, 4 threads. textFile, flatMap, map, reduceByKey only build lineage; the first <code>count()</code> runs the DAG. Key additions for the questions (run with <code>python rdd_demo.py</code>):</p><pre><code>print(counts.toDebugString().decode())   # Q1 before cache\nfor i in (1, 2):                          # Q2 two uncached runs\n    t0 = time.time(); counts.count()\n    print(i, time.time() - t0)\ncounts.cache()\nprint(counts.toDebugString().decode())   # Q1 after cache\ncounts.count()                            # fills the cache\nt1 = time.time(); counts.count()\nprint(\"cached\", time.time() - t1)\n# Q3: counts = pairs.groupByKey().mapValues(sum)\ninput(\"open localhost:4040, then Enter\")</code></pre><p><b>Expected:</b> the lineage shows HadoopRDD → Python RDDs, with a <code>+-</code> indent at the reduceByKey shuffle; count = number of distinct lower-cased words.</p>"
+  },
+  {
+   "src": "Live Exercise",
+   "n": "1",
+   "q": "Call <code>rdd.toDebugString()</code> before and after <code>cache()</code> &mdash; what changes?",
+   "topic": "rdd",
+   "a": "<p>The parent chain does not change, because cache() is lazy and lineage is kept for recovery. After cache() the top line shows a storage level (e.g. <code>[Memory Serialized 1x Replicated]</code>). After an action fills the cache it also shows <code>CachedPartitions</code> and memory size (expected).</p>"
+  },
+  {
+   "src": "Live Exercise",
+   "n": "2",
+   "q": "Time <code>rdd.count()</code> twice without <code>cache()</code>. Then add <code>.cache()</code> and time again. Report the speedup.",
+   "topic": "rdd",
+   "a": "<p>Speedup = uncached time / cached time. Expected: run 1 slowest (start-up, read, shuffle); run 2 a bit faster (shuffle files reused, Stage 1 skipped); cached run fastest. On a small README start-up overhead dominates, so the ratio is modest; the RDD paper shows 127 s → 0.96 s (132×) at scale.</p>"
+  },
+  {
+   "src": "Live Exercise",
+   "n": "3",
+   "q": "Change <code>reduceByKey</code> to <code>groupByKey</code>. Use the Spark UI (localhost:4040) to compare shuffle read/write bytes between the two.",
+   "topic": "narrow-wide",
+   "a": "<p>Use <code>pairs.groupByKey().mapValues(sum)</code>, then read Shuffle Write/Read on the UI's Stages tab. Expected: same counts, larger shuffle bytes for groupByKey, because reduceByKey combines each partition's pairs before the shuffle and groupByKey sends every <code>(word, 1)</code> pair.</p>"
+  }
+ ],
+ "formulas": [
+  {
+   "name": "MapReduce iterative disk I/O",
+   "formula": "MR_IO = k × (D_read + D_write)",
+   "note": "k iterations; slide: 100 × (50 + 50) GB = 10 TB"
+  },
+  {
+   "name": "Spark HDFS I/O",
+   "formula": "Spark_IO = D (read once)",
+   "note": "later iterations read RAM, not HDFS"
+  },
+  {
+   "name": "Transfer time",
+   "formula": "t = size / speed",
+   "note": "50,000 MB / 500 MB/s = 100 s"
+  },
+  {
+   "name": "Iterative wall-clock time",
+   "formula": "T_MR = k × (D/R_hdfs + D/W_hdfs); T_Spark = D/R_hdfs + (k − 1) × D/R_ram",
+   "note": "k − 1 RAM passes, not k"
+  },
+  {
+   "name": "Speedup",
+   "formula": "Speedup = T_old / T_new",
+   "note": "A1: 20,000 / 1,090 ≈ 18.3×; RDD paper 127 / 0.96 ≈ 132×"
+  },
+  {
+   "name": "Hash partitioner",
+   "formula": "partition = key.hashCode() % numPartitions",
+   "note": "17 % 4 = 1"
+  },
+  {
+   "name": "Shuffle records",
+   "formula": "groupByKey = all pairs; reduceByKey ≤ partitions × distinct keys per partition",
+   "note": "4,000 vs 200 records"
+  },
+  {
+   "name": "Efficiency per node",
+   "formula": "(T_old × N_old) / (T_new × N_new)",
+   "note": "GraySort (72 × 2,100) / (23 × 206) ≈ 32×"
+  }
+ ],
+ "mock": {
+  "a": {
+   "marks": 4,
+   "q": "A ride-sharing firm runs a PySpark job on its Hadoop cluster: <code>textFile → filter(fare &gt; 0) → map(to (zone, fare)) → reduceByKey(sum) → saveAsTextFile</code>.<br>i) Which component builds the DAG and schedules tasks? ii) How many stages run, and where is the boundary? iii) Which call starts the computation, and why? iv) Why is reduceByKey better here than groupByKey?",
+   "a": "i) The Driver (YARN is the Cluster Manager, Executors run the tasks). ii) Two: textFile → filter → map are narrow and pipelined in Stage 1; reduceByKey is wide, so the shuffle starts Stage 2. iii) saveAsTextFile, the only action; transformations are lazy. iv) It sums fares per zone inside each partition before the shuffle, so far fewer records cross the network."
+  },
+  "b": {
+   "marks": 6,
+   "q": "The firm trains a demand model with 20 iterations over 40 GB. HDFS reads and writes at 400 MB/s; RAM cache reads at 4,000 MB/s.<br>i) Total HDFS I/O for MapReduce. ii) Spark's HDFS I/O and the reduction factor. iii) Wall-clock time for each. iv) The speedup, and one case where Spark would not win.",
+   "a": "i) 20 × (40 + 40) = 1,600 GB = 1.6 TB. ii) 40 GB (read once); 1,600 / 40 = 40× less. iii) HDFS pass = 40,000 / 400 = 100 s, so T_MR = 20 × 200 = 4,000 s ≈ 66.7 min. RAM pass = 40,000 / 4,000 = 10 s, so T_Spark = 100 + 19 × 10 = 290 s ≈ 4.8 min. iv) 4,000 / 290 ≈ <b>13.8×</b>. Spark would not win on a single-pass job, or if the 40 GB did not fit in cluster RAM."
+  },
+  "or_a": {
+   "marks": 4,
+   "q": "A job runs <code>input → filter → map</code> over 8 partitions and caches the result. The Executor holding partition 4 crashes.<br>i) What does “resilient” mean for this RDD? ii) List the recovery steps. iii) What fraction of the work is redone? iv) What changes if the next step is groupByKey?",
+   "a": "i) Lost partitions are recomputed from lineage, not read from a replica. ii) Detect the lost partition → trace lineage to the input → re-read input partition 4 from HDFS → re-apply filter then map. iii) 1 / 8 = 12.5%. iv) groupByKey is wide: a lost output partition needs data from all 8 parent partitions, so recovery can rerun the whole earlier stage."
+  },
+  "or_b": {
+   "marks": 6,
+   "q": "A word count runs on 6 partitions. Each partition holds 2,000 <code>(word, 1)</code> pairs with 40 distinct words.<br>i) Records shuffled by groupByKey. ii) Maximum records shuffled by reduceByKey. iii) Percentage reduction. iv) With numPartitions = 5, which partitions do keys with hash 23 and 40 go to, and is this step narrow or wide?",
+   "a": "i) 6 × 2,000 = 12,000. ii) 6 × 40 = 240. iii) 1 − 240 / 12,000 = 0.98 → <b>98%</b> fewer records. iv) 23 % 5 = 3 and 40 % 5 = 0, so partitions 3 and 0. Hash partitioning for a shuffle is a wide dependency."
+  }
+ }
+}

@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 330" font-family="Inter, Segoe UI, system-ui, sans-serif"><style>.bx{fill:var(--d-box,#fff7ed);stroke:var(--d-line,#b45309);stroke-width:1.5}
+.bx2{fill:var(--d-box2,#eff6ff);stroke:var(--d-line2,#1d4ed8);stroke-width:1.5}
+.bx3{fill:var(--d-box3,#ecfdf3);stroke:var(--d-line3,#15803d);stroke-width:1.5}
+.ln{stroke:var(--d-ink,#44403c);stroke-width:1.5;fill:none}
+.t{fill:var(--d-ink,#1c1b19);font-size:14px}.tb{fill:var(--d-ink,#1c1b19);font-size:14px;font-weight:600}
+.ts{fill:var(--d-mute,#78716c);font-size:12px}</style><defs><marker id="ah-w06narrowwide" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--d-ink,#44403c)"/></marker></defs><text class="tb" x="180" y="34" text-anchor="middle">Narrow (map)</text>
+<text class="tb" x="540" y="34" text-anchor="middle">Wide (groupByKey)</text>
+<path class="ln" d="M360,15 L360,315" stroke-dasharray="5 4"/>
+<rect class="bx2" x="70" y="60" width="60" height="36" rx="8"/>
+<text class="tb" x="100.0" y="83.0" text-anchor="middle">P1</text>
+<rect class="bx3" x="230" y="60" width="60" height="36" rx="8"/>
+<text class="tb" x="260.0" y="83.0" text-anchor="middle">P1</text>
+<rect class="bx2" x="70" y="130" width="60" height="36" rx="8"/>
+<text class="tb" x="100.0" y="153.0" text-anchor="middle">P2</text>
+<rect class="bx3" x="230" y="130" width="60" height="36" rx="8"/>
+<text class="tb" x="260.0" y="153.0" text-anchor="middle">P2</text>
+<rect class="bx2" x="70" y="200" width="60" height="36" rx="8"/>
+<text class="tb" x="100.0" y="223.0" text-anchor="middle">P3</text>
+<rect class="bx3" x="230" y="200" width="60" height="36" rx="8"/>
+<text class="tb" x="260.0" y="223.0" text-anchor="middle">P3</text>
+<rect class="bx2" x="430" y="60" width="60" height="36" rx="8"/>
+<text class="tb" x="460.0" y="83.0" text-anchor="middle">P1</text>
+<rect class="bx3" x="590" y="60" width="60" height="36" rx="8"/>
+<text class="tb" x="620.0" y="83.0" text-anchor="middle">P1</text>
+<rect class="bx2" x="430" y="130" width="60" height="36" rx="8"/>
+<text class="tb" x="460.0" y="153.0" text-anchor="middle">P2</text>
+<rect class="bx3" x="590" y="130" width="60" height="36" rx="8"/>
+<text class="tb" x="620.0" y="153.0" text-anchor="middle">P2</text>
+<rect class="bx2" x="430" y="200" width="60" height="36" rx="8"/>
+<text class="tb" x="460.0" y="223.0" text-anchor="middle">P3</text>
+<rect class="bx3" x="590" y="200" width="60" height="36" rx="8"/>
+<text class="tb" x="620.0" y="223.0" text-anchor="middle">P3</text>
+<path class="ln" d="M130,78 L230,78" marker-end="url(#ah-w06narrowwide)"/>
+<path class="ln" d="M130,148 L230,148" marker-end="url(#ah-w06narrowwide)"/>
+<path class="ln" d="M130,218 L230,218" marker-end="url(#ah-w06narrowwide)"/>
+<path class="ln" d="M490,69 L590,69" marker-end="url(#ah-w06narrowwide)"/>
+<path class="ln" d="M490,78 L590,139" marker-end="url(#ah-w06narrowwide)"/>
+<path class="ln" d="M490,87 L590,209" marker-end="url(#ah-w06narrowwide)"/>
+<path class="ln" d="M490,139 L590,78" marker-end="url(#ah-w06narrowwide)"/>
+<path class="ln" d="M490,148 L590,148" marker-end="url(#ah-w06narrowwide)"/>
+<path class="ln" d="M490,157 L590,218" marker-end="url(#ah-w06narrowwide)"/>
+<path class="ln" d="M490,209 L590,87" marker-end="url(#ah-w06narrowwide)"/>
+<path class="ln" d="M490,218 L590,157" marker-end="url(#ah-w06narrowwide)"/>
+<path class="ln" d="M490,227 L590,227" marker-end="url(#ah-w06narrowwide)"/>
+<text class="t" x="180" y="276" text-anchor="middle">1-to-1, no shuffle</text>
+<text class="t" x="180" y="300" text-anchor="middle">pipelined in one stage</text>
+<text class="t" x="540" y="276" text-anchor="middle">all-to-all shuffle</text>
+<text class="t" x="540" y="300" text-anchor="middle">stage boundary</text></svg>

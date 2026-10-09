@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 380" font-family="Inter, Segoe UI, system-ui, sans-serif">
+<style>.bx{fill:var(--d-box,#fff7ed);stroke:var(--d-line,#b45309);stroke-width:1.5}
+.bx2{fill:var(--d-box2,#eff6ff);stroke:var(--d-line2,#1d4ed8);stroke-width:1.5}
+.bx3{fill:var(--d-box3,#ecfdf3);stroke:var(--d-line3,#15803d);stroke-width:1.5}
+.ln{stroke:var(--d-ink,#44403c);stroke-width:1.5;fill:none}
+.t{fill:var(--d-ink,#1c1b19);font-size:14px}.tb{fill:var(--d-ink,#1c1b19);font-size:14px;font-weight:600}
+.ts{fill:var(--d-mute,#78716c);font-size:12px}</style>
+<defs><marker id="ah-w07d" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--d-ink,#44403c)"/></marker></defs>
+<text class="tb" x="140" y="32" text-anchor="middle">sales</text>
+<text class="tb" x="500" y="32" text-anchor="middle">users</text>
+<rect class="bx" x="60" y="50" width="160" height="46" rx="8"/>
+<text class="tb" x="140.0" y="78.0" text-anchor="middle">bucket 0</text>
+<rect class="bx2" x="420" y="50" width="160" height="46" rx="8"/>
+<text class="tb" x="500.0" y="78.0" text-anchor="middle">bucket 0</text>
+<polyline class="ln" points="222,73 418,73" marker-end="url(#ah-w07d)" marker-start="url(#ah-w07d)"/>
+<text class="ts" x="320" y="66" text-anchor="middle">join 0 with 0</text>
+<rect class="bx" x="60" y="116" width="160" height="46" rx="8"/>
+<text class="tb" x="140.0" y="144.0" text-anchor="middle">bucket 1</text>
+<rect class="bx2" x="420" y="116" width="160" height="46" rx="8"/>
+<text class="tb" x="500.0" y="144.0" text-anchor="middle">bucket 1</text>
+<polyline class="ln" points="222,139 418,139" marker-end="url(#ah-w07d)" marker-start="url(#ah-w07d)"/>
+<text class="ts" x="320" y="132" text-anchor="middle">join 1 with 1</text>
+<rect class="bx3" x="60" y="182" width="160" height="46" rx="8"/>
+<text class="tb" x="140.0" y="210.0" text-anchor="middle">bucket 2</text>
+<rect class="bx3" x="420" y="182" width="160" height="46" rx="8"/>
+<text class="tb" x="500.0" y="210.0" text-anchor="middle">bucket 2</text>
+<polyline class="ln" points="222,205 418,205" marker-end="url(#ah-w07d)" marker-start="url(#ah-w07d)"/>
+<text class="ts" x="320" y="198" text-anchor="middle">join 2 with 2</text>
+<rect class="bx" x="60" y="248" width="160" height="46" rx="8"/>
+<text class="tb" x="140.0" y="276.0" text-anchor="middle">bucket 3</text>
+<rect class="bx2" x="420" y="248" width="160" height="46" rx="8"/>
+<text class="tb" x="500.0" y="276.0" text-anchor="middle">bucket 3</text>
+<polyline class="ln" points="222,271 418,271" marker-end="url(#ah-w07d)" marker-start="url(#ah-w07d)"/>
+<text class="ts" x="320" y="264" text-anchor="middle">join 3 with 3</text>
+<text class="tb" x="320" y="335" text-anchor="middle">bucket = hash(user_id) % 4</text>
+<text class="ts" x="320" y="358" text-anchor="middle">user_id 98 → 98 % 4 = 2 in both tables, so no full shuffle</text>
+</svg>

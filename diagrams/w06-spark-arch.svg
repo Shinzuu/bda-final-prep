@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 400" font-family="Inter, Segoe UI, system-ui, sans-serif"><style>.bx{fill:var(--d-box,#fff7ed);stroke:var(--d-line,#b45309);stroke-width:1.5}
+.bx2{fill:var(--d-box2,#eff6ff);stroke:var(--d-line2,#1d4ed8);stroke-width:1.5}
+.bx3{fill:var(--d-box3,#ecfdf3);stroke:var(--d-line3,#15803d);stroke-width:1.5}
+.ln{stroke:var(--d-ink,#44403c);stroke-width:1.5;fill:none}
+.t{fill:var(--d-ink,#1c1b19);font-size:14px}.tb{fill:var(--d-ink,#1c1b19);font-size:14px;font-weight:600}
+.ts{fill:var(--d-mute,#78716c);font-size:12px}</style><defs><marker id="ah-w06sparkarch" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--d-ink,#44403c)"/></marker></defs><rect class="bx" x="220" y="20" width="280" height="60" rx="8"/>
+<text class="tb" x="360.0" y="45.5" text-anchor="middle">Driver Program</text>
+<text class="t" x="360.0" y="64.5" text-anchor="middle">SparkSession · DAG</text>
+<rect class="bx2" x="220" y="130" width="280" height="60" rx="8"/>
+<text class="tb" x="360.0" y="155.5" text-anchor="middle">Cluster Manager</text>
+<text class="t" x="360.0" y="174.5" text-anchor="middle">YARN / K8s / Standalone</text>
+<path class="ln" d="M360,80 L360,130" marker-end="url(#ah-w06sparkarch)"/>
+<text class="t" x="372" y="110" text-anchor="start">requests resources</text>
+<rect class="bx2" x="30" y="250" width="200" height="130" rx="8"/>
+<text class="tb" x="130" y="274" text-anchor="middle">Worker 1</text>
+<rect class="bx3" x="50" y="290" width="160" height="76" rx="8"/>
+<text class="tb" x="130.0" y="323.5" text-anchor="middle">Executor</text>
+<text class="t" x="130.0" y="342.5" text-anchor="middle">tasks + cache</text>
+<path class="ln" d="M360,190 L130,250" marker-end="url(#ah-w06sparkarch)"/>
+<rect class="bx2" x="260" y="250" width="200" height="130" rx="8"/>
+<text class="tb" x="360" y="274" text-anchor="middle">Worker 2</text>
+<rect class="bx3" x="280" y="290" width="160" height="76" rx="8"/>
+<text class="tb" x="360.0" y="323.5" text-anchor="middle">Executor</text>
+<text class="t" x="360.0" y="342.5" text-anchor="middle">tasks + cache</text>
+<path class="ln" d="M360,190 L360,250" marker-end="url(#ah-w06sparkarch)"/>
+<rect class="bx2" x="490" y="250" width="200" height="130" rx="8"/>
+<text class="tb" x="590" y="274" text-anchor="middle">Worker 3</text>
+<rect class="bx3" x="510" y="290" width="160" height="76" rx="8"/>
+<text class="tb" x="590.0" y="323.5" text-anchor="middle">Executor</text>
+<text class="t" x="590.0" y="342.5" text-anchor="middle">tasks + cache</text>
+<path class="ln" d="M360,190 L590,250" marker-end="url(#ah-w06sparkarch)"/>
+<path class="ln" d="M500,50 L700,50 L700,315"/>
+<path class="ln" d="M700,315 L670,315" marker-end="url(#ah-w06sparkarch)"/>
+<text class="t" x="600" y="42" text-anchor="middle">schedules tasks</text></svg>

@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 730 320" font-family="Inter, Segoe UI, system-ui, sans-serif">
+<style>.bx{fill:var(--d-box,#fff7ed);stroke:var(--d-line,#b45309);stroke-width:1.5}
+.bx2{fill:var(--d-box2,#eff6ff);stroke:var(--d-line2,#1d4ed8);stroke-width:1.5}
+.bx3{fill:var(--d-box3,#ecfdf3);stroke:var(--d-line3,#15803d);stroke-width:1.5}
+.ln{stroke:var(--d-ink,#44403c);stroke-width:1.5;fill:none}
+.t{fill:var(--d-ink,#1c1b19);font-size:14px}.tb{fill:var(--d-ink,#1c1b19);font-size:14px;font-weight:600}
+.ts{fill:var(--d-mute,#78716c);font-size:12px}</style>
+<defs><marker id="ah-w10hd" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--d-ink,#44403c)"/></marker></defs>
+<rect class="bx2" x="20" y="30" width="190" height="46" rx="8"/><text class="t" x="115.0" y="58.0" text-anchor="middle">EHR (FHIR)</text>
+<line class="ln" x1="210" y1="53" x2="268" y2="53" marker-end="url(#ah-w10hd)"/>
+<rect class="bx2" x="20" y="102" width="190" height="46" rx="8"/><text class="t" x="115.0" y="130.0" text-anchor="middle">Genomics (Parquet)</text>
+<line class="ln" x1="210" y1="125" x2="268" y2="125" marker-end="url(#ah-w10hd)"/>
+<rect class="bx2" x="20" y="174" width="190" height="46" rx="8"/><text class="t" x="115.0" y="202.0" text-anchor="middle">Wearables (Kafka)</text>
+<line class="ln" x1="210" y1="197" x2="268" y2="197" marker-end="url(#ah-w10hd)"/>
+<rect class="bx2" x="20" y="246" width="190" height="46" rx="8"/><text class="t" x="115.0" y="274.0" text-anchor="middle">Imaging (DICOM)</text>
+<line class="ln" x1="210" y1="269" x2="268" y2="269" marker-end="url(#ah-w10hd)"/>
+<rect class="bx" x="270" y="30" width="190" height="262" rx="8"/><text class="tb" x="365.0" y="130.0" text-anchor="middle">Health</text><text class="tb" x="365.0" y="148.0" text-anchor="middle">Data Lake</text><text class="t" x="365.0" y="166.0" text-anchor="middle"></text><text class="t" x="365.0" y="184.0" text-anchor="middle">HDFS / S3</text><text class="t" x="365.0" y="202.0" text-anchor="middle">+ Hive Metastore</text>
+<rect class="bx3" x="520" y="40" width="190" height="60" rx="8"/><text class="tb" x="615.0" y="66.0" text-anchor="middle">Clinical ML</text><text class="ts" x="615.0" y="84.0" text-anchor="middle">readmission, mortality</text>
+<line class="ln" x1="460" y1="70" x2="518" y2="70" marker-end="url(#ah-w10hd)"/>
+<rect class="bx3" x="520" y="130" width="190" height="60" rx="8"/><text class="tb" x="615.0" y="156.0" text-anchor="middle">Imaging AI</text><text class="ts" x="615.0" y="174.0" text-anchor="middle">CNN diagnosis</text>
+<line class="ln" x1="460" y1="160" x2="518" y2="160" marker-end="url(#ah-w10hd)"/>
+<rect class="bx3" x="520" y="220" width="190" height="60" rx="8"/><text class="tb" x="615.0" y="246.0" text-anchor="middle">Genomics</text><text class="ts" x="615.0" y="264.0" text-anchor="middle">variant calling</text>
+<line class="ln" x1="460" y1="250" x2="518" y2="250" marker-end="url(#ah-w10hd)"/>
+
+</svg>

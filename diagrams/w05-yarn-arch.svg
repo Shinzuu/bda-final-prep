@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 400" font-family="Inter, Segoe UI, system-ui, sans-serif">
+<style>.bx{fill:var(--d-box,#fff7ed);stroke:var(--d-line,#b45309);stroke-width:1.5}
+.bx2{fill:var(--d-box2,#eff6ff);stroke:var(--d-line2,#1d4ed8);stroke-width:1.5}
+.bx3{fill:var(--d-box3,#ecfdf3);stroke:var(--d-line3,#15803d);stroke-width:1.5}
+.ln{stroke:var(--d-ink,#44403c);stroke-width:1.5;fill:none}
+.t{fill:var(--d-ink,#1c1b19);font-size:14px}.tb{fill:var(--d-ink,#1c1b19);font-size:14px;font-weight:600}
+.ts{fill:var(--d-mute,#78716c);font-size:12px}</style>
+<defs><marker id="ah-w05a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--d-ink,#44403c)"/></marker></defs>
+<rect class="bx" x="30" y="36" width="120" height="44" rx="8"/>
+<text class="tb" x="90.0" y="63.0" text-anchor="middle">Client</text>
+<rect class="bx" x="250" y="28" width="240" height="60" rx="8"/>
+<text class="tb" x="370.0" y="54.0" text-anchor="middle">ResourceManager</text>
+<text class="ts" x="370.0" y="72.0" text-anchor="middle">Scheduler + AppsManager</text>
+<rect class="bx2" x="270" y="170" width="200" height="52" rx="8"/>
+<text class="tb" x="370.0" y="192.0" text-anchor="middle">ApplicationMaster</text>
+<text class="ts" x="370.0" y="210.0" text-anchor="middle">1 per job</text>
+<rect class="bx3" x="30" y="312" width="170" height="52" rx="8"/>
+<text class="tb" x="115.0" y="334.0" text-anchor="middle">NodeManager 1</text>
+<text class="ts" x="115.0" y="352.0" text-anchor="middle">task containers</text>
+<rect class="bx3" x="285" y="312" width="170" height="52" rx="8"/>
+<text class="tb" x="370.0" y="334.0" text-anchor="middle">NodeManager 2</text>
+<text class="ts" x="370.0" y="352.0" text-anchor="middle">task containers</text>
+<rect class="bx3" x="540" y="312" width="150" height="52" rx="8"/>
+<text class="tb" x="615.0" y="334.0" text-anchor="middle">NodeManager 3</text>
+<text class="ts" x="615.0" y="352.0" text-anchor="middle">task containers</text>
+<line class="ln" x1="150" y1="58" x2="248" y2="58" marker-end="url(#ah-w05a)"/>
+<text class="ts" x="199" y="50" text-anchor="middle">1 submit</text>
+<line class="ln" x1="320" y1="88" x2="320" y2="168" marker-end="url(#ah-w05a)"/>
+<text class="ts" x="312" y="132" text-anchor="end">2 launch AM</text>
+<line class="ln" x1="420" y1="168" x2="420" y2="90" marker-end="url(#ah-w05a)"/>
+<text class="ts" x="428" y="112" text-anchor="start">3 register</text>
+<text class="ts" x="428" y="128" text-anchor="start">+ request</text>
+<text class="ts" x="428" y="150" text-anchor="start">6 unregister</text>
+<line class="ln" x1="300" y1="222" x2="150" y2="310" marker-end="url(#ah-w05a)"/>
+<line class="ln" x1="100" y1="310" x2="278" y2="224" stroke-dasharray="5 4" marker-end="url(#ah-w05a)"/>
+<line class="ln" x1="350" y1="222" x2="350" y2="310" marker-end="url(#ah-w05a)"/>
+<line class="ln" x1="390" y1="310" x2="390" y2="224" stroke-dasharray="5 4" marker-end="url(#ah-w05a)"/>
+<line class="ln" x1="440" y1="222" x2="580" y2="310" marker-end="url(#ah-w05a)"/>
+<line class="ln" x1="640" y1="310" x2="462" y2="224" stroke-dasharray="5 4" marker-end="url(#ah-w05a)"/>
+<text class="ts" x="342" y="272" text-anchor="end">4 launch task</text>
+<text class="ts" x="398" y="272" text-anchor="start">5 status</text>
+<text class="ts" x="360" y="392" text-anchor="middle">Every NodeManager also heartbeats its health to the RM</text>
+</svg>

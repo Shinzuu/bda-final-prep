@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 380" font-family="Inter, Segoe UI, system-ui, sans-serif">
+<style>.bx{fill:var(--d-box,#fff7ed);stroke:var(--d-line,#b45309);stroke-width:1.5}
+.bx2{fill:var(--d-box2,#eff6ff);stroke:var(--d-line2,#1d4ed8);stroke-width:1.5}
+.bx3{fill:var(--d-box3,#ecfdf3);stroke:var(--d-line3,#15803d);stroke-width:1.5}
+.ln{stroke:var(--d-ink,#44403c);stroke-width:1.5;fill:none}
+.t{fill:var(--d-ink,#1c1b19);font-size:14px}.tb{fill:var(--d-ink,#1c1b19);font-size:14px;font-weight:600}
+.ts{fill:var(--d-mute,#78716c);font-size:12px}</style>
+<defs><marker id="ah-w05d" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--d-ink,#44403c)"/></marker></defs>
+<text class="tb" x="180" y="34" text-anchor="middle">Row store (CSV, Avro)</text>
+<text class="tb" x="540" y="34" text-anchor="middle">Columnar (Parquet, ORC)</text>
+<rect class="bx2" x="60" y="56" width="240" height="54" rx="8"/>
+<text class="tb" x="180.0" y="79.0" text-anchor="middle">row 1</text>
+<text class="ts" x="180.0" y="97.0" text-anchor="middle">id · name · age · score</text>
+<rect class="bx2" x="60" y="124" width="240" height="54" rx="8"/>
+<text class="tb" x="180.0" y="147.0" text-anchor="middle">row 2</text>
+<text class="ts" x="180.0" y="165.0" text-anchor="middle">id · name · age · score</text>
+<rect class="bx2" x="60" y="192" width="240" height="54" rx="8"/>
+<text class="tb" x="180.0" y="215.0" text-anchor="middle">row 3</text>
+<text class="ts" x="180.0" y="233.0" text-anchor="middle">id · name · age · score</text>
+<line class="ln" x1="42" y1="56" x2="42" y2="254" marker-end="url(#ah-w05d)"/>
+<rect class="bx" x="420" y="56" width="240" height="44" rx="8"/>
+<text class="tb" x="540.0" y="74.0" text-anchor="middle">id column</text>
+<text class="ts" x="540.0" y="92.0" text-anchor="middle">skipped</text>
+<rect class="bx" x="420" y="108" width="240" height="44" rx="8"/>
+<text class="tb" x="540.0" y="126.0" text-anchor="middle">name column</text>
+<text class="ts" x="540.0" y="144.0" text-anchor="middle">skipped</text>
+<rect class="bx" x="420" y="160" width="240" height="44" rx="8"/>
+<text class="tb" x="540.0" y="178.0" text-anchor="middle">age column</text>
+<text class="ts" x="540.0" y="196.0" text-anchor="middle">skipped</text>
+<rect class="bx3" x="420" y="212" width="240" height="44" rx="8"/>
+<text class="tb" x="540.0" y="230.0" text-anchor="middle">score column</text>
+<text class="ts" x="540.0" y="248.0" text-anchor="middle">read</text>
+<line class="ln" x1="402" y1="56" x2="402" y2="254" marker-end="url(#ah-w05d)"/>
+<text class="t" x="180" y="292" text-anchor="middle">SELECT score reads all</text>
+<text class="t" x="540" y="292" text-anchor="middle">SELECT score reads 1 of 4</text>
+<text class="ts" x="360" y="334" text-anchor="middle">10 TB, 3 of 100 columns: 10 TB read vs 300 GB (33×)</text>
+<text class="ts" x="360" y="356" text-anchor="middle">Arrows show the order bytes sit on disk</text>
+</svg>

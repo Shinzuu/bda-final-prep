@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 400" font-family="Inter, Segoe UI, system-ui, sans-serif">
+<style>.bx{fill:var(--d-box,#fff7ed);stroke:var(--d-line,#b45309);stroke-width:1.5}
+.bx2{fill:var(--d-box2,#eff6ff);stroke:var(--d-line2,#1d4ed8);stroke-width:1.5}
+.bx3{fill:var(--d-box3,#ecfdf3);stroke:var(--d-line3,#15803d);stroke-width:1.5}
+.ln{stroke:var(--d-ink,#44403c);stroke-width:1.5;fill:none}
+.t{fill:var(--d-ink,#1c1b19);font-size:14px}.tb{fill:var(--d-ink,#1c1b19);font-size:14px;font-weight:600}
+.ts{fill:var(--d-mute,#78716c);font-size:12px}</style>
+<defs><marker id="ah-w07a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--d-ink,#44403c)"/></marker></defs>
+<rect class="bx2" x="230" y="15" width="200" height="44" rx="8"/>
+<text class="tb" x="330.0" y="42.0" text-anchor="middle">Beeline / JDBC</text>
+<rect class="bx2" x="230" y="90" width="200" height="44" rx="8"/>
+<text class="tb" x="330.0" y="117.0" text-anchor="middle">HiveServer2</text>
+<rect class="bx" x="200" y="165" width="260" height="54" rx="8"/>
+<text class="tb" x="330.0" y="189.0" text-anchor="middle">Driver</text>
+<text class="ts" x="330.0" y="206.0" text-anchor="middle">parse · plan · optimise</text>
+<rect class="bx3" x="20" y="260" width="200" height="54" rx="8"/>
+<text class="tb" x="120.0" y="284.0" text-anchor="middle">Metastore</text>
+<text class="ts" x="120.0" y="301.0" text-anchor="middle">MySQL / PostgreSQL</text>
+<rect class="bx" x="410" y="260" width="210" height="54" rx="8"/>
+<text class="tb" x="515.0" y="284.0" text-anchor="middle">Execution Engine</text>
+<text class="ts" x="515.0" y="301.0" text-anchor="middle">MR / Tez / Spark</text>
+<rect class="bx3" x="410" y="340" width="210" height="44" rx="8"/>
+<text class="tb" x="515.0" y="367.0" text-anchor="middle">HDFS data files</text>
+<polyline class="ln" points="330,59 330,88" marker-end="url(#ah-w07a)"/>
+<polyline class="ln" points="330,134 330,163" marker-end="url(#ah-w07a)"/>
+<polyline class="ln" points="250,219 150,258" marker-end="url(#ah-w07a)" marker-start="url(#ah-w07a)"/>
+<text class="ts" x="190" y="228" text-anchor="end">schema lookup</text>
+<polyline class="ln" points="410,219 490,258" marker-end="url(#ah-w07a)"/>
+<text class="ts" x="462" y="228" text-anchor="start">submit jobs</text>
+<polyline class="ln" points="515,314 515,338" marker-end="url(#ah-w07a)" marker-start="url(#ah-w07a)"/>
+<text class="ts" x="525" y="331" text-anchor="start">read / write</text>
+<polyline class="ln" points="620,287 655,287 655,112 432,112" stroke-dasharray="5 4" marker-end="url(#ah-w07a)"/>
+<text class="ts" x="545" y="104" text-anchor="middle">results</text>
+</svg>

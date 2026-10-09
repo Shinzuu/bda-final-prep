@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 750 350" font-family="Inter, Segoe UI, system-ui, sans-serif"><style>.bx{fill:var(--d-box,#fff7ed);stroke:var(--d-line,#b45309);stroke-width:1.5}
+.bx2{fill:var(--d-box2,#eff6ff);stroke:var(--d-line2,#1d4ed8);stroke-width:1.5}
+.bx3{fill:var(--d-box3,#ecfdf3);stroke:var(--d-line3,#15803d);stroke-width:1.5}
+.ln{stroke:var(--d-ink,#44403c);stroke-width:1.5;fill:none}
+.t{fill:var(--d-ink,#1c1b19);font-size:14px}.tb{fill:var(--d-ink,#1c1b19);font-size:14px;font-weight:600}
+.ts{fill:var(--d-mute,#78716c);font-size:12px}</style><style>.tm{fill:var(--d-mute,#78716c);font-size:13px}
+.dm{fill:var(--d-line2,#1d4ed8)}.dw{fill:var(--d-line,#b45309)}
+.dl{stroke:var(--d-line2,#1d4ed8);stroke-width:2.5;fill:none;stroke-linejoin:round}
+.dc{stroke:var(--d-line2,#1d4ed8);stroke-width:1.8;fill:none}
+.rf{stroke:var(--d-mute,#78716c);stroke-width:1.2;stroke-dasharray:4 4;fill:none}
+.lw{stroke:var(--d-line,#b45309);stroke-width:1.8;fill:none}
+.dsh{stroke:var(--d-line,#b45309);stroke-width:1.5;stroke-dasharray:6 5;fill:none}</style><defs><marker id="ah-w09latency" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--d-ink,#44403c)"/></marker></defs>
+<rect class="bx2" x="20" y="60" width="130" height="270" rx="8"/>
+<text class="tb" x="85.0" y="191.0" text-anchor="middle">Fact table</text>
+<text class="tm" x="85.0" y="210.0" text-anchor="middle">100 B rows</text>
+<rect class="bx3" x="600" y="60" width="130" height="270" rx="8"/>
+<text class="tb" x="665.0" y="191.0" text-anchor="middle">Dashboard</text>
+<text class="tm" x="665.0" y="210.0" text-anchor="middle">Tableau, Superset</text>
+<rect class="bx" x="195" y="60" width="140" height="60" rx="8"/>
+<text class="tb" x="265.0" y="86.0" text-anchor="middle">Nightly job</text>
+<text class="tm" x="265.0" y="105.0" text-anchor="middle">Spark / Hive</text>
+<rect class="bx3" x="375" y="60" width="160" height="60" rx="8"/>
+<text class="tb" x="455.0" y="86.0" text-anchor="middle">Data cube</text>
+<text class="tm" x="455.0" y="105.0" text-anchor="middle">millions of rows</text>
+<path class="ln" d="M150,90 L195,90" marker-end="url(#ah-w09latency)"/>
+<path class="ln" d="M335,90 L375,90" marker-end="url(#ah-w09latency)"/>
+<path class="ln" d="M535,90 L600,90" marker-end="url(#ah-w09latency)"/>
+<text class="tb" x="567" y="80" text-anchor="middle">&lt; 1 s</text>
+<text class="tm" x="455" y="142" text-anchor="middle">exact, up to 24 h stale</text>
+<rect class="bx" x="265" y="180" width="200" height="60" rx="8"/>
+<text class="tb" x="365.0" y="206.0" text-anchor="middle">AQP sample</text>
+<text class="tm" x="365.0" y="225.0" text-anchor="middle">DataSketches, BlinkDB</text>
+<path class="ln" d="M150,210 L265,210" marker-end="url(#ah-w09latency)"/>
+<path class="ln" d="M465,210 L600,210" marker-end="url(#ah-w09latency)"/>
+<text class="tb" x="532" y="200" text-anchor="middle">ms</text>
+<text class="tm" x="532" y="228" text-anchor="middle">approximate</text>
+<path class="dsh" d="M150,295 L600,295" marker-end="url(#ah-w09latency)"/>
+<text class="tb" x="375" y="285" text-anchor="middle">raw Hive query: minutes</text>
+<text class="tm" x="375" y="40" text-anchor="middle">Filter must answer in under 1 second</text>
+</svg>

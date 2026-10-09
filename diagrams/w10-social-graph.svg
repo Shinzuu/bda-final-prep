@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 360" font-family="Inter, Segoe UI, system-ui, sans-serif">
+<style>.bx{fill:var(--d-box,#fff7ed);stroke:var(--d-line,#b45309);stroke-width:1.5}
+.bx2{fill:var(--d-box2,#eff6ff);stroke:var(--d-line2,#1d4ed8);stroke-width:1.5}
+.bx3{fill:var(--d-box3,#ecfdf3);stroke:var(--d-line3,#15803d);stroke-width:1.5}
+.ln{stroke:var(--d-ink,#44403c);stroke-width:1.5;fill:none}
+.t{fill:var(--d-ink,#1c1b19);font-size:14px}.tb{fill:var(--d-ink,#1c1b19);font-size:14px;font-weight:600}
+.ts{fill:var(--d-mute,#78716c);font-size:12px}</style>
+<defs><marker id="ah-w10sg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--d-ink,#44403c)"/></marker></defs>
+<text class="ts" x="20" y="28" text-anchor="start">dense inside, sparse between = high modularity</text>
+<line class="ln" x1="110" y1="130" x2="180" y2="105"/>
+<line class="ln" x1="110" y1="130" x2="200" y2="180"/>
+<line class="ln" x1="110" y1="130" x2="125" y2="205"/>
+<line class="ln" x1="180" y1="105" x2="200" y2="180"/>
+<line class="ln" x1="180" y1="105" x2="125" y2="205"/>
+<line class="ln" x1="200" y1="180" x2="125" y2="205"/>
+<line class="ln" x1="470" y1="80" x2="545" y2="70"/>
+<line class="ln" x1="470" y1="80" x2="565" y2="145"/>
+<line class="ln" x1="470" y1="80" x2="490" y2="150"/>
+<line class="ln" x1="545" y1="70" x2="565" y2="145"/>
+<line class="ln" x1="545" y1="70" x2="490" y2="150"/>
+<line class="ln" x1="565" y1="145" x2="490" y2="150"/>
+<line class="ln" x1="470" y1="265" x2="555" y2="255"/>
+<line class="ln" x1="470" y1="265" x2="520" y2="320"/>
+<line class="ln" x1="555" y1="255" x2="520" y2="320"/>
+<line class="ln" x1="330" y1="200" x2="200" y2="180"/>
+<line class="ln" x1="330" y1="200" x2="490" y2="150"/>
+<line class="ln" x1="330" y1="200" x2="470" y2="265"/>
+<line class="ln" x1="180" y1="105" x2="470" y2="80" stroke-dasharray="5 4"/>
+<circle class="bx2" cx="110" cy="130" r="13"/>
+<circle class="bx2" cx="180" cy="105" r="13"/>
+<circle class="bx2" cx="200" cy="180" r="13"/>
+<circle class="bx2" cx="125" cy="205" r="13"/>
+<circle class="bx" cx="470" cy="80" r="13"/>
+<circle class="bx" cx="545" cy="70" r="13"/>
+<circle class="bx" cx="565" cy="145" r="13"/>
+<circle class="bx" cx="490" cy="150" r="13"/>
+<circle class="bx3" cx="470" cy="265" r="13"/>
+<circle class="bx3" cx="555" cy="255" r="13"/>
+<circle class="bx3" cx="520" cy="320" r="13"/>
+<circle class="bx" cx="330" cy="200" r="20"/>
+<text class="tb" x="330" y="205" text-anchor="middle">H</text>
+<text class="t" x="330" y="242" text-anchor="middle">hub (bridge)</text>
+<text class="tb" x="155" y="245" text-anchor="middle">Community A</text>
+<text class="tb" x="640" y="112" text-anchor="middle">Community B</text>
+<text class="tb" x="635" y="300" text-anchor="middle">Community C</text>
+<text class="ts" x="330" y="75" text-anchor="middle">weak tie</text>
+
+</svg>

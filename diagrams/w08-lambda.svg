@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 410" font-family="Inter, Segoe UI, system-ui, sans-serif"><style>.bx{fill:var(--d-box,#fff7ed);stroke:var(--d-line,#b45309);stroke-width:1.5}
+.bx2{fill:var(--d-box2,#eff6ff);stroke:var(--d-line2,#1d4ed8);stroke-width:1.5}
+.bx3{fill:var(--d-box3,#ecfdf3);stroke:var(--d-line3,#15803d);stroke-width:1.5}
+.ln{stroke:var(--d-ink,#44403c);stroke-width:1.5;fill:none}
+.t{fill:var(--d-ink,#1c1b19);font-size:14px}.tb{fill:var(--d-ink,#1c1b19);font-size:14px;font-weight:600}
+.ts{fill:var(--d-mute,#78716c);font-size:12px}</style><defs><marker id="ah-w08lambda" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--d-ink,#44403c)"/></marker></defs>
+<rect class="bx" x="225" y="12" width="250" height="54" rx="8"/>
+<text class="tb" x="350.0" y="35" text-anchor="middle">Raw data</text>
+<text class="ts" x="350.0" y="53" text-anchor="middle">immutable event log</text>
+<rect class="bx" x="40" y="100" width="260" height="54" rx="8"/>
+<text class="tb" x="170.0" y="123" text-anchor="middle">Batch layer</text>
+<text class="ts" x="170.0" y="141" text-anchor="middle">HDFS + Spark/Hive</text>
+<rect class="bx2" x="400" y="100" width="260" height="54" rx="8"/>
+<text class="tb" x="530.0" y="123" text-anchor="middle">Speed layer</text>
+<text class="ts" x="530.0" y="141" text-anchor="middle">Kafka + Flink</text>
+<rect class="bx" x="40" y="190" width="260" height="54" rx="8"/>
+<text class="tb" x="170.0" y="213" text-anchor="middle">Batch views</text>
+<text class="ts" x="170.0" y="231" text-anchor="middle">hours old, accurate</text>
+<rect class="bx2" x="400" y="190" width="260" height="54" rx="8"/>
+<text class="tb" x="530.0" y="213" text-anchor="middle">Real-time views</text>
+<text class="ts" x="530.0" y="231" text-anchor="middle">seconds old, approx.</text>
+<rect class="bx3" x="175" y="280" width="350" height="54" rx="8"/>
+<text class="tb" x="350.0" y="303" text-anchor="middle">Serving layer</text>
+<text class="ts" x="350.0" y="321" text-anchor="middle">batch view ∪ real-time view</text>
+<rect class="bx3" x="250" y="360" width="200" height="44" rx="8"/>
+<text class="tb" x="350.0" y="387.0" text-anchor="middle">App / dashboard</text>
+<path class="ln" d="M290,66 L190,100" marker-end="url(#ah-w08lambda)"/>
+<path class="ln" d="M410,66 L510,100" marker-end="url(#ah-w08lambda)"/>
+<path class="ln" d="M170,154 L170,190" marker-end="url(#ah-w08lambda)"/>
+<path class="ln" d="M530,154 L530,190" marker-end="url(#ah-w08lambda)"/>
+<path class="ln" d="M170,244 L270,280" marker-end="url(#ah-w08lambda)"/>
+<path class="ln" d="M530,244 L430,280" marker-end="url(#ah-w08lambda)"/>
+<path class="ln" d="M350,334 L350,360" marker-end="url(#ah-w08lambda)"/>
+</svg>

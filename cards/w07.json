@@ -1,0 +1,1297 @@
+{
+  "week": 7,
+  "title": "Hive, HiveQL and SQL-on-Hadoop",
+  "summary": "Hive lets analysts query data on HDFS with SQL-like HiveQL, which it compiles into MapReduce, Tez or Spark jobs, using a Metastore that records every table's schema and location. The chapter covers how Hive runs a query, schema-on-read, partitioning and bucketing for speed, Presto for interactive queries, and Spotify's Discover Weekly pipeline as a case study.",
+  "topics": [
+    {
+      "id": "hive-arch",
+      "chapter": 7,
+      "title": "Hive architecture and query compilation",
+      "facts": [
+        "Apache Hive (Facebook, 2008) is a data warehouse layer on Hadoop. You write HiveQL, a SQL-like language; Hive turns it into distributed jobs.",
+        "<b>HiveServer2</b>: the JDBC/ODBC server. It authenticates users and accepts HiveQL from Beeline, BI tools (Tableau, Power BI) and JDBC drivers.",
+        "<b>Driver</b>: the query pipeline Parser &rarr; Semantic Analyser &rarr; Logical Planner &rarr; Query Optimizer &rarr; Physical Plan Generator.",
+        "<b>Metastore</b>: a relational database (MySQL/PostgreSQL) holding table schemas, column types, partition values with HDFS paths, bucket counts, SerDe, statistics, privileges.",
+        "<b>SerDe</b> (Serializer/Deserializer): turns raw bytes on HDFS (ORC, Parquet, CSV, JSON, Avro) into Hive rows and back.",
+        "<b>Execution engine</b> is pluggable: MapReduce (legacy default), Tez (DAG of tasks, faster) or Spark (<code>SET hive.execution.engine=spark</code>). HDFS holds data: table = directory."
+      ],
+      "mechanism": [
+        "The client (Beeline, JDBC, Tableau) sends HiveQL to HiveServer2, which authenticates the user.",
+        "The parser turns the query text into an abstract syntax tree (AST), a tree of the query's parts.",
+        "Semantic analysis looks up every table and column in the Metastore and checks types (e.g. user_id is BIGINT, dt is a partition column).",
+        "The logical planner builds operators: Filter &rarr; Join &rarr; GroupBy &rarr; OrderBy.",
+        "The optimizer adds partition pruning and map-side aggregation; the physical plan generator turns the plan into MR, Tez or Spark jobs.",
+        "The execution engine submits the jobs to YARN in dependency order; they read and write HDFS.",
+        "The result goes back to the client through HiveServer2."
+      ],
+      "why": [
+        "Before Hive, a simple GROUP BY was a 100+ line Java MapReduce program and an answer took days. Analysts know SQL, not Java.",
+        "Declare, don't program: the analyst writes SELECT and Hive writes the distributed job.",
+        "The Metastore keeps the schema apart from the files, so Spark, Presto/Trino and Impala read the same tables. It is Hive's most lasting contribution.",
+        "If the Metastore is lost, no table can be queried even though HDFS data is intact. Production runs it highly available on replicated MySQL.",
+        "Limitation: on MapReduce every stage writes to HDFS, so even simple queries take minutes."
+      ],
+      "contrasts": [
+        {
+          "vs": "MapReduce vs Tez engine",
+          "head": [
+            "",
+            "MapReduce",
+            "Tez"
+          ],
+          "rows": [
+            [
+              "Plan shape",
+              "Chain of separate MR jobs",
+              "One DAG of tasks"
+            ],
+            [
+              "Between stages",
+              "Writes to HDFS, next job reads it back",
+              "Passes data directly"
+            ],
+            [
+              "Top-5 products query",
+              "2 job submissions",
+              "1 DAG: Map 1 &rarr; Reducer 2 &rarr; Reducer 3"
+            ],
+            [
+              "Start-up cost",
+              "New containers per job",
+              "Containers can be reused"
+            ],
+            [
+              "Result",
+              "Same",
+              "Same; only plan and speed change"
+            ]
+          ]
+        },
+        {
+          "vs": "Metastore vs NameNode",
+          "head": [
+            "",
+            "Hive Metastore",
+            "HDFS NameNode"
+          ],
+          "rows": [
+            [
+              "Stores",
+              "Table schemas, types, partitions, HDFS paths, SerDe",
+              "File-to-block map and block locations"
+            ],
+            [
+              "What it is",
+              "Relational DB (MySQL/PostgreSQL)",
+              "HDFS master daemon"
+            ],
+            [
+              "If lost",
+              "No table can be queried",
+              "No file can be found"
+            ]
+          ]
+        }
+      ],
+      "scenarios": [
+        {
+          "cue": "Tableau connects over JDBC to run HiveQL",
+          "answer": "HiveServer2"
+        },
+        {
+          "cue": "a query fails with 'column not found' before any job starts",
+          "answer": "Semantic analysis against the Metastore (Driver)"
+        },
+        {
+          "cue": "every HDFS file is intact but no table can be queried",
+          "answer": "Metastore failure"
+        },
+        {
+          "cue": "one SET command makes the same query faster with no HDFS writes between stages",
+          "answer": "Engine switched from MapReduce to Tez or Spark"
+        },
+        {
+          "cue": "each mapper sums counts per country before the shuffle",
+          "answer": "Map-side aggregation (combiner)"
+        }
+      ],
+      "calculation": {
+        "example": "<p>P2 slide 10: <code>SELECT country, COUNT(*) FROM logs GROUP BY country</code>, 50 million rows, 200 countries. Without map-side aggregation the mappers emit one (country, 1) row per input row: 50,000,000. With it they emit one partial count per country: 200. Reduction = 50,000,000 / 200 = <b>250,000&times;</b> less shuffle data.</p>",
+        "steps": [
+          "Given 50,000,000 rows and no combiner &rarr; shuffle rows = 50,000,000",
+          "Given 200 countries and one mapper with map-side aggregation &rarr; shuffle rows = 200",
+          "Given 50,000,000 and 200 &rarr; reduction = 50,000,000 / 200 = 250,000&times;",
+          "Given M mappers that each see all 200 countries &rarr; shuffle = M &times; 200 rows, reduction = 50,000,000 / (M &times; 200)"
+        ],
+        "variants": [
+          "120 million rows, 400 regions: 120,000,000 / 400 = 300,000&times;",
+          "50 million rows, 10 mappers each seeing all 200 countries: shuffle = 2,000 rows, reduction = 25,000&times;"
+        ]
+      },
+      "traps": [
+        "Hive never runs HiveQL directly on HDFS. It compiles the query to MR, Tez or Spark jobs first.",
+        "Schemas live in the Metastore, not the NameNode. The NameNode only knows files and blocks.",
+        "Switching to Tez changes the plan and the speed, never the answer.",
+        "ORDER BY needs one reducer for a global order, so the final sort stage is a bottleneck."
+      ],
+      "answers": {
+        "1": "Hive is a data warehouse layer on Hadoop that compiles SQL-like HiveQL queries into MapReduce, Tez or Spark jobs over files on HDFS.",
+        "3": "HiveServer2 accepts and authenticates queries; the Driver parses, checks, plans and optimises them; the Metastore (MySQL/PostgreSQL) supplies schemas and HDFS paths. The physical plan runs as MR, Tez or Spark jobs on YARN. Example: <code>GROUP BY country</code> becomes one MR job where mappers emit (country, 1) and reducers sum.",
+        "5": "<p><b>Hive</b> turns HiveQL into distributed jobs over HDFS.</p><p><b>Structure:</b> client &rarr; HiveServer2 &rarr; Driver &harr; Metastore; Driver &rarr; execution engine (MR/Tez/Spark on YARN) &rarr; HDFS.</p><ol><li>Parse to AST.</li><li>Semantic analysis against the Metastore.</li><li>Logical plan (Filter, Join, GroupBy, OrderBy).</li><li>Optimise (partition pruning, map-side aggregation) and build the physical plan.</li><li>Submit jobs to YARN; results return via HiveServer2.</li></ol><p><b>Example:</b> 50M rows grouped by 200 countries; map-side aggregation cuts the shuffle 250,000&times;.</p><p><b>Limitation:</b> MR writes to HDFS between stages, so queries take minutes.</p>"
+      },
+      "questions": [
+        {
+          "format": "mcq",
+          "q": "Which part of Hive turns a query's syntax tree into MapReduce, Tez or Spark jobs?",
+          "options": [
+            "The Driver (planner and physical plan generator)",
+            "HiveServer2",
+            "The Metastore",
+            "The HDFS NameNode"
+          ],
+          "a": "The Driver runs parse, analyse, plan, optimise and physical-plan generation; HiveServer2 only accepts queries."
+        },
+        {
+          "format": "blank",
+          "q": "The Hive ________ is a relational database that stores table schemas and the HDFS path of every partition.",
+          "a": "Metastore"
+        },
+        {
+          "format": "define",
+          "q": "Define the Hive Driver and list its five stages.",
+          "a": "The Driver is Hive's query-processing pipeline and manages each query's lifecycle. Stages: Parser, Semantic Analyser, Logical Planner, Query Optimizer, Physical Plan Generator."
+        },
+        {
+          "format": "steps",
+          "q": "List the steps by which Hive compiles and runs a HiveQL query.",
+          "a": "<ol><li>Parse text to AST.</li><li>Semantic analysis: resolve tables, columns, types in the Metastore.</li><li>Logical plan of operators.</li><li>Optimise, then generate MR/Tez/Spark jobs.</li><li>Submit to YARN in dependency order; return results.</li></ol>"
+        },
+        {
+          "format": "why",
+          "q": "Why is the Metastore called the control plane of a Hadoop data lake?",
+          "a": "Every engine (Hive, Spark, Presto, Impala) asks it where a table's files are and how to parse them. Without it no query runs, even with HDFS intact."
+        },
+        {
+          "format": "distinguish",
+          "q": "Distinguish MapReduce and Tez as Hive execution engines.",
+          "a": "MR runs a chain of separate jobs and writes to HDFS between them. Tez runs one DAG and passes data directly between stages, with container reuse, so it is faster. Same HiveQL, same result."
+        },
+        {
+          "format": "scenario",
+          "q": "A bank's analysts query 40 TB of logs from Tableau. One morning every query fails with 'table not found', yet <code>hdfs dfs -ls</code> shows all the files.<br>i) Which component accepts the Tableau connection? ii) Which component has failed? iii) Why do the intact files not help? iv) How should production guard against this?",
+          "a": "i) HiveServer2. ii) The Metastore. iii) Hive needs the Metastore to know where a table's files are and how to parse them. iv) Run the Metastore highly available on a replicated MySQL cluster with automatic failover."
+        },
+        {
+          "format": "one_step",
+          "q": "Without aggregation the mappers emit 80 million rows. The GROUP BY has 400 groups and one mapper does map-side aggregation. Find the shuffle reduction.",
+          "a": "80,000,000 / 400 = <b>200,000&times;</b>"
+        },
+        {
+          "format": "full_calc",
+          "q": "A table has 30 million rows and 150 countries. <code>SELECT country, COUNT(*) ... GROUP BY country</code> runs with 4 mappers, each seeing all countries. Find shuffle rows without and with map-side aggregation, and the reduction.",
+          "a": "Without: 30,000,000 rows. With: 4 &times; 150 = 600 rows. Reduction = 30,000,000 / 600 = <b>50,000&times;</b>."
+        },
+        {
+          "format": "long",
+          "q": "Explain the Hive architecture with a diagram and trace <code>SELECT country, COUNT(*) FROM logs GROUP BY country</code> through it.",
+          "a": "Use the 5-mark answer as the skeleton. Diagram: Beeline/JDBC &rarr; HiveServer2 &rarr; Driver; Driver &harr; Metastore (schema lookup); Driver &rarr; Execution Engine &rarr; HDFS. Trace: parse; check <code>logs</code> and <code>country</code> in the Metastore; plan Scan &rarr; GroupBy; one MR job: map emits (country, 1) with a combiner, shuffle key = country, reduce sums. Result returns through HiveServer2."
+        }
+      ],
+      "diagram": {
+        "file": "diagrams/w07-hive-arch.svg",
+        "caption": "A HiveQL query enters through HiveServer2; the Driver looks up the schema in the Metastore and submits jobs to the execution engine, which reads and writes HDFS."
+      }
+    },
+    {
+      "id": "schema-on-read",
+      "chapter": 7,
+      "title": "Schema-on-read and HiveQL vs SQL",
+      "facts": [
+        "<b>Schema-on-read</b>: Hive applies column types at query (SELECT) time. Loading just copies raw files to HDFS.",
+        "<b>Schema-on-write</b>: an RDBMS such as MySQL checks each row at INSERT time and rejects bad rows.",
+        "Under schema-on-read, text <code>abc</code> in a DOUBLE <code>amount</code> column is stored, and the query returns NULL.",
+        "HiveQL ACID is limited: UPDATE/DELETE work only on ACID-enabled transactional ORC tables.",
+        "Hive has no B-tree indexes (it uses partitions and buckets) and supports only non-correlated sub-queries.",
+        "Latency: SQL milliseconds; Hive minutes on MR, seconds on Tez/Spark. <code>COUNT(*)</code> on 1 TB can take 5 to 10 minutes."
+      ],
+      "mechanism": [
+        "CREATE TABLE writes column names, types and the SerDe to the Metastore. No data is checked.",
+        "LOAD DATA moves the file into the table's HDFS directory unchanged.",
+        "At SELECT time the SerDe reads each record and splits it into fields.",
+        "Each field is cast to its declared type. A failed cast becomes NULL.",
+        "Aggregates such as SUM skip NULLs, so a wrong total comes back with no error."
+      ],
+      "why": [
+        "Fast loading: a plain file copy, no validation cost.",
+        "Flexible: load raw web logs before the final schema is known, and define several tables over the same files. No ETL at ingest.",
+        "Open file formats: ORC, Parquet, CSV, JSON, Avro.",
+        "Limitation: every query parses and checks the data again, so queries are slower.",
+        "Limitation: bad data stays silent. Add downstream checks (Great Expectations, dbt tests)."
+      ],
+      "contrasts": [
+        {
+          "vs": "Schema-on-write",
+          "head": [
+            "",
+            "Schema-on-write (MySQL)",
+            "Schema-on-read (Hive)"
+          ],
+          "rows": [
+            [
+              "Schema enforced",
+              "At INSERT / LOAD",
+              "At SELECT"
+            ],
+            [
+              "Invalid data",
+              "Rejected immediately",
+              "Stored; NULL at query"
+            ],
+            [
+              "Write speed",
+              "Slower (validation)",
+              "Fast (raw file copy)"
+            ],
+            [
+              "Query speed",
+              "Faster (pre-validated)",
+              "Slower (parse each query)"
+            ],
+            [
+              "Schemas per data",
+              "One per table",
+              "Many over the same files"
+            ],
+            [
+              "Use case",
+              "OLTP: orders, banking",
+              "OLAP: log analysis, batch reports"
+            ]
+          ]
+        },
+        {
+          "vs": "SQL (RDBMS)",
+          "head": [
+            "",
+            "SQL (RDBMS)",
+            "HiveQL"
+          ],
+          "rows": [
+            [
+              "ACID",
+              "Full: INSERT, UPDATE, DELETE, ROLLBACK",
+              "Only ACID-mode ORC tables"
+            ],
+            [
+              "UPDATE / DELETE",
+              "Any row, any time",
+              "Only transactional tables"
+            ],
+            [
+              "Indexing",
+              "B-tree, hash, bitmap",
+              "Partitions + buckets"
+            ],
+            [
+              "Latency",
+              "Milliseconds",
+              "Minutes (MR) / seconds (Tez, Spark)"
+            ],
+            [
+              "Scale",
+              "Terabytes",
+              "Petabytes"
+            ],
+            [
+              "Workload",
+              "OLTP (real-time reads/writes)",
+              "OLAP (batch analytics)"
+            ]
+          ]
+        }
+      ],
+      "scenarios": [
+        {
+          "cue": "raw clickstream logs are loaded today; the schema will be decided next month",
+          "answer": "Schema-on-read"
+        },
+        {
+          "cue": "a revenue report is too low with no error; some amount values were text",
+          "answer": "Schema-on-read silent NULLs"
+        },
+        {
+          "cue": "malformed money transfers must be refused the moment they arrive",
+          "answer": "Schema-on-write (RDBMS, OLTP)"
+        },
+        {
+          "cue": "an analyst expects a millisecond reply from Hive COUNT(*) on 1 TB",
+          "answer": "Misconception: Hive is batch; use Presto or Spark SQL"
+        },
+        {
+          "cue": "someone runs UPDATE on a plain CSV Hive table",
+          "answer": "Not allowed: needs an ACID transactional ORC table"
+        }
+      ],
+      "calculation": null,
+      "traps": [
+        "Schema-on-read does not mean the schema is inferred. You still write CREATE TABLE (MCQ 2 option d).",
+        "The schema is stored separately under both models. The key word is <i>when</i> it is applied.",
+        "HiveQL looks like SQL but runs as batch jobs: minutes, not milliseconds.",
+        "Hive ACID is not on all tables, only transactional ORC tables."
+      ],
+      "answers": {
+        "1": "Schema-on-read means Hive applies the table's column types when data is queried, not when it is loaded.",
+        "3": "Schema-on-read (Hive) stores files as they are and applies types at SELECT; schema-on-write (MySQL) checks each row at INSERT and rejects bad rows. Loading is faster and more flexible with schema-on-read, but bad values turn into NULL silently. Example: <code>abc</code> in a DOUBLE column is rejected by MySQL but returns NULL in Hive.",
+        "5": "<p><b>Definition:</b> schema applied at query time; load is a raw file copy.</p><ol><li>CREATE TABLE stores the schema in the Metastore.</li><li>LOAD moves files to HDFS unchecked.</li><li>At SELECT the SerDe parses fields and casts types; failures become NULL.</li></ol><p><b>For:</b> fast load, no ETL at ingest, many schemas on one file set, open formats. Suits OLAP.</p><p><b>Example:</b> a transaction file has <code>abc</code> in <code>amount</code>; <code>SUM(amount)</code> skips it and the revenue total is too low.</p><p><b>Limitation:</b> slower queries and silent data errors; add Great Expectations or dbt tests.</p>"
+      },
+      "questions": [
+        {
+          "format": "mcq",
+          "q": "Hive loads a file in which one amount value is the text <code>abc</code> (column type DOUBLE). What happens?",
+          "options": [
+            "The row is stored and the value returns NULL at query time",
+            "LOAD DATA fails and the file is rejected",
+            "Hive changes the column type to STRING",
+            "The whole query fails with a cast error"
+          ],
+          "a": "Schema-on-read: nothing is checked at load; a failed cast becomes NULL."
+        },
+        {
+          "format": "blank",
+          "q": "A traditional RDBMS checks data at INSERT time; this is called schema-on-________.",
+          "a": "write"
+        },
+        {
+          "format": "define",
+          "q": "Define schema-on-read and list three of its advantages.",
+          "a": "Schema applied at query time, not at load. Advantages: fast load (file copy), flexible (load before the schema is known, many schemas over the same files), open formats (ORC, Parquet, CSV, JSON, Avro)."
+        },
+        {
+          "format": "steps",
+          "q": "Describe what happens to a bad value from LOAD to SUM under schema-on-read.",
+          "a": "LOAD copies the file unchecked &rarr; SELECT makes the SerDe parse fields &rarr; the cast to DOUBLE fails &rarr; the value becomes NULL &rarr; SUM skips it, so the total is low with no error."
+        },
+        {
+          "format": "why",
+          "q": "Why is schema-on-write still preferred for banking transactions?",
+          "a": "Banking is OLTP: each row must be valid the moment it is written, and bad rows must be refused, not discovered later as NULLs. It also needs full ACID and millisecond updates, which Hive lacks."
+        },
+        {
+          "format": "distinguish",
+          "q": "Distinguish HiveQL from SQL on ACID, indexing and latency.",
+          "a": "ACID: SQL full; HiveQL only on transactional ORC tables. Indexing: SQL B-tree/hash/bitmap; Hive partitions and buckets. Latency: SQL milliseconds; Hive minutes on MR, seconds on Tez/Spark."
+        },
+        {
+          "format": "scenario",
+          "q": "A mobile wallet dumps daily transaction CSVs into Hive. Finance notices last month's revenue is 3% below the bank statement, and no job reported an error.<br>i) Which Hive property explains the silence? ii) What did the bad values become? iii) Would MySQL have behaved the same? iv) Suggest a fix.",
+          "a": "i) Schema-on-read. ii) NULL, which SUM skipped. iii) No: schema-on-write rejects the INSERT. iv) Add downstream validation (Great Expectations, dbt tests) or reject bad rows in an ETL step."
+        },
+        {
+          "format": "long",
+          "q": "Compare schema-on-read and schema-on-write. Give advantages, disadvantages and one data-quality example.",
+          "a": "Use the 5-mark answer plus the schema-on-write contrast table (when enforced, invalid data, write speed, query speed, schemas per data, use case)."
+        }
+      ],
+      "diagram": {
+        "file": "diagrams/w07-schema-on-read.svg",
+        "caption": "Schema-on-write checks types at INSERT and rejects bad rows; schema-on-read copies the file unchecked and turns a bad value into NULL at query time."
+      }
+    },
+    {
+      "id": "partitioning",
+      "chapter": 7,
+      "title": "Partitioning and partition pruning",
+      "facts": [
+        "<b>Partitioning</b> stores table data in separate HDFS sub-directories by column value, e.g. <code>/data/sales/year=2024/month=01/</code>.",
+        "<b>Partition pruning</b>: when WHERE filters on the partition key, Hive reads only the matching sub-directories and skips the rest.",
+        "Good key: a low-cardinality column (few distinct values) used often in WHERE: date, country, region, status.",
+        "Never partition on high-cardinality columns (user_id, txn_id): 100 M users means 100 M directories, crashing the NameNode.",
+        "DDL: <code>PARTITIONED BY (year INT, month INT)</code>. Partition columns are not repeated in the column list.",
+        "Dynamic insert needs <code>hive.exec.dynamic.partition=true</code> and <code>mode=nonstrict</code>; partition columns go last in SELECT."
+      ],
+      "mechanism": [
+        "Create the table with <code>PARTITIONED BY (year INT, month INT)</code>.",
+        "Load: a static insert names the values, <code>PARTITION (year=2024, month=1)</code>; a dynamic insert takes them from the last SELECT columns.",
+        "Hive writes each partition's files to its own sub-directory and records the value and path in the Metastore.",
+        "A query arrives with <code>WHERE year=2024 AND month=1</code>.",
+        "The optimizer checks the Metastore's partition list and keeps only matching paths.",
+        "Mappers read only <code>year=2024/month=01/</code>; every other directory is skipped."
+      ],
+      "why": [
+        "Avoids a full table scan, so data read and job time drop in proportion.",
+        "Pruning uses the partition list in the Metastore, so Hive need not list every file.",
+        "Limitation: it helps only when the query filters on the partition column.",
+        "Limitation: too many partitions create millions of directories and small files that overload the NameNode."
+      ],
+      "contrasts": [
+        {
+          "vs": "Static vs dynamic insert",
+          "head": [
+            "",
+            "Static partition insert",
+            "Dynamic partition insert"
+          ],
+          "rows": [
+            [
+              "Partition values",
+              "Written in PARTITION (year=2024, month=1)",
+              "Taken from the last SELECT columns"
+            ],
+            [
+              "Settings",
+              "None",
+              "dynamic.partition=true, mode=nonstrict"
+            ],
+            [
+              "Partitions per statement",
+              "One",
+              "All at once (e.g. 36 months)"
+            ],
+            [
+              "Typical slip",
+              "Wrong value typed",
+              "Columns out of order: values mis-assigned silently"
+            ]
+          ]
+        }
+      ],
+      "scenarios": [
+        {
+          "cue": "daily reports filter on date but scan the whole table",
+          "answer": "Partition by date"
+        },
+        {
+          "cue": "a designer proposes partitioning a 50M-customer table by customer_id",
+          "answer": "Partition explosion; bucket on customer_id instead"
+        },
+        {
+          "cue": "36 months are loaded into their partitions in one INSERT",
+          "answer": "Dynamic partition insert"
+        },
+        {
+          "cue": "after a dynamic insert, month values sit in the year= folders",
+          "answer": "Partition columns out of order in SELECT"
+        },
+        {
+          "cue": "EXPLAIN shows <code>PartitionFilters: [dt = 2024-10-01]</code> in the scan",
+          "answer": "Partition pruning"
+        }
+      ],
+      "calculation": {
+        "example": "<p>P2 slide 11: <code>play_events</code> partitioned by dt (365 days) and country (200). P_total = 365 &times; 200 = 73,000. The query reads dt='2024-10-01' for BD, IN, US: P_read = 3. Fraction read = 3 / 73,000 &asymp; <b>0.0041%</b>; 72,997 partitions skipped. P1 slide 20: one month of 36 = 1/36 &asymp; 2.78%.</p>",
+        "steps": [
+          "Given 365 dates and 200 countries &rarr; P_total = 365 &times; 200 = 73,000",
+          "Given dt = one day and country IN (BD, IN, US) &rarr; P_read = 1 &times; 3 = 3",
+          "Given 3 of 73,000 (equal-size partitions) &rarr; fraction = 3 / 73,000 &asymp; 0.0041%",
+          "Given 73,000 total and 3 read &rarr; skipped = 72,997"
+        ],
+        "variants": [
+          "36 months, query one month: 1 / 36 &asymp; 2.78% read",
+          "24 months &times; 50 countries, one month for 2 countries: 2 / 1,200 &asymp; 0.167% read"
+        ]
+      },
+      "traps": [
+        "Partitioning splits by directory; bucketing splits into files inside a partition. Only partitioning skips directories.",
+        "In a dynamic insert, partition columns must be last in SELECT and in PARTITION order, or Hive assigns values wrongly without error.",
+        "Pruning needs a filter on the partition column itself. A filter on any other column scans every partition.",
+        "The fraction formula assumes equal-size partitions. Say so."
+      ],
+      "answers": {
+        "1": "Partitioning stores a Hive table in separate HDFS sub-directories by the value of a column, so queries filtering on it read only matching directories.",
+        "3": "Each partition value gets its own sub-directory, e.g. <code>year=2024/month=01/</code>. A WHERE filter on the partition key lets Hive skip every other directory (partition pruning). Example: one month out of 36 reads 1/36 &asymp; 2.78% of the data.",
+        "5": "<p><b>Definition:</b> table split into HDFS sub-directories by a low-cardinality column.</p><ol><li><code>PARTITIONED BY (year INT, month INT)</code>.</li><li>Load by static or dynamic insert (partition columns last).</li><li>Metastore records each value and path.</li><li>Query on the key reads only matching folders.</li></ol><p><b>Example:</b> 365 days &times; 200 countries = 73,000 partitions; one day for 3 countries reads 3 of them (&asymp; 0.0041%).</p><p><b>Limitation:</b> a high-cardinality key (user_id) creates millions of directories and crashes the NameNode.</p>"
+      },
+      "questions": [
+        {
+          "format": "mcq",
+          "q": "Which column is the best partition key for a sales table queried daily by date?",
+          "options": [
+            "sale_date",
+            "txn_id",
+            "user_id",
+            "amount"
+          ],
+          "a": "Low cardinality and used in WHERE; the others would create millions of directories."
+        },
+        {
+          "format": "blank",
+          "q": "Skipping all partitions that do not match the WHERE filter is called partition ________.",
+          "a": "pruning"
+        },
+        {
+          "format": "define",
+          "q": "Define partitioning and list four typical partition columns.",
+          "a": "Storing table data in separate HDFS sub-directories by column value. Typical: date, country, region, status."
+        },
+        {
+          "format": "steps",
+          "q": "Explain how a dynamic partition insert loads all months at once.",
+          "a": "<code>SET hive.exec.dynamic.partition=true</code> and <code>mode=nonstrict</code> &rarr; <code>INSERT INTO sales PARTITION (year, month)</code> &rarr; SELECT the data columns, then <code>YEAR(sale_date) AS year, MONTH(sale_date) AS month</code> last &rarr; Hive creates one directory per (year, month) value."
+        },
+        {
+          "format": "why",
+          "q": "Why must you never partition on user_id?",
+          "a": "It has millions of distinct values: 100 M users would make 100 M directories, overloading the NameNode's metadata. Bucket on user_id instead."
+        },
+        {
+          "format": "distinguish",
+          "q": "Distinguish static and dynamic partition inserts.",
+          "a": "Static: you write the values in PARTITION (year=2024, month=1); one partition per statement. Dynamic: Hive takes values from the last SELECT columns and loads many partitions at once; needs the dynamic-partition settings."
+        },
+        {
+          "format": "scenario",
+          "q": "A ride-share firm keeps 3 years of trips in one Hive table. A query for last Tuesday's Dhaka trips scans all 3 years.<br>i) What feature is missing? ii) Which columns would you choose? iii) What is the read fraction for one day of 1,095 if city is ignored? iv) Name one column you must not use.",
+          "a": "i) Partitioning (and so pruning). ii) trip_date and city. iii) 1 / 1,095 &asymp; 0.091%. iv) trip_id or rider_id (high cardinality)."
+        },
+        {
+          "format": "one_step",
+          "q": "A table has 1,200 partitions of equal size. A query matches 6. What fraction is read?",
+          "a": "6 / 1,200 = <b>0.5%</b>"
+        },
+        {
+          "format": "full_calc",
+          "q": "A table is partitioned by month (24 months) and country (50). A query asks for one month and 2 countries. Find total partitions, partitions read, fraction read and partitions skipped.",
+          "a": "P_total = 24 &times; 50 = 1,200; P_read = 1 &times; 2 = 2; fraction = 2 / 1,200 &asymp; <b>0.167%</b>; skipped = 1,198."
+        },
+        {
+          "format": "long",
+          "q": "Explain partitioning in Hive with DDL, a directory diagram and a pruning example. State its main risk.",
+          "a": "Use the 5-mark answer. Diagram: <code>/data/sales/year=2023/</code>, <code>year=2024/month=01/ ... month=12/</code>; <code>WHERE year=2024 AND month=01</code> reads only <code>month=01/</code>. Risk: partition explosion on high-cardinality keys."
+        }
+      ],
+      "diagram": {
+        "file": "diagrams/w07-partitioning.svg",
+        "caption": "With WHERE year=2024 AND month=01, Hive reads only the month=01/ folder and never opens the other partition directories."
+      }
+    },
+    {
+      "id": "bucketing",
+      "chapter": 7,
+      "title": "Bucketing and bucket map join",
+      "facts": [
+        "<b>Bucketing</b> splits each partition into a fixed number N of files (buckets) by hashing a chosen column.",
+        "A row goes to bucket <code>hash(column) % N</code>. For an integer key the hash is the value itself.",
+        "DDL: <code>CLUSTERED BY (user_id) INTO 32 BUCKETS STORED AS ORC</code>. Add <code>SORTED BY</code> for a sort-merge bucket join.",
+        "<b>Bucket map join</b>: both tables bucketed on the join key with the same N; Hive joins bucket i with bucket i, no full shuffle.",
+        "Good bucket column: a high-cardinality join key such as user_id.",
+        "The Metastore stores the bucket count per table; Hive uses it to decide whether a join can skip the shuffle."
+      ],
+      "mechanism": [
+        "Declare <code>CLUSTERED BY (user_id) INTO N BUCKETS</code> on both tables, with the same N.",
+        "On insert, Hive computes <code>hash(user_id) % N</code> for each row.",
+        "The row is written to bucket file k, where k is that remainder.",
+        "The same key gives the same k in both tables, so matching rows sit in matching files.",
+        "At join time Hive reads the bucket counts from the Metastore and pairs bucket 0 with 0, 1 with 1, and so on.",
+        "Each pair is joined locally, with no full sort-merge shuffle."
+      ],
+      "why": [
+        "Joining two large tables no longer shuffles both of them, a large speed-up.",
+        "Works on high-cardinality keys, where partitioning would explode into millions of directories.",
+        "Limitation: both tables need the same key and the same bucket count, or the benefit is lost.",
+        "Limitation: too many buckets give small files. Aim for files near the 128 MB HDFS block."
+      ],
+      "contrasts": [
+        {
+          "vs": "Partitioning",
+          "head": [
+            "",
+            "Partitioning",
+            "Bucketing"
+          ],
+          "rows": [
+            [
+              "Physical unit",
+              "Directory per value",
+              "Fixed number of files"
+            ],
+            [
+              "Decided by",
+              "Column value",
+              "hash(column) % N"
+            ],
+            [
+              "Main benefit",
+              "Skips data for WHERE filters (pruning)",
+              "Faster joins (bucket map join)"
+            ],
+            [
+              "Good column",
+              "Low cardinality: date, country",
+              "High cardinality join key: user_id"
+            ],
+            [
+              "Risk",
+              "Too many directories on high-cardinality keys",
+              "Mismatched key or bucket count kills the benefit"
+            ],
+            [
+              "DDL",
+              "<code>PARTITIONED BY (year INT)</code>",
+              "<code>CLUSTERED BY (user_id) INTO 32 BUCKETS</code>"
+            ]
+          ]
+        }
+      ],
+      "scenarios": [
+        {
+          "cue": "two huge tables are joined every day on customer_id",
+          "answer": "Bucket both on customer_id with the same N"
+        },
+        {
+          "cue": "a join still shuffles although both tables are bucketed, one on user_id and one on email",
+          "answer": "Different bucket keys: no bucket map join"
+        },
+        {
+          "cue": "find which file holds user_id 98 with 4 buckets",
+          "answer": "98 % 4 = bucket 2"
+        },
+        {
+          "cue": "a 5 TB fact table needs daily reports by date and country plus joins on user_id",
+          "answer": "Partition by txn_date, country; bucket by user_id"
+        }
+      ],
+      "calculation": {
+        "example": "<p><b>Bucket number</b> (P1 slide 24, 4 buckets on user_id): user_id 98 &rarr; 98 % 4 = <b>2</b>, in both sales and users.</p><p><b>File size</b> (A1, assume 3 years and 5 countries): P = 3 &times; 365 &times; 5 = 5,475 partitions; 5 TB / 5,475 &asymp; 0.913 GB each; with 8 buckets &asymp; <b>114 MB</b> per file (near a 128 MB block), 5,475 &times; 8 = 43,800 files.</p>",
+        "steps": [
+          "Given user_id = 98, N = 4 &rarr; bucket = 98 % 4 = 2",
+          "Given 3 years, 365 days, 5 countries &rarr; P = 1,095 &times; 5 = 5,475",
+          "Given 5 TB = 5,000 GB and P = 5,475 &rarr; &asymp; 0.913 GB per partition",
+          "Given 0.913 GB and N = 8 &rarr; &asymp; 114 MB per bucket file",
+          "Given P = 5,475 and N = 8 &rarr; files = 43,800"
+        ],
+        "variants": [
+          "user_id 1,234,567 with 32 buckets: 1,234,567 % 32 = 7",
+          "N = 32 in the 5 TB design: &asymp; 28.5 MB per file and 175,200 files: too small",
+          "2 TB, 730 daily partitions, 16 buckets: 2,000 GB / 11,680 &asymp; 171 MB per file"
+        ]
+      },
+      "traps": [
+        "Bucketing does not skip directories. It cuts join cost.",
+        "Buckets are numbered from 0: with 4 buckets the files are 0 to 3.",
+        "Same key and same bucket count on both tables, or no bucket map join.",
+        "The 5 TB question gives no years or countries. State your assumptions before sizing."
+      ],
+      "answers": {
+        "1": "Bucketing splits each Hive partition into a fixed number of files by hash(column) % N.",
+        "3": "Each row is written to bucket file hash(column) % N, so equal keys always land in the same bucket number. If two tables are bucketed on the join key with the same N, Hive joins bucket i with bucket i and skips the full shuffle. Example: user_id 98 with 4 buckets goes to bucket 98 % 4 = 2 in both tables.",
+        "5": "<p><b>Definition:</b> fixed N files per partition, chosen by hash of a column.</p><ol><li><code>CLUSTERED BY (user_id) INTO N BUCKETS</code> on both tables.</li><li>Each row goes to bucket hash(user_id) % N.</li><li>Matching keys sit in matching bucket numbers.</li><li>Bucket map join pairs bucket i with i; no full shuffle.</li></ol><p><b>Example:</b> 5 TB over 5,475 partitions, 8 buckets &asymp; 114 MB per file, near one HDFS block.</p><p><b>Limitation:</b> both tables need the same key and bucket count; too many buckets make small files.</p>"
+      },
+      "questions": [
+        {
+          "format": "mcq",
+          "q": "What is the main benefit of bucketing two tables on the join key with the same number of buckets?",
+          "options": [
+            "Bucket i joins bucket i, so no full shuffle is needed",
+            "Whole directories are skipped by WHERE filters",
+            "The table needs no Metastore entry",
+            "UPDATE and DELETE become possible"
+          ],
+          "a": "That is the bucket map join; directory skipping is partitioning."
+        },
+        {
+          "format": "blank",
+          "q": "In Hive, a row goes to bucket number hash(column) ____ N.",
+          "a": "% (mod)"
+        },
+        {
+          "format": "define",
+          "q": "Define a bucket map join and state its two conditions.",
+          "a": "A join that pairs bucket i of one table with bucket i of the other, with no full shuffle. Conditions: both tables bucketed on the join key; same number of buckets."
+        },
+        {
+          "format": "steps",
+          "q": "Describe how Hive writes rows into buckets.",
+          "a": "Read CLUSTERED BY (col) INTO N BUCKETS &rarr; compute hash(col) % N per row &rarr; write the row to bucket file k = remainder &rarr; equal keys always land in the same file number."
+        },
+        {
+          "format": "why",
+          "q": "Why bucket on user_id instead of partitioning on it?",
+          "a": "user_id has millions of values; partitioning would create millions of directories and crash the NameNode. Bucketing keeps a fixed N files and still speeds up joins on user_id."
+        },
+        {
+          "format": "distinguish",
+          "q": "Distinguish partitioning and bucketing.",
+          "a": "Partitioning: a directory per value of a low-cardinality column; skips data for WHERE filters. Bucketing: a fixed N files by hash of a high-cardinality column; speeds up joins."
+        },
+        {
+          "format": "scenario",
+          "q": "An e-shop joins a 3 TB <code>orders</code> table with a 20 M-row <code>customers</code> table on customer_id every night. Both are bucketed on customer_id: orders into 32 buckets, customers into 32 buckets.<br>i) Which join can Hive use? ii) Which bucket holds customer_id 100? iii) What if customers had been bucketed on email? iv) What column should orders be partitioned on for daily reports?",
+          "a": "i) Bucket map join (bucket i with bucket i). ii) 100 % 32 = 4. iii) Keys differ, so matching rows are in different buckets and a full shuffle is needed. iv) order_date."
+        },
+        {
+          "format": "one_step",
+          "q": "A table has 16 buckets on an integer order_id. Which bucket holds order_id 1,005?",
+          "a": "1,005 % 16 = <b>13</b>"
+        },
+        {
+          "format": "full_calc",
+          "q": "A 2 TB table is partitioned by day for 2 years and has 16 buckets per partition. Find partitions, total files and file size. Is the size sensible?",
+          "a": "P = 2 &times; 365 = 730; files = 730 &times; 16 = 11,680; size = 2,000 GB / 11,680 &asymp; <b>171 MB</b>. Sensible: above the 128 MB block, not tiny files."
+        },
+        {
+          "format": "long",
+          "q": "Design a partitioning and bucketing scheme for an orders table filtered by date and division and joined with customers on customer_id. Give the DDL and justify it.",
+          "a": "<pre><code>CREATE TABLE orders (order_id BIGINT, customer_id BIGINT, amount DOUBLE)\nPARTITIONED BY (order_date STRING, division STRING)\nCLUSTERED BY (customer_id) INTO 32 BUCKETS STORED AS ORC;</code></pre>Partition on the low-cardinality filter columns for pruning; bucket on the high-cardinality join key, with customers also in 32 buckets on customer_id, for a bucket map join. Limitation: needs matching bucket counts."
+        }
+      ],
+      "diagram": {
+        "file": "diagrams/w07-bucketing.svg",
+        "caption": "Both tables bucketed on user_id into 4 buckets, so bucket i joins only bucket i (bucket map join) with no full shuffle."
+      }
+    },
+    {
+      "id": "presto",
+      "chapter": 7,
+      "title": "Presto and the SQL-on-Hadoop engines",
+      "facts": [
+        "<b>Presto</b> (Meta, 2013; fork: Trino) runs interactive SQL over petabytes on HDFS: 5 to 60 seconds versus Hive+MR's 5 to 15 minutes.",
+        "No intermediate disk writes: data flows through an in-memory pipeline (split &rarr; stage &rarr; output).",
+        "Vectorized execution: processes column chunks of 1,024 rows at a time, not row by row.",
+        "Cost-based optimizer: uses table statistics to pick join order and join strategy.",
+        "Connector architecture: one query can read HDFS, Hive, Cassandra, MySQL, Kafka and S3 together.",
+        "Other engines: Impala (Cloudera, 2012, native C++ MPP), Spark SQL (2014, Catalyst optimizer), Drill (MapR, 2012, schema-free JSON)."
+      ],
+      "mechanism": [
+        "Hive+MR reads HDFS and runs the map phase.",
+        "It writes the map output to disk.",
+        "It runs the reduce phase and writes the result to HDFS, again for every stage.",
+        "Presto reads HDFS splits into worker memory.",
+        "It streams the data through its stages in memory, in batches of 1,024 rows.",
+        "It returns the result to the client with no intermediate disk write."
+      ],
+      "why": [
+        "Disk writes between stages are the main cost of Hive+MR; Presto removes them.",
+        "Dashboards and ad-hoc questions need seconds; Hive's minutes are too slow.",
+        "Hive still suits large ETL and batch jobs, where MR/HDFS give it fault tolerance.",
+        "Presto reads the same Hive Metastore, so it swaps the engine and keeps the tables."
+      ],
+      "contrasts": [
+        {
+          "vs": "SQL-on-Hadoop engines",
+          "head": [
+            "Tool",
+            "Execution model",
+            "Latency",
+            "Best for"
+          ],
+          "rows": [
+            [
+              "Hive (Facebook, 2008)",
+              "MR / Tez / Spark, compiled",
+              "Minutes",
+              "Batch analytics, large ETL"
+            ],
+            [
+              "Presto/Trino (Meta, 2013)",
+              "In-memory pipeline",
+              "Seconds",
+              "Interactive BI dashboards"
+            ],
+            [
+              "Impala (Cloudera, 2012)",
+              "Native C++ MPP",
+              "Seconds",
+              "Low-latency SQL on HDFS/S3"
+            ],
+            [
+              "Spark SQL (Databricks, 2014)",
+              "Catalyst optimizer, in-memory",
+              "Seconds",
+              "Unified batch + streaming SQL"
+            ],
+            [
+              "Drill (MapR, 2012)",
+              "Schema-free, JSON-native",
+              "Seconds",
+              "Exploratory SQL on JSON/Parquet"
+            ]
+          ]
+        }
+      ],
+      "scenarios": [
+        {
+          "cue": "a dashboard over Hive tables must answer in seconds",
+          "answer": "Presto/Trino (or Spark SQL)"
+        },
+        {
+          "cue": "a nightly 6-hour ETL over 50 TB",
+          "answer": "Hive"
+        },
+        {
+          "cue": "one query joins Kafka data with a MySQL table and S3 files",
+          "answer": "Presto connectors"
+        },
+        {
+          "cue": "SQL over raw JSON files with no schema defined",
+          "answer": "Apache Drill"
+        },
+        {
+          "cue": "an engine that processes 1,024-row column batches instead of single rows",
+          "answer": "Vectorized execution (Presto)"
+        }
+      ],
+      "calculation": null,
+      "traps": [
+        "Presto's speed comes from no intermediate disk writes, not from extra SQL functions, connectors or Python UDFs.",
+        "Presto replaces the engine, not the catalogue: it reads the Hive Metastore.",
+        "The slide title says 10&times; faster; the ranges (5&ndash;15 min vs 5&ndash;60 s) give 5&times; to 180&times;."
+      ],
+      "answers": {
+        "1": "Presto is Meta's in-memory SQL engine that answers interactive queries over HDFS in seconds by never writing intermediate results to disk.",
+        "3": "Hive+MR writes intermediate data to HDFS after every map and reduce phase; Presto streams data through an in-memory pipeline. It adds vectorized 1,024-row batches and a cost-based optimizer. Example: a query taking 5 to 15 minutes on Hive+MR takes 5 to 60 seconds on Presto.",
+        "5": "<p><b>Definition:</b> Presto (Meta, 2013) is a distributed SQL engine for interactive queries on HDFS and other stores.</p><ol><li>Read HDFS splits into memory.</li><li>Pipeline through stages in memory, no disk writes.</li><li>Vectorized: 1,024-row column batches.</li><li>Cost-based optimizer picks join order.</li><li>Connectors: Hive, Cassandra, MySQL, Kafka, S3 in one query.</li></ol><p><b>Example:</b> Hive+MR 5&ndash;15 min vs Presto 5&ndash;60 s.</p><p><b>Limitation:</b> Hive is still the choice for long batch ETL, where MR's disk checkpoints give fault tolerance.</p>"
+      },
+      "questions": [
+        {
+          "format": "mcq",
+          "q": "Which SQL-on-Hadoop engine is a native C++ MPP engine from Cloudera?",
+          "options": [
+            "Impala",
+            "Presto",
+            "Drill",
+            "Spark SQL"
+          ],
+          "a": "Impala (2012); Presto is Meta's, Drill is MapR's, Spark SQL is Databricks'."
+        },
+        {
+          "format": "blank",
+          "q": "Presto processes data in column chunks of ________ rows (vectorized execution).",
+          "a": "1,024"
+        },
+        {
+          "format": "define",
+          "q": "List Presto's four key design decisions.",
+          "a": "No intermediate disk writes (in-memory pipeline); vectorized execution (1,024-row batches); cost-based optimizer; connector architecture."
+        },
+        {
+          "format": "steps",
+          "q": "Trace a query through Hive+MR and through Presto.",
+          "a": "Hive+MR: HDFS read &rarr; map &rarr; HDFS write &rarr; reduce &rarr; HDFS write (5&ndash;15 min). Presto: HDFS read &rarr; in-memory pipeline (split &rarr; stage &rarr; output) &rarr; client (5&ndash;60 s)."
+        },
+        {
+          "format": "why",
+          "q": "Why was Presto built when Facebook already had Hive?",
+          "a": "Analysts needed second-level answers over petabytes; even a filtered COUNT took minutes on Hive+MR because of disk writes between stages."
+        },
+        {
+          "format": "distinguish",
+          "q": "Distinguish Hive and Presto on execution, latency and best use.",
+          "a": "Hive: compiles to MR/Tez/Spark jobs, minutes, batch ETL. Presto: in-memory pipeline, seconds, interactive dashboards and ad-hoc queries."
+        },
+        {
+          "format": "scenario",
+          "q": "A telecom runs nightly Hive ETL. Managers now want a live dashboard on the same tables, and one chart also needs a MySQL billing table.<br>i) Which engine fits the dashboard? ii) Why is Hive+MR too slow? iii) Which Presto feature reads MySQL in the same query? iv) Must the tables be redefined?",
+          "a": "i) Presto/Trino. ii) It writes intermediate results to disk between stages, so queries take minutes. iii) Connector architecture. iv) No: Presto reads the existing Hive Metastore."
+        },
+        {
+          "format": "long",
+          "q": "Compare the SQL-on-Hadoop engines and explain why Presto beats Hive+MR on interactive queries.",
+          "a": "Use the engines table and the 5-mark answer: the key point is no intermediate disk writes, plus vectorized execution and the cost-based optimizer."
+        }
+      ],
+      "diagram": {
+        "file": "diagrams/w07-presto.svg",
+        "caption": "Hive+MapReduce writes to HDFS between stages and takes minutes; Presto streams data through an in-memory pipeline and answers in seconds."
+      }
+    },
+    {
+      "id": "spotify",
+      "chapter": 7,
+      "title": "Case study: Spotify Discover Weekly",
+      "facts": [
+        "Scale (2015): about 3 billion events/day, 30 million songs, 2 billion playlists, 75M users; output 30M personalised playlists.",
+        "Data path: Kafka events &rarr; HDFS &rarr; HiveQL (analytics, features) and Spark MLlib (collaborative filtering).",
+        "<b>Co-occurrence</b>: songs found together in more than N playlists are similar: <code>GROUP BY song_a, song_b HAVING COUNT(*) &gt; 5</code>.",
+        "<b>ALS</b> (Alternating Least Squares) factorises the user &times; song matrix into a user matrix and a song matrix of k factors each.",
+        "<b>Luigi</b> (Spotify, Python, 2012) chains HiveQL and Spark jobs. Each task declares its output path and inputs; finished tasks are skipped.",
+        "Partitioning play_events by week cut the co-occurrence query from 8 hours to 2 hours."
+      ],
+      "mechanism": [
+        "Apps log plays, skips, pauses and playlist adds as Kafka events.",
+        "Kafka consumers land the events on HDFS.",
+        "HiveQL self-joins playlist_songs on playlist_id to form song pairs, then GROUP BY counts each pair.",
+        "Spark ALS learns user and song factor matrices from the interactions.",
+        "Luigi runs the steps in dependency order each week and skips finished outputs.",
+        "The scores produce 30M Discover Weekly playlists."
+      ],
+      "why": [
+        "Implicit feedback (2 billion playlists) was a richer signal than explicit star ratings.",
+        "SQL suits aggregation; iterative ML (ALS) suits Spark. Luigi joins them in one pipeline.",
+        "Schema design decides speed: the right partition column changes runtime by hours.",
+        "ALS stores (users + songs) &times; k numbers instead of users &times; songs, so the model fits in memory.",
+        "Limitation: cold start. A new song with no playlist appearances needs audio features instead."
+      ],
+      "contrasts": [
+        {
+          "vs": "Airflow",
+          "head": [
+            "",
+            "Luigi",
+            "Airflow"
+          ],
+          "rows": [
+            [
+              "Dependency style",
+              "Target-based: requires(), output(), run(); pulls back from the final task",
+              "DAG file of tasks and edges (t1 &gt;&gt; t2), run on a schedule"
+            ],
+            [
+              "Backfill",
+              "Pass past dates; finished outputs skipped; usually cron-triggered",
+              "Built in: catchup and <code>airflow dags backfill</code>"
+            ],
+            [
+              "UI",
+              "Simple status and dependency graph page",
+              "Rich UI: graph/grid views, logs, retries, alerts"
+            ],
+            [
+              "Best fit",
+              "Small, file-based Hadoop pipelines",
+              "Large pipelines (e.g. 100 steps)"
+            ]
+          ]
+        }
+      ],
+      "scenarios": [
+        {
+          "cue": "a re-run skips every step whose HDFS output already exists",
+          "answer": "Luigi (target-based)"
+        },
+        {
+          "cue": "a song released yesterday gets no playlist-based recommendations",
+          "answer": "Cold start"
+        },
+        {
+          "cue": "50 taste scores per user and per song replace the full rating matrix",
+          "answer": "ALS matrix factorisation"
+        },
+        {
+          "cue": "the same HiveQL got 4&times; faster after a table redesign",
+          "answer": "Partitioning play_events by week"
+        }
+      ],
+      "calculation": {
+        "example": "<p><b>ALS model size</b> (Discussion 2): (75M + 30M) &times; 50 &times; 4 B = 2.1 &times; 10^10 B = <b>21 GB</b>. The full matrix would be 75M &times; 30M &times; 4 B = 9 &times; 10^15 B = 9 PB. <b>Speed-up</b> (lesson 3): 8 h / 2 h = <b>4&times;</b>, 75% time saved.</p>",
+        "steps": [
+          "Given 75M users, k = 50, 4 B &rarr; user factors = 75 &times; 10^6 &times; 50 &times; 4 = 15 GB",
+          "Given 30M songs &rarr; song factors = 30 &times; 10^6 &times; 50 &times; 4 = 6 GB",
+          "Given 15 GB + 6 GB &rarr; model = 21 GB",
+          "Given 5,000 nodes &times; 64 GB (assumed) &rarr; 320 TB RAM; 21 GB &asymp; 0.0066% of it: fits",
+          "Given 8 h before, 2 h after &rarr; speed-up = 4&times;, saved = (8 &minus; 2) / 8 = 75%",
+          "Given a playlist of L = 20 songs &rarr; pairs = 20 &times; 19 / 2 = 190"
+        ],
+        "variants": [
+          "10M users, 1M songs, k = 100: 11M &times; 100 &times; 4 B = 4.4 GB",
+          "Dense matrix 9 PB vs 320 TB RAM: about 28&times; too big, does not fit",
+          "2B (playlist, song) rows at 20 songs each: 10^8 playlists &times; 190 = 1.9 &times; 10^10 pairs"
+        ]
+      },
+      "traps": [
+        "ALS size uses users <i>plus</i> songs, not users <i>times</i> songs.",
+        "The slides give no RAM per node. State the assumption (e.g. 64 GB).",
+        "Bucketing playlist_songs by playlist_id speeds the self-join, not the GROUP BY on song pairs."
+      ],
+      "answers": {
+        "1": "Discover Weekly is Spotify's weekly recommendation playlist, built from playlist co-occurrence in HiveQL and ALS collaborative filtering in Spark, scheduled by Luigi.",
+        "3": "Events go Kafka &rarr; HDFS; HiveQL counts how often song pairs share a playlist, and Spark ALS learns user and song factors. Luigi runs the jobs in order and skips finished outputs. Example: the ALS model is (75M + 30M) &times; 50 &times; 4 B = 21 GB.",
+        "5": "<p><b>Goal:</b> 30M personalised weekly playlists from 3B events/day.</p><ol><li>Kafka &rarr; HDFS.</li><li>HiveQL co-occurrence: self-join on playlist_id, <code>GROUP BY song_a, song_b HAVING COUNT(*) &gt; 5</code>.</li><li>Spark ALS factorises users &times; songs.</li><li>Luigi orders the jobs and skips done outputs.</li></ol><p><b>Example:</b> ALS model 21 GB vs 9 PB dense; partitioning by week cut 8 h to 2 h (4&times;).</p><p><b>Limitation:</b> cold start for new songs, handled with audio features.</p>"
+      },
+      "questions": [
+        {
+          "format": "mcq",
+          "q": "What does a Luigi task declare so that finished work is skipped on re-run?",
+          "options": [
+            "Its output target (an HDFS path) and its input tasks",
+            "A cron expression",
+            "Its YARN queue",
+            "A Metastore partition"
+          ],
+          "a": "Luigi checks whether the output exists; if so the task is skipped."
+        },
+        {
+          "format": "blank",
+          "q": "Partitioning play_events by ________ cut Spotify's co-occurrence query from 8 hours to 2 hours.",
+          "a": "week"
+        },
+        {
+          "format": "define",
+          "q": "Define playlist co-occurrence and give its HiveQL shape.",
+          "a": "Two songs are similar if they appear together in many playlists. <code>SELECT song_a, song_b, COUNT(*) FROM playlist_songs GROUP BY song_a, song_b HAVING COUNT(*) &gt; 5</code>."
+        },
+        {
+          "format": "steps",
+          "q": "Outline the Discover Weekly pipeline.",
+          "a": "Kafka events &rarr; HDFS &rarr; HiveQL co-occurrence and features &rarr; Spark ALS &rarr; Luigi orders and skips finished steps &rarr; 30M playlists."
+        },
+        {
+          "format": "why",
+          "q": "Why did Spotify use both HiveQL and Spark?",
+          "a": "Co-occurrence is an aggregation, which SQL does well; ALS is iterative ML, which Spark does in memory. Neither alone is enough at billion-playlist scale."
+        },
+        {
+          "format": "distinguish",
+          "q": "Distinguish Luigi and Airflow on dependencies and backfill.",
+          "a": "Luigi: tasks declare requires() and output(); runs what is missing; backfill by passing past dates. Airflow: DAG of tasks on a schedule; built-in catchup and backfill command, richer UI."
+        },
+        {
+          "format": "scenario",
+          "q": "A music app has 10M users and 1M songs. It trains ALS with rank 100 and 4-byte floats, and runs the pipeline with Luigi.<br>i) Model size? ii) Dense matrix size? iii) What happens when yesterday's output already exists? iv) Name one weakness of playlist co-occurrence.",
+          "a": "i) 11M &times; 100 &times; 4 B = 4.4 GB. ii) 10M &times; 1M &times; 4 B = 4 &times; 10^13 B = 40 TB. iii) Luigi skips that task. iv) Cold start: new songs have no playlist appearances."
+        },
+        {
+          "format": "one_step",
+          "q": "ALS with 20M users, 5M songs, k = 40, 4-byte floats. Find the model size.",
+          "a": "25M &times; 40 &times; 4 B = 4 &times; 10^9 B = <b>4 GB</b>"
+        },
+        {
+          "format": "full_calc",
+          "q": "75M users, 30M songs, k = 50, 4-byte floats, 5,000 nodes with 64 GB each. Find user factors, song factors, model size, cluster RAM, and whether it fits.",
+          "a": "Users 15 GB; songs 6 GB; model <b>21 GB</b>; RAM 5,000 &times; 64 GB = 320 TB; 21 GB &asymp; 0.0066% of RAM, about 4.2 MB per node: fits easily."
+        },
+        {
+          "format": "long",
+          "q": "Describe how Spotify built Discover Weekly on Hive and Spark, with the role of Luigi and one design lesson.",
+          "a": "Use the 5-mark answer, add the Luigi vs Airflow table, and the lesson: partitioning by week took the co-occurrence query from 8 h to 2 h."
+        }
+      ],
+      "diagram": {
+        "file": "diagrams/w07-spotify.svg",
+        "caption": "Play events flow through Kafka to HDFS, where Luigi runs the HiveQL co-occurrence and Spark ALS jobs that build Discover Weekly."
+      }
+    }
+  ],
+  "pool": [
+    {
+      "src": "MCQ",
+      "n": "Q1",
+      "q": "In Hive, where is table schema metadata (column names, types, partition info) stored?",
+      "options": [
+        "(a) HDFS NameNode",
+        "(b) Hive Metastore (relational DB such as MySQL)",
+        "(c) HBase",
+        "(d) ZooKeeper"
+      ],
+      "topic": "hive-arch",
+      "a": "<b>(b) Hive Metastore (relational DB such as MySQL)</b><br>The NameNode holds HDFS block metadata, not table schemas."
+    },
+    {
+      "src": "MCQ",
+      "n": "Q2",
+      "q": "What does &quot;schema-on-read&quot; mean in the context of Hive?",
+      "options": [
+        "(a) Schema is validated when data is inserted into the table",
+        "(b) Schema is applied when data is queried, not when it is stored on HDFS",
+        "(c) Schema is stored separately from data in HDFS metadata",
+        "(d) Schema is inferred automatically from column names in the file header"
+      ],
+      "topic": "schema-on-read",
+      "a": "<b>(b) Schema is applied when data is queried, not when it is stored on HDFS</b><br>(a) describes schema-on-write, how MySQL works."
+    },
+    {
+      "src": "MCQ",
+      "n": "Q3",
+      "q": "Which Hive optimization technique physically organises data into separate HDFS sub-directories by a column&#x27;s value to avoid full table scans?",
+      "options": [
+        "(a) Bucketing",
+        "(b) Indexing",
+        "(c) Partitioning",
+        "(d) Compression"
+      ],
+      "topic": "partitioning",
+      "a": "<b>(c) Partitioning</b><br>Bucketing splits files inside a partition; it does not skip directories."
+    },
+    {
+      "src": "MCQ",
+      "n": "Q4",
+      "q": "Presto&#x27;s primary performance advantage over Hive+MapReduce for interactive queries is:",
+      "options": [
+        "(a) Presto supports more SQL functions than HiveQL",
+        "(b) Presto has better native integration with HBase and Cassandra",
+        "(c) Presto executes queries entirely in memory without writing intermediate results to disk",
+        "(d) Presto has native Python UDF support"
+      ],
+      "topic": "presto",
+      "a": "<b>(c) Presto executes queries entirely in memory without writing intermediate results to disk</b><br>Hive+MR writes to HDFS between every stage."
+    },
+    {
+      "src": "True/False",
+      "n": "1",
+      "q": "HiveQL supports full ACID transactions on all table types, just like MySQL.",
+      "topic": "schema-on-read",
+      "a": "<b>False.</b> Corrected: HiveQL supports ACID only on ACID-enabled transactional ORC tables; MySQL (InnoDB engine) gives full ACID: INSERT, UPDATE, DELETE and ROLLBACK on any row."
+    },
+    {
+      "src": "True/False",
+      "n": "2",
+      "q": "Partitioning in Hive reduces query time by eliminating irrelevant data partitions from the HDFS scan.",
+      "topic": "partitioning",
+      "a": "<b>True.</b> A WHERE filter on the partition key makes Hive read only the matching sub-directories (partition pruning)."
+    },
+    {
+      "src": "True/False",
+      "n": "3",
+      "q": "Hive directly executes a HiveQL query on HDFS without any intermediate translation step.",
+      "topic": "hive-arch",
+      "a": "<b>False.</b> Corrected: Hive compiles HiveQL (parse, analyse, plan, optimise) into MapReduce, Tez or Spark jobs, which then read HDFS."
+    },
+    {
+      "src": "True/False",
+      "n": "4",
+      "q": "Bucketing in Hive is particularly useful for optimising JOIN operations between two large tables.",
+      "topic": "bucketing",
+      "a": "<b>True.</b> Both tables bucketed on the join key with the same N let Hive join bucket i with bucket i, with no full shuffle."
+    },
+    {
+      "src": "Descriptive",
+      "n": "D1",
+      "q": "Explain the Hive architecture: what is the role of HiveServer2, the Driver, and the Metastore? How is a HiveQL query compiled into executable jobs? Draw the component diagram.",
+      "topic": "hive-arch",
+      "a": "<ul><li><b>HiveServer2</b>: JDBC/ODBC front door; authenticates users, accepts HiveQL from Beeline, BI tools, JDBC.</li><li><b>Driver</b>: Parser &rarr; Semantic Analyser &rarr; Logical Planner &rarr; Optimizer &rarr; Physical Plan Generator; manages the query lifecycle.</li><li><b>Metastore</b>: MySQL/PostgreSQL catalogue of schemas, types, partitions, HDFS paths.</li></ul><p><b>Compilation:</b> parse to AST &rarr; check names and types in the Metastore &rarr; logical plan (Filter, Join, GroupBy, OrderBy) &rarr; optimise (partition pruning) &rarr; MR/Tez/Spark jobs &rarr; submit to YARN; results to HDFS and client.</p><p><b>Diagram:</b></p><img src=\"diagrams/w07-hive-arch.svg\" alt=\"Hive architecture: Beeline/JDBC client to HiveServer2 to Driver; Driver looks up schema in the Metastore (MySQL/PostgreSQL) and submits jobs to the execution engine (MR/Tez/Spark), which reads and writes HDFS; results return to the client.\">"
+    },
+    {
+      "src": "Descriptive",
+      "n": "D2",
+      "q": "Differentiate between partitioning and bucketing in Hive. When would you choose each? Describe a scenario in Bangladesh e-commerce data where both are used together.",
+      "topic": "bucketing",
+      "a": "<table><tr><th></th><th>Partitioning</th><th>Bucketing</th></tr><tr><td>Unit</td><td>Directory per value</td><td>Fixed N files, hash(col) % N</td></tr><tr><td>Benefit</td><td>Pruning for WHERE filters</td><td>Bucket map join</td></tr><tr><td>Column</td><td>Low cardinality (date, division)</td><td>High cardinality key (customer_id)</td></tr></table><p><b>Choose</b> partitioning when queries filter on a few-valued column; bucketing when large tables are joined on a many-valued key.</p><p><b>Scenario:</b> a Bangladeshi e-commerce <code>orders</code> table, <code>PARTITIONED BY (order_date, division)</code> and <code>CLUSTERED BY (customer_id) INTO 32 BUCKETS</code>. The Dhaka daily report reads one folder; the join with <code>customers</code> (also 32 buckets on customer_id) pairs bucket i with i.</p>"
+    },
+    {
+      "src": "Descriptive",
+      "n": "D3",
+      "q": "What is &quot;schema-on-read&quot;? What are its advantages and disadvantages compared to &quot;schema-on-write&quot; in a traditional RDBMS such as MySQL? Give one example where schema-on-read causes a data quality problem.",
+      "topic": "schema-on-read",
+      "a": "<p><b>Schema-on-read:</b> Hive applies column types at query time; loading is a raw file copy. MySQL (schema-on-write) checks each row at INSERT.</p><table><tr><th>Advantages</th><th>Disadvantages</th></tr><tr><td>Fast load, no validation</td><td>Slower queries (parse every time)</td></tr><tr><td>Load before the schema is known; many schemas on the same files; no ETL at ingest</td><td>Bad data silent: becomes NULL</td></tr><tr><td>Open formats (ORC, Parquet, CSV, JSON, Avro)</td><td>Unfit for OLTP (banking, orders)</td></tr></table><p><b>Example:</b> <code>abc</code> in a DOUBLE <code>amount</code> column. MySQL rejects the INSERT; Hive stores it and returns NULL, so <code>SUM(amount)</code> under-reports revenue with no warning. Fix: Great Expectations or dbt tests downstream.</p>"
+    },
+    {
+      "src": "Analytical",
+      "n": "A1",
+      "q": "Partitioning &amp; Bucketing Design: You have a 5 TB e-commerce transaction table with columns: (txn_id, user_id, product_id, amount, country, txn_date). Design a complete partitioning and bucketing strategy to optimise: &#8211; Daily revenue reports filtered by country and txn_date &#8211; JOINs between this table and a 10 M-row user profile table (keyed on user_id). Write the complete CREATE TABLE DDL. Justify why you chose a specific number of buckets and which column(s) you partitioned on.",
+      "topic": "bucketing",
+      "a": "<p><b>Partition</b> on <code>txn_date, country</code> (low cardinality, used in report filters). <b>Bucket</b> on <code>user_id</code> (high-cardinality join key), same N on both tables for a bucket map join. Never partition on user_id or txn_id.</p><p><b>Bucket count</b> (assume 3 years, 5 countries):</p><table><tr><td>Partitions</td><td>3 &times; 365 &times; 5 = 5,475</td></tr><tr><td>Per partition</td><td>5,000 GB / 5,475 &asymp; 0.913 GB</td></tr><tr><td>8 buckets</td><td>&asymp; 114 MB/file (near 128 MB block), 43,800 files</td></tr><tr><td>32 buckets</td><td>&asymp; 28.5 MB/file, 175,200 files: too small</td></tr></table><pre><code>CREATE TABLE transactions (\n  txn_id BIGINT, user_id BIGINT,\n  product_id BIGINT, amount DOUBLE)\nPARTITIONED BY (txn_date STRING, country STRING)\nCLUSTERED BY (user_id) SORTED BY (user_id) INTO 8 BUCKETS\nSTORED AS ORC;\n\nCREATE TABLE user_profile (\n  user_id BIGINT, name STRING, city STRING)\nCLUSTERED BY (user_id) SORTED BY (user_id) INTO 8 BUCKETS\nSTORED AS ORC;</code></pre><p><b>Result:</b> a one-day, one-country report reads 1 of 5,475 partitions (&asymp; 0.018%); the join pairs bucket i with i.</p>"
+    },
+    {
+      "src": "Analytical",
+      "n": "A2",
+      "q": "Query Compilation to MapReduce: Write HiveQL to find the top 5 products by total revenue in 2023. Then trace how Hive compiles this query into MapReduce stages: what is emitted by the Map phase, what is the shuffle key, and what does the Reduce phase compute? How would switching the execution engine from MapReduce to Tez change the execution plan?",
+      "topic": "hive-arch",
+      "a": "<pre><code>SELECT product_id, SUM(amount) AS total_revenue\nFROM transactions\nWHERE YEAR(txn_date) = 2023\nGROUP BY product_id\nORDER BY total_revenue DESC\nLIMIT 5;</code></pre><table><tr><th></th><th>Job 1: aggregate</th><th>Job 2: sort + limit</th></tr><tr><td>Map emits</td><td>(product_id, amount) for 2023 rows; combiner gives partial sums</td><td>(total_revenue, product_id); each mapper keeps its top 5</td></tr><tr><td>Shuffle key</td><td>product_id</td><td>total_revenue DESC, to one reducer</td></tr><tr><td>Reduce</td><td>SUM(amount) per product, written to HDFS</td><td>First 5 rows</td></tr></table><p><b>Tiny check:</b> (P1,100), (P2,50), (P1,30), (P3,80), (P2,20) &rarr; P1 130, P3 80, P2 70.</p><p><b>Tez:</b> one DAG, Map 1 &rarr; Reducer 2 &rarr; Reducer 3. No HDFS write between the jobs, one submission, container reuse. Same result, faster.</p>"
+    },
+    {
+      "src": "Discussion",
+      "n": "1",
+      "q": "Spotify&#x27;s co-occurrence query runs GROUP BY song_a, song_b over 2 billion playlist rows. Estimate the output size if there are 30M songs. Propose a partitioning + bucketing scheme for the playlist_songs Hive table that would reduce the shuffle size for this query. [CLO4 &#8211; Apply]",
+      "topic": "spotify",
+      "a": "<p><b>Claim:</b> output is far below the 30M-song bound. Bound: 30M &times; (30M &minus; 1) / 2 &asymp; 4.5 &times; 10^14 pairs. Realistic (assume 20 songs per playlist): 10^8 playlists &times; 190 = 1.9 &times; 10^10 pairs, &le; 304 GB at 16 B/row, much less after HAVING &gt; 5.</p><p><b>Scheme:</b> <code>PARTITIONED BY (week)</code>, <code>CLUSTERED BY (playlist_id) SORTED BY (playlist_id, song_id) INTO 1024 BUCKETS</code>. <b>For:</b> the self-join runs inside each bucket with no shuffle, and weekly partitions cut 8 h to 2 h. <b>Against:</b> it does not shrink the GROUP BY shuffle on song pairs; rely on map-side aggregation there.</p>"
+    },
+    {
+      "src": "Discussion",
+      "n": "2",
+      "q": "The ALS collaborative filtering model is a matrix factorisation over a 75M-user &times; 30M-song matrix. At 4 bytes per float and rank k = 50, calculate the model size and explain whether it fits in a 5,000-node YARN cluster&#x27;s aggregate RAM. [CLO4 &#8211; Analyse]",
+      "topic": "spotify",
+      "a": "<p><b>Size:</b> (75M + 30M) &times; 50 &times; 4 B = <b>21 GB</b> (users 15 GB + songs 6 GB).</p><p><b>Fits?</b> Assume 64 GB/node: 5,000 &times; 64 GB = 320 TB; 21 GB &asymp; 0.0066%, about 4.2 MB per node. <b>For:</b> it fits easily, even on one large server; the dense 9 PB matrix would not. <b>Against:</b> training also holds the interaction data, shuffled factor blocks and JVM overhead, several times the model size, but still well within the cluster.</p>"
+    },
+    {
+      "src": "Discussion",
+      "n": "3",
+      "q": "Spotify uses Luigi while other companies use Apache Airflow. Compare the two on: dependency declaration style, backfill capability, and UI/observability. Which would you choose for a 100-step daily pipeline? [CLO3 &#8211; Evaluate]",
+      "topic": "spotify",
+      "a": "<p><b>Claim:</b> choose Airflow for a 100-step daily pipeline. Luigi: target-based <code>requires()/output()</code>, skips finished outputs, backfill by date parameters, simple UI. Airflow: DAG with a scheduler, built-in catchup/backfill, rich UI with logs, retries and alerts.</p><p><b>For:</b> at 100 steps you need to see which step failed, read its logs and re-run past days, which Airflow gives out of the box. <b>Against:</b> Luigi is lighter and its skip-if-output-exists model fits file-based Hadoop pipelines like Spotify's.</p>"
+    },
+    {
+      "src": "Live Exercise",
+      "n": "Task",
+      "q": "Task (25 minutes, pairs): Simulate a Hive session using PySpark&#x27;s SQL interface (which reads the same Hive Metastore). Dataset: a 10,000-row synthetic play_events CSV (generate with the skeleton below).",
+      "code": "from pyspark.sql import SparkSession\nimport random, datetime\n\nspark = SparkSession.builder \\\n        .appName(\"HiveDemo\") \\\n        .getOrCreate()\nspark.setLogLevel(\"WARN\")\n\n# Generate synthetic data\nrows = []\nfor i in range(10_000):\n    rows.append({\n      \"user_id\":    random.randint(1, 500),\n      \"song_id\":    random.randint(1, 200),\n      \"playlist_id\":random.randint(1, 1000),\n      \"dt\":         \"2024-10-01\"\n    })\n\ndf = spark.createDataFrame(rows)\ndf.createOrReplaceTempView(\"play_events\")\n\n# Co-occurrence query\nresult = spark.sql(\"\"\"\n    SELECT a.song_id AS song_a,\n           b.song_id AS song_b,\n           COUNT(*) AS co_count\n    FROM play_events a\n    JOIN play_events b\n      ON a.playlist_id = b.playlist_id\n     AND a.song_id &lt; b.song_id\n    GROUP BY a.song_id, b.song_id\n    HAVING COUNT(*) &gt; 2\n    ORDER BY co_count DESC\n\"\"\")\nresult.show(10)",
+      "topic": "partitioning",
+      "a": "<p>Write the data as a real partitioned table, then time and inspect the queries.</p><pre><code>import time\nrandom.seed(42)  # rows as in the skeleton, dt from 2 dates\ndf.write.mode(\"overwrite\").partitionBy(\"dt\") \\\n  .format(\"parquet\").saveAsTable(\"play_events_part\")\nt0 = time.time()\nspark.sql(cooc_sql).show(10)      # skeleton query on play_events_part, with a.dt = b.dt = '2024-10-01'\nprint(time.time() - t0)\nsongs = spark.createDataFrame(\n  [(i, \"genre\" + str(i % 10)) for i in range(1, 201)], [\"song_id\", \"genre\"])\nsongs.createOrReplaceTempView(\"songs\")   # 200-row dimension table\nspark.conf.set(\"spark.sql.autoBroadcastJoinThreshold\", -1)\nhint_sql = \"\"\"SELECT /*+ BROADCAST(s) */ s.genre, COUNT(*)\n  FROM play_events_part p JOIN songs s ON p.song_id = s.song_id\n  WHERE p.dt = '2024-10-01' GROUP BY s.genre\"\"\"\nspark.sql(hint_sql).explain(mode=\"formatted\")</code></pre><p>Expected with the single-date skeleton: about 10 rows per playlist, about 50,000 pair rows, about 9,000 pairs kept by HAVING &gt; 2, top count about 11 to 14 (simulated; varies with the data).</p>"
+    },
+    {
+      "src": "Live Exercise",
+      "n": "1",
+      "q": "Create a partitioned Spark table (partition on dt).",
+      "topic": "partitioning",
+      "a": "<code>df.write.partitionBy(\"dt\").saveAsTable(\"play_events_part\")</code> writes one sub-directory per date, e.g. <code>play_events_part/dt=2024-10-01/</code>, like Hive's <code>year=2024/</code>. Expected <code>SHOW PARTITIONS</code>: one row per date."
+    },
+    {
+      "src": "Live Exercise",
+      "n": "2",
+      "q": "Run the co-occurrence query and time it.",
+      "topic": "spotify",
+      "a": "Wrap an action (<code>show</code>, <code>count</code>) in <code>time.time()</code>: Spark is lazy, so <code>spark.sql()</code> alone runs nothing. Expected: a few seconds on a laptop, mostly start-up and the join/GROUP BY shuffle. The self-join grows with the square of playlist length (10 songs give 45 pairs)."
+    },
+    {
+      "src": "Live Exercise",
+      "n": "3",
+      "q": "Add a broadcast join hint for the songs dimension table and compare timings.",
+      "topic": "presto",
+      "a": "<code>/*+ BROADCAST(s) */</code> copies the 200-row songs table to every executor, so the big table is not shuffled (Hive's map-side join). The plan changes from SortMergeJoin to BroadcastHashJoin. Expected: slightly faster on 10,000 rows. Spark broadcasts tables under 10 MB automatically, so set the threshold to -1 to compare."
+    },
+    {
+      "src": "Live Exercise",
+      "n": "4",
+      "q": "Use EXPLAIN to print the physical plan and identify where partition pruning occurs.",
+      "topic": "partitioning",
+      "a": "Run <code>EXPLAIN FORMATTED</code> or <code>df.explain(mode=\"formatted\")</code>. Pruning shows in the FileScan node as <code>PartitionFilters: [isnotnull(dt), (dt = 2024-10-01)]</code>: only that folder is read. Filters on ordinary columns appear as <code>PushedFilters</code>. A temp view built in memory shows no PartitionFilters."
+    }
+  ],
+  "formulas": [
+    {
+      "name": "Map-side aggregation",
+      "formula": "reduction = N_rows / G  (with M mappers: N_rows / (M &times; G))",
+      "note": "50M rows, 200 countries: 250,000&times;"
+    },
+    {
+      "name": "Partition pruning",
+      "formula": "fraction read = P_read / P_total",
+      "note": "P_total = product of values per partition column"
+    },
+    {
+      "name": "Bucket number",
+      "formula": "bucket = hash(column) % N",
+      "note": "integer key: hash = value; 98 % 4 = 2"
+    },
+    {
+      "name": "Bucket file size",
+      "formula": "size = S / (P &times; N); files = P &times; N",
+      "note": "aim near the 128 MB HDFS block"
+    },
+    {
+      "name": "ALS model size",
+      "formula": "(users + items) &times; k &times; bytes",
+      "note": "(75M + 30M) &times; 50 &times; 4 B = 21 GB"
+    },
+    {
+      "name": "Speed-up",
+      "formula": "T_old / T_new; saved = (T_old &minus; T_new) / T_old",
+      "note": "8 h to 2 h: 4&times;, 75% saved"
+    },
+    {
+      "name": "Pairs in a playlist",
+      "formula": "L(L &minus; 1) / 2",
+      "note": "20 songs: 190 pairs"
+    }
+  ],
+  "mock": {
+    "a": {
+      "marks": 4,
+      "q": "A food-delivery company stores 4 TB of orders in one Hive table. Managers run a daily report filtered by order_date and city, and analysts join orders with a 15 M-row riders table on rider_id. Today every report scans the whole table.<br>i) Which feature lets the daily report read only one folder? ii) Name the columns you would use for it. iii) Why not use rider_id for that feature? iv) What should be done to rider_id instead?",
+      "a": "i) Partitioning (partition pruning). ii) order_date and city. iii) High cardinality: millions of directories would overload the NameNode. iv) Bucket both tables on rider_id with the same number of buckets for a bucket map join."
+    },
+    "b": {
+      "marks": 6,
+      "q": "For the table in (a): i) The table is partitioned by 730 days and 20 cities. What fraction does a one-day, one-city report read? ii) With 4 TB and 8 buckets per partition, what is the size of each bucket file? iii) Which bucket holds rider_id 1,000,003? iv) Write the CREATE TABLE line that declares the partitions and buckets.",
+      "a": "i) P = 730 &times; 20 = 14,600; 1 / 14,600 &asymp; 0.0068%. ii) 4,000 GB / (14,600 &times; 8) = 4,000 / 116,800 &asymp; 34 MB (small; fewer buckets, e.g. 2, give &asymp; 137 MB). iii) 1,000,003 % 8 = 3. iv) <code>PARTITIONED BY (order_date STRING, city STRING) CLUSTERED BY (rider_id) INTO 8 BUCKETS STORED AS ORC</code>."
+    },
+    "or_a": {
+      "marks": 4,
+      "q": "A telecom's analysts send HiveQL from Tableau. A query <code>SELECT region, COUNT(*) FROM calls GROUP BY region</code> takes 9 minutes.<br>i) Which component receives the query? ii) Where does Hive find the table's HDFS path? iii) What does the map phase emit? iv) Why is it slow on MapReduce?",
+      "a": "i) HiveServer2. ii) The Metastore. iii) (region, 1), or partial counts per region with map-side aggregation. iv) MapReduce writes intermediate results to HDFS between stages."
+    },
+    "or_b": {
+      "marks": 6,
+      "q": "i) The calls table has 60 million rows and 300 regions; one mapper uses map-side aggregation. By what factor does the shuffle shrink? ii) The team moves the dashboard to Presto and the query drops from 9 minutes to 27 seconds. Find the speed-up. iii) Give two Presto design decisions behind it. iv) Does the team need to redefine its tables for Presto? Why?",
+      "a": "i) 60,000,000 / 300 = 200,000&times;. ii) 540 s / 27 s = 20&times;. iii) No intermediate disk writes (in-memory pipeline); vectorized execution on 1,024-row batches (also: cost-based optimizer). iv) No: Presto reads the same Hive Metastore."
+    }
+  }
+}

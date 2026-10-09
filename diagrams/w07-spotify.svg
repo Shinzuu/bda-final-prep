@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 400" font-family="Inter, Segoe UI, system-ui, sans-serif">
+<style>.bx{fill:var(--d-box,#fff7ed);stroke:var(--d-line,#b45309);stroke-width:1.5}
+.bx2{fill:var(--d-box2,#eff6ff);stroke:var(--d-line2,#1d4ed8);stroke-width:1.5}
+.bx3{fill:var(--d-box3,#ecfdf3);stroke:var(--d-line3,#15803d);stroke-width:1.5}
+.ln{stroke:var(--d-ink,#44403c);stroke-width:1.5;fill:none}
+.t{fill:var(--d-ink,#1c1b19);font-size:14px}.tb{fill:var(--d-ink,#1c1b19);font-size:14px;font-weight:600}
+.ts{fill:var(--d-mute,#78716c);font-size:12px}</style>
+<defs><marker id="ah-w07f" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--d-ink,#44403c)"/></marker></defs>
+<rect class="bx2" x="230" y="12" width="220" height="50" rx="8"/>
+<text class="tb" x="340.0" y="34.0" text-anchor="middle">Play events</text>
+<text class="ts" x="340.0" y="51.0" text-anchor="middle">3B per day</text>
+<rect class="bx2" x="250" y="92" width="180" height="42" rx="8"/>
+<text class="tb" x="340.0" y="118.0" text-anchor="middle">Kafka topics</text>
+<rect class="bx3" x="250" y="162" width="180" height="42" rx="8"/>
+<text class="tb" x="340.0" y="188.0" text-anchor="middle">HDFS event lake</text>
+<rect x="90" y="222" width="500" height="84" rx="10" class="ln" stroke-dasharray="5 4"/>
+<text class="ts" x="580" y="238" text-anchor="end">Luigi runs both in order</text>
+<rect class="bx" x="110" y="248" width="200" height="46" rx="8"/>
+<text class="tb" x="210.0" y="276.0" text-anchor="middle">HiveQL co-occurrence</text>
+<rect class="bx" x="370" y="248" width="200" height="46" rx="8"/>
+<text class="tb" x="470.0" y="276.0" text-anchor="middle">Spark ALS</text>
+<rect class="bx3" x="220" y="338" width="240" height="52" rx="8"/>
+<text class="tb" x="340.0" y="361.0" text-anchor="middle">Discover Weekly</text>
+<text class="ts" x="340.0" y="378.0" text-anchor="middle">30M playlists</text>
+<polyline class="ln" points="340,62 340,90" marker-end="url(#ah-w07f)"/>
+<polyline class="ln" points="340,134 340,160" marker-end="url(#ah-w07f)"/>
+<polyline class="ln" points="300,204 220,246" marker-end="url(#ah-w07f)"/>
+<polyline class="ln" points="380,204 460,246" marker-end="url(#ah-w07f)"/>
+<polyline class="ln" points="210,294 290,336" marker-end="url(#ah-w07f)"/>
+<polyline class="ln" points="470,294 390,336" marker-end="url(#ah-w07f)"/>
+</svg>

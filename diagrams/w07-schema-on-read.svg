@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 380" font-family="Inter, Segoe UI, system-ui, sans-serif">
+<style>.bx{fill:var(--d-box,#fff7ed);stroke:var(--d-line,#b45309);stroke-width:1.5}
+.bx2{fill:var(--d-box2,#eff6ff);stroke:var(--d-line2,#1d4ed8);stroke-width:1.5}
+.bx3{fill:var(--d-box3,#ecfdf3);stroke:var(--d-line3,#15803d);stroke-width:1.5}
+.ln{stroke:var(--d-ink,#44403c);stroke-width:1.5;fill:none}
+.t{fill:var(--d-ink,#1c1b19);font-size:14px}.tb{fill:var(--d-ink,#1c1b19);font-size:14px;font-weight:600}
+.ts{fill:var(--d-mute,#78716c);font-size:12px}</style>
+<defs><marker id="ah-w07b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--d-ink,#44403c)"/></marker></defs>
+<text class="tb" x="20" y="30" text-anchor="start">Schema-on-write (MySQL)</text>
+<rect class="bx2" x="20" y="45" width="150" height="44" rx="8"/>
+<text class="tb" x="95.0" y="72.0" text-anchor="middle">INSERT row</text>
+<rect class="bx2" x="225" y="45" width="160" height="44" rx="8"/>
+<text class="tb" x="305.0" y="72.0" text-anchor="middle">Check types</text>
+<rect class="bx3" x="440" y="45" width="160" height="44" rx="8"/>
+<text class="tb" x="520.0" y="72.0" text-anchor="middle">Row stored</text>
+<rect class="bx" x="225" y="120" width="160" height="44" rx="8"/>
+<text class="tb" x="305.0" y="147.0" text-anchor="middle">"abc" rejected</text>
+<polyline class="ln" points="170,67 223,67" marker-end="url(#ah-w07b)"/>
+<polyline class="ln" points="385,67 438,67" marker-end="url(#ah-w07b)"/>
+<text class="ts" x="412" y="59" text-anchor="middle">valid</text>
+<polyline class="ln" points="305,89 305,118" marker-end="url(#ah-w07b)"/>
+<text class="ts" x="313" y="108" text-anchor="start">at write time</text>
+<text class="tb" x="20" y="215" text-anchor="start">Schema-on-read (Hive)</text>
+<rect class="bx2" x="20" y="230" width="150" height="44" rx="8"/>
+<text class="tb" x="95.0" y="257.0" text-anchor="middle">LOAD file</text>
+<rect class="bx2" x="225" y="230" width="160" height="44" rx="8"/>
+<text class="tb" x="305.0" y="257.0" text-anchor="middle">Copy to HDFS</text>
+<rect class="bx2" x="440" y="230" width="160" height="44" rx="8"/>
+<text class="tb" x="520.0" y="257.0" text-anchor="middle">SELECT parses</text>
+<rect class="bx" x="440" y="310" width="160" height="44" rx="8"/>
+<text class="tb" x="520.0" y="337.0" text-anchor="middle">"abc" → NULL</text>
+<polyline class="ln" points="170,252 223,252" marker-end="url(#ah-w07b)"/>
+<polyline class="ln" points="385,252 438,252" marker-end="url(#ah-w07b)"/>
+<text class="ts" x="197" y="244" text-anchor="middle">no check</text>
+<polyline class="ln" points="520,274 520,308" marker-end="url(#ah-w07b)"/>
+<text class="ts" x="512" y="295" text-anchor="end">at query time</text>
+</svg>

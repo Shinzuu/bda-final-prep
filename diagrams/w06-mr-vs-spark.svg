@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 400" font-family="Inter, Segoe UI, system-ui, sans-serif"><style>.bx{fill:var(--d-box,#fff7ed);stroke:var(--d-line,#b45309);stroke-width:1.5}
+.bx2{fill:var(--d-box2,#eff6ff);stroke:var(--d-line2,#1d4ed8);stroke-width:1.5}
+.bx3{fill:var(--d-box3,#ecfdf3);stroke:var(--d-line3,#15803d);stroke-width:1.5}
+.ln{stroke:var(--d-ink,#44403c);stroke-width:1.5;fill:none}
+.t{fill:var(--d-ink,#1c1b19);font-size:14px}.tb{fill:var(--d-ink,#1c1b19);font-size:14px;font-weight:600}
+.ts{fill:var(--d-mute,#78716c);font-size:12px}</style><defs><marker id="ah-w06mrvsspark" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--d-ink,#44403c)"/></marker></defs><text class="tb" x="180" y="30" text-anchor="middle">MapReduce: disk per pass</text>
+<text class="tb" x="540" y="30" text-anchor="middle">Spark: load once</text>
+<path class="ln" d="M360,15 L360,385" stroke-dasharray="5 4"/>
+<rect class="bx2" x="85.0" y="50" width="190" height="40" rx="8"/>
+<text class="tb" x="180.0" y="75.0" text-anchor="middle">HDFS (50 GB)</text>
+<rect class="bx" x="85.0" y="112" width="190" height="40" rx="8"/>
+<text class="tb" x="180.0" y="137.0" text-anchor="middle">MR Job 1</text>
+<rect class="bx2" x="85.0" y="174" width="190" height="40" rx="8"/>
+<text class="tb" x="180.0" y="199.0" text-anchor="middle">HDFS write</text>
+<rect class="bx" x="85.0" y="236" width="190" height="40" rx="8"/>
+<text class="tb" x="180.0" y="261.0" text-anchor="middle">MR Job 2</text>
+<rect class="bx2" x="85.0" y="298" width="190" height="40" rx="8"/>
+<text class="tb" x="180.0" y="323.0" text-anchor="middle">HDFS write</text>
+<path class="ln" d="M180,90 L180,112" marker-end="url(#ah-w06mrvsspark)"/>
+<path class="ln" d="M180,152 L180,174" marker-end="url(#ah-w06mrvsspark)"/>
+<path class="ln" d="M180,214 L180,236" marker-end="url(#ah-w06mrvsspark)"/>
+<path class="ln" d="M180,276 L180,298" marker-end="url(#ah-w06mrvsspark)"/>
+<text class="t" x="180" y="368" text-anchor="middle">× 100 iterations = 10 TB I/O</text>
+<rect class="bx2" x="445.0" y="50" width="190" height="40" rx="8"/>
+<text class="tb" x="540.0" y="75.0" text-anchor="middle">HDFS (50 GB)</text>
+<rect class="bx3" x="445.0" y="112" width="190" height="40" rx="8"/>
+<text class="tb" x="540.0" y="137.0" text-anchor="middle">RAM cache</text>
+<rect class="bx" x="445.0" y="174" width="190" height="40" rx="8"/>
+<text class="tb" x="540.0" y="199.0" text-anchor="middle">Iteration 1</text>
+<rect class="bx" x="445.0" y="236" width="190" height="40" rx="8"/>
+<text class="tb" x="540.0" y="261.0" text-anchor="middle">Iteration 2</text>
+<rect class="bx" x="445.0" y="298" width="190" height="40" rx="8"/>
+<text class="tb" x="540.0" y="323.0" text-anchor="middle">Iteration 3 …</text>
+<path class="ln" d="M540,90 L540,112" marker-end="url(#ah-w06mrvsspark)"/>
+<text class="t" x="552" y="105" text-anchor="start">read once</text>
+<path class="ln" d="M540,214 L540,236" marker-end="url(#ah-w06mrvsspark)"/>
+<path class="ln" d="M540,276 L540,298" marker-end="url(#ah-w06mrvsspark)"/>
+<path class="ln" d="M540,152 L540,174" marker-end="url(#ah-w06mrvsspark)"/>
+<path class="ln" d="M635.0,132 L675.0,132 L675.0,318"/>
+<path class="ln" d="M675.0,256 L635.0,256" marker-end="url(#ah-w06mrvsspark)"/>
+<path class="ln" d="M675.0,318 L635.0,318" marker-end="url(#ah-w06mrvsspark)"/>
+<text class="t" x="540" y="368" text-anchor="middle">50 GB from HDFS, rest RAM</text></svg>

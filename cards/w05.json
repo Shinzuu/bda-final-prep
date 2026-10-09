@@ -1,0 +1,1241 @@
+{
+ "week": 5,
+ "title": "YARN, file formats and compression",
+ "summary": "How a shared Hadoop cluster hands out CPU and RAM to many jobs (YARN), and how the way data is laid out and compressed on disk decides how much of it a query has to read. Part 2 tests the same ideas on LinkedIn's 5,000-node YARN cluster.",
+ "topics": [
+  {
+   "id": "yarn-arch",
+   "chapter": 5,
+   "title": "YARN and its three components",
+   "facts": [
+    "<b>YARN</b> (Yet Another Resource Negotiator) arrived in <b>Hadoop 2.0 (2013)</b> and replaced the Hadoop 1.x <b>JobTracker</b>.",
+    "Hadoop 1.x JobTracker did resource management and job scheduling in one process: MapReduce only, ceiling about <b>4,000 nodes</b>.",
+    "<b>ResourceManager (RM)</b>: one per cluster, on a master node. Two parts: <b>Scheduler</b> (gives out containers) and <b>ApplicationsManager</b> (accepts jobs, starts each AM).",
+    "<b>NodeManager (NM)</b>: one per worker node. Launches and monitors containers, sends <b>heartbeats</b> (regular I-am-alive reports) to the RM.",
+    "<b>ApplicationMaster (AM)</b>: one per running job. Asks the RM for containers and tells NMs to start tasks in them.",
+    "<b>Container</b>: a slice of one node, {vcores: N, memory: M MB}. Replaced Hadoop 1's fixed <b>slots</b>. Ancestor of the Kubernetes Pod."
+   ],
+   "mechanism": [
+    "Client submits the job to the ResourceManager.",
+    "The RM's ApplicationsManager launches a container for the job's ApplicationMaster.",
+    "The AM registers with the RM and requests containers (e.g. 100 of 4 cores, 8 GB).",
+    "The RM's Scheduler grants what is free (e.g. 80) and picks the nodes.",
+    "The AM tells those NodeManagers to launch tasks in the containers.",
+    "Tasks report status to the AM; NMs heartbeat node health to the RM.",
+    "When all tasks finish, the AM releases containers and unregisters from the RM."
+   ],
+   "why": [
+    "Splitting resource management (RM) from per-job logic (AM) removed the single JobTracker bottleneck: YARN scales past 10,000 nodes.",
+    "The AM holds the framework-specific logic, so YARN is <b>framework-agnostic</b>: MapReduce, Spark, Tez and Samza share one cluster.",
+    "Containers are flexible in size, unlike fixed slots, so CPU-heavy and RAM-heavy tasks both fit.",
+    "NMs isolate containers with Linux <b>cgroups</b> (kernel CPU limits) and memory limits; a container over its memory limit is killed.",
+    "Limit: containers are sized only by CPU and RAM. Kubernetes has largely replaced YARN for new deployments."
+   ],
+   "contrasts": [
+    {
+     "vs": "Hadoop 1.x",
+     "head": [
+      "",
+      "Hadoop 1.x",
+      "YARN (Hadoop 2.x)"
+     ],
+     "rows": [
+      [
+       "Who manages resources",
+       "JobTracker (also schedules jobs)",
+       "ResourceManager only"
+      ],
+      [
+       "Per-job manager",
+       "inside the JobTracker",
+       "one ApplicationMaster process per job"
+      ],
+      [
+       "Frameworks",
+       "MapReduce only",
+       "any (Spark, Tez, Samza ...)"
+      ],
+      [
+       "Resource unit",
+       "fixed slot",
+       "flexible container"
+      ],
+      [
+       "Max nodes",
+       "about 4,000",
+       "over 10,000"
+      ],
+      [
+       "RM high availability",
+       "no",
+       "yes (ZooKeeper)"
+      ]
+     ]
+    },
+    {
+     "vs": "the three components",
+     "head": [
+      "",
+      "How many",
+      "Job"
+     ],
+     "rows": [
+      [
+       "ResourceManager",
+       "1 per cluster",
+       "global allocation of containers"
+      ],
+      [
+       "NodeManager",
+       "1 per node",
+       "launch and watch containers, heartbeat"
+      ],
+      [
+       "ApplicationMaster",
+       "1 per application",
+       "request containers, run and retry tasks"
+      ]
+     ]
+    }
+   ],
+   "scenarios": [
+    {
+     "cue": "one process decides which application gets resources across the whole cluster",
+     "answer": "ResourceManager (its Scheduler)"
+    },
+    {
+     "cue": "an agent on each machine starts tasks and reports health every few seconds",
+     "answer": "NodeManager"
+    },
+    {
+     "cue": "a Spark job asks for 100 executors and gets 80",
+     "answer": "ApplicationMaster requests, RM Scheduler grants"
+    },
+    {
+     "cue": "a company wants Spark and MapReduce on one cluster but runs Hadoop 1.x",
+     "answer": "move to YARN (JobTracker is MapReduce-only)"
+    },
+    {
+     "cue": "a bundle of 4 vcores and 8 GB on one node",
+     "answer": "container"
+    }
+   ],
+   "calculation": null,
+   "traps": [
+    "NameNode and DataNode are HDFS (storage). They are not YARN parts and do not allocate CPU or RAM.",
+    "The AM is per job, the RM is per cluster. Q1's wrong favourite is the AM.",
+    "Hadoop 2.0 also added the Standby NameNode. That is HDFS high availability, not YARN (Q4 distractor).",
+    "The AM requests containers; it does not grant them. Only the RM's Scheduler grants."
+   ],
+   "answers": {
+    "1": "YARN is Hadoop 2's resource manager: one ResourceManager gives out containers, a NodeManager runs them on each node, and one ApplicationMaster manages each job.",
+    "3": "YARN split the Hadoop 1.x JobTracker into a global ResourceManager and a per-job ApplicationMaster. NodeManagers on each worker launch containers (CPU + RAM slices). Example: a Spark AM asks for 100 containers of 4 cores, 8 GB; the busy RM grants 80.",
+    "5": "<p><b>Definition.</b> YARN (Hadoop 2.0, 2013) separates cluster resource management from job execution.</p><p><b>Structure.</b> ResourceManager: one per cluster, Scheduler plus ApplicationsManager. NodeManager: one per node, launches containers and heartbeats to the RM. ApplicationMaster: one per job, requests containers and runs tasks in them.</p><p><b>Flow.</b> Submit to RM, RM starts AM, AM requests containers, RM grants, NMs launch tasks, AM unregisters at the end.</p><p><b>Example.</b> A Spark AM asks for 100 containers of 4 cores, 8 GB; the RM grants 80.</p><p><b>Limitation.</b> containers are sized only by CPU and RAM; Kubernetes has taken over most new deployments.</p>"
+   },
+   "questions": [
+    {
+     "format": "mcq",
+     "q": "Which YARN component runs once per application?",
+     "options": [
+      "ApplicationMaster",
+      "ResourceManager",
+      "NodeManager",
+      "NameNode"
+     ],
+     "a": "Each job gets its own AM; the RM is one per cluster, the NM one per node."
+    },
+    {
+     "format": "blank",
+     "q": "In Hadoop 1.x the single ______ did both resource management and job scheduling, which capped clusters at about ______ nodes.",
+     "a": "JobTracker; 4,000"
+    },
+    {
+     "format": "define",
+     "q": "Define a YARN container and list the three YARN components.",
+     "a": "A container is a slice of one node's capacity: a set number of vcores plus a set amount of RAM, in which a task runs. Components: ResourceManager, NodeManager, ApplicationMaster."
+    },
+    {
+     "format": "steps",
+     "q": "List the steps from submitting a Spark job on YARN to its completion.",
+     "a": "Client submits to RM; RM launches the AM container; AM registers and requests containers; RM Scheduler grants them; AM tells NMs to launch executors; tasks report status to the AM; AM releases containers and unregisters."
+    },
+    {
+     "format": "why",
+     "q": "Why can Spark, Tez and Samza share a YARN cluster but could not share a Hadoop 1.x cluster?",
+     "a": "In YARN the framework logic sits in each job's own ApplicationMaster and the RM only hands out generic containers. In Hadoop 1.x the JobTracker's scheduling was written for MapReduce only."
+    },
+    {
+     "format": "distinguish",
+     "q": "Distinguish ResourceManager and ApplicationMaster.",
+     "a": "RM: one per cluster, decides which job gets which containers across the cluster. AM: one per job, asks the RM for containers, starts tasks in them, retries failed tasks."
+    },
+    {
+     "format": "scenario",
+     "q": "A university cluster of 3,000 nodes runs Hadoop 1.x. The data team now wants to run Spark jobs too.<br>i) Can Spark use the cluster as it is? ii) Which Hadoop version fixes this? iii) Which new component manages each Spark job? iv) What resource unit replaces the slot?",
+     "a": "i) No, the JobTracker runs MapReduce only. ii) Hadoop 2.0 with YARN. iii) The Spark ApplicationMaster. iv) The container (vcores + RAM)."
+    },
+    {
+     "format": "long",
+     "q": "Explain YARN's architecture and how it differs from Hadoop 1.x. (8 marks)",
+     "a": "Use the 5-mark answer, then add the Hadoop 1.x vs YARN table: JobTracker vs RM + AM, MapReduce only vs any framework, slot vs container, about 4,000 vs over 10,000 nodes, no RM HA vs ZooKeeper HA."
+    }
+   ],
+   "diagram": {
+    "file": "diagrams/w05-yarn-arch.svg",
+    "caption": "A job on YARN: the client submits to the ResourceManager, which starts the job's ApplicationMaster; the AM requests containers and has NodeManagers launch tasks, which report status back."
+   }
+  },
+  {
+   "id": "yarn-fault",
+   "chapter": 5,
+   "title": "YARN fault tolerance",
+   "facts": [
+    "YARN handles failure in three layers: <b>NodeManager</b>, <b>ApplicationMaster</b>, <b>ResourceManager</b>.",
+    "NM failure: RM sees missing heartbeats (timeout over <b>10 minutes</b>) and marks all containers on that node <b>failed</b>.",
+    "AM failure: RM restarts the AM, up to <code>yarn.resourcemanager.am.max-attempts</code> (default <b>2</b>).",
+    "A restarted AM can recover job state from HDFS checkpoints if the framework supports it: MapReduce yes, early Spark no.",
+    "RM failure: <b>RM High Availability</b> (YARN 2.4+) uses ZooKeeper with an Active and a Standby RM; failover in under <b>60 seconds</b>."
+   ],
+   "mechanism": [
+    "A NodeManager crashes; its containers die and its heartbeats stop.",
+    "The RM waits out the heartbeat timeout (over 10 minutes) and declares the node lost.",
+    "The RM removes the node's CPU and RAM from the schedulable pool and marks its containers failed.",
+    "The RM notifies the job's ApplicationMaster.",
+    "The AM requests the same number of replacement containers.",
+    "The RM grants them on healthy nodes, ideally ones holding HDFS replicas of the input.",
+    "The AM has the new NMs relaunch the tasks; map tasks rerun from the start of their input split."
+   ],
+   "why": [
+    "Fault handling is layered: YARN detects node loss, but the AM decides how to retry, because only it knows the framework.",
+    "Input survives in HDFS replicas, so a failed task can rerun on another node.",
+    "Finished map output stored on the dead node's local disk is lost too, so those maps may rerun.",
+    "Limit: a 10-minute heartbeat timeout is slow for streaming jobs; the framework must recover faster itself.",
+    "Samza streams on YARN are long-running containers, so YARN's restarts give them fault tolerance without a separate stream cluster."
+   ],
+   "contrasts": [
+    {
+     "vs": "the three failure types",
+     "head": [
+      "Failure",
+      "Detected by / how",
+      "Recovery"
+     ],
+     "rows": [
+      [
+       "NodeManager",
+       "RM, missed heartbeats (&gt;10 min)",
+       "containers marked failed; AM re-requests elsewhere"
+      ],
+      [
+       "ApplicationMaster",
+       "RM",
+       "RM restarts AM (default max 2 attempts); state from HDFS checkpoint if supported"
+      ],
+      [
+       "ResourceManager",
+       "ZooKeeper",
+       "Standby RM becomes Active in &lt;60 s (YARN 2.4+)"
+      ]
+     ]
+    }
+   ],
+   "scenarios": [
+    {
+     "cue": "a worker machine stops reporting and its tasks reappear on other machines",
+     "answer": "NodeManager failure, heartbeat timeout, AM re-requests containers"
+    },
+    {
+     "cue": "the job's coordinator crashes and the RM starts a new one, within a set limit of attempts",
+     "answer": "AM failure, restarted up to am.max-attempts (default 2)"
+    },
+    {
+     "cue": "the master node dies and a backup takes over within a minute",
+     "answer": "RM High Availability via ZooKeeper"
+    },
+    {
+     "cue": "a stream processor runs in containers that never finish and is restarted on failure",
+     "answer": "Samza on YARN (long-running containers)"
+    }
+   ],
+   "calculation": null,
+   "traps": [
+    "The AM, not the RM, re-requests the replacement containers. The RM only detects and marks.",
+    "The NM timeout is over 10 minutes, not seconds. The 60 seconds figure is RM failover.",
+    "Recovery from checkpoint depends on the framework: MapReduce can, early Spark could not."
+   ],
+   "answers": {
+    "1": "When a NodeManager stops heartbeating, the RM marks its containers failed and the AM requests replacements on other nodes.",
+    "3": "YARN handles NM, AM and RM failure separately. A dead NM is found by missed heartbeats (over 10 minutes); its containers are marked failed and the AM re-requests them elsewhere. A dead AM is restarted (default 2 attempts); a dead RM fails over to a Standby via ZooKeeper in under 60 s.",
+    "5": "<p><b>Definition.</b> YARN recovers from failure at three layers: node, application, master.</p><p><b>Steps for a node.</b> NM dies, heartbeats stop; RM times out (&gt;10 min), marks the node lost and its containers failed; RM tells the AM; AM requests replacements; RM grants them on healthy nodes; tasks rerun from their HDFS input.</p><p><b>AM and RM.</b> AM restarted by the RM (default max 2 attempts), recovering from HDFS checkpoints if the framework supports it; RM HA through ZooKeeper, failover &lt;60 s.</p><p><b>Example.</b> NM2 with 5 MapReduce containers fails; 5 new containers start on NM1 and NM3.</p><p><b>Limitation.</b> The long timeout delays recovery.</p>"
+   },
+   "questions": [
+    {
+     "format": "mcq",
+     "q": "How does the ResourceManager learn that a NodeManager has failed?",
+     "options": [
+      "Its heartbeats stop arriving",
+      "The NameNode reports it",
+      "The client resubmits the job",
+      "ZooKeeper elects a new NodeManager"
+     ],
+     "a": "NMs heartbeat to the RM; a timeout of over 10 minutes means the node is lost."
+    },
+    {
+     "format": "blank",
+     "q": "If the AM fails, the RM starts a new one; by default the AM gets at most ______ attempts in total. RM failover through ZooKeeper takes under ______ seconds.",
+     "a": "2; 60"
+    },
+    {
+     "format": "define",
+     "q": "Define a heartbeat in YARN.",
+     "a": "A regular message from each NodeManager to the ResourceManager reporting node health and container status; missing heartbeats signal failure."
+    },
+    {
+     "format": "steps",
+     "q": "List the recovery steps after a NodeManager fails.",
+     "a": "Heartbeats stop; RM times out and marks node lost; its containers marked failed; RM notifies AM; AM requests replacements; RM grants on healthy nodes; tasks relaunch from HDFS input."
+    },
+    {
+     "format": "why",
+     "q": "Why does the AM, not the RM, decide how to rerun failed tasks?",
+     "a": "The RM is generic and knows only containers. The AM holds the framework's logic, so it knows which tasks to redo and how (e.g. rerun lost map output)."
+    },
+    {
+     "format": "distinguish",
+     "q": "Distinguish NodeManager failure from ResourceManager failure in YARN.",
+     "a": "NM failure: detected by the RM through missed heartbeats; containers rerun elsewhere. RM failure: handled by HA, ZooKeeper switches to the Standby RM in under 60 s."
+    },
+    {
+     "format": "scenario",
+     "q": "During a nightly ETL job, worker node W7 loses power. It was running 4 map tasks.<br>i) Who detects it? ii) After about how long? iii) Who asks for new containers? iv) Where do the tasks get their input again?",
+     "a": "i) The ResourceManager, through missed heartbeats. ii) Over 10 minutes. iii) The job's ApplicationMaster. iv) From HDFS replicas of the input blocks on other nodes."
+    },
+    {
+     "format": "long",
+     "q": "Explain YARN's layered fault tolerance with an example. (8 marks)",
+     "a": "Use the 5-mark answer and add the three-row failure table (NM / AM / RM: detection and recovery)."
+    }
+   ],
+   "diagram": {
+    "file": "diagrams/w05-yarn-fault.svg",
+    "caption": "NodeManager 2 dies: the RM notices missed heartbeats, marks its containers failed and tells the AM, which re-requests and relaunches the tasks on healthy nodes; a Standby RM covers RM failure."
+   }
+  },
+  {
+   "id": "yarn-sched",
+   "chapter": 5,
+   "title": "Schedulers and capacity planning",
+   "facts": [
+    "The RM Scheduler is <b>pluggable</b> with three policies: <b>FIFO</b>, <b>Capacity</b>, <b>Fair</b>.",
+    "<b>FIFO</b> (first in, first out): one queue in submission order; one long job blocks the rest.",
+    "<b>Capacity</b>: queues with guaranteed shares (e.g. Engineering 60%, Finance 40%); idle capacity is borrowed. Default in HDP/CDH; used by Yahoo!, LinkedIn.",
+    "<b>Fair</b>: running jobs get equal shares, so short jobs finish fast. Used by Facebook, Twitter.",
+    "<b>DRF</b> (Dominant Resource Fairness): fairness across CPU and RAM together, for clusters mixing CPU-heavy and RAM-heavy jobs.",
+    "<b>Pre-emption</b>: taking borrowed containers back so a queue gets its guarantee. LinkedIn gave a <b>30-second</b> warning."
+   ],
+   "mechanism": [
+    "Give each queue its share of nodes: nodes × share.",
+    "Turn the queue's nodes into total RAM and total vCPUs.",
+    "Divide total RAM by the container's RAM: containers by RAM.",
+    "Divide total vCPUs by the container's vCPUs: containers by CPU.",
+    "The smaller count is the maximum, since a container needs both.",
+    "The resource giving the smaller count is the bottleneck."
+   ],
+   "why": [
+    "Capacity guarantees protect SLAs (service level agreements, e.g. ETL done by 6 a.m.): analyst queries cannot starve production pipelines.",
+    "Consolidation: LinkedIn merged 3 single-workload clusters into one 5,000-node YARN cluster; utilisation rose from 45% to 78%, 73% more work on the same hardware.",
+    "Borrowing only works if capacity can be reclaimed, so Capacity needs pre-emption.",
+    "Aggressive pre-emption killed long Spark jobs; the fix was a 30-second grace period and checkpoint-on-preempt hooks.",
+    "Fixed queue percentages need regular tuning when workloads change."
+   ],
+   "contrasts": [
+    {
+     "vs": "the three schedulers",
+     "head": [
+      "",
+      "Policy",
+      "Good for / weakness"
+     ],
+     "rows": [
+      [
+       "FIFO",
+       "one queue, submission order",
+       "simple; one long job starves the rest"
+      ],
+      [
+       "Capacity",
+       "queues with guaranteed %, borrow idle capacity",
+       "multi-team SLAs; needs pre-emption and tuning"
+      ],
+      [
+       "Fair",
+       "equal share to all running jobs",
+       "many short jobs; weaker guarantees for one team"
+      ]
+     ]
+    }
+   ],
+   "scenarios": [
+    {
+     "cue": "several teams share a cluster and production must always get at least 40%",
+     "answer": "Capacity Scheduler"
+    },
+    {
+     "cue": "a single huge job submitted first makes everyone else wait",
+     "answer": "FIFO weakness"
+    },
+    {
+     "cue": "many short interactive queries should finish fast even while a big job runs",
+     "answer": "Fair Scheduler"
+    },
+    {
+     "cue": "jobs differ in their CPU and RAM needs and fairness must cover both",
+     "answer": "DRF"
+    },
+    {
+     "cue": "a queue gets its lent capacity back by killing containers after a warning",
+     "answer": "pre-emption with a grace period"
+    }
+   ],
+   "calculation": {
+    "example": "<p>Live exercise (P2 slide 23): 5,000 nodes, each 64 GB and 16 vCPU. Queues production 40%, spark 25%, samza 15%, adhoc 10%, reserve 10%. Containers: Hive mapper {4 GB, 2 vCPU}, Spark executor {8 GB, 4 vCPU}, Samza task {2 GB, 1 vCPU}; adhoc uses the Hive mapper size.</p><table><tr><th>Queue</th><th>Nodes</th><th>RAM GB</th><th>vCPU</th><th>By RAM</th><th>By CPU</th><th>Max</th></tr><tr><td>production</td><td>2,000</td><td>128,000</td><td>32,000</td><td>32,000</td><td>16,000</td><td><b>16,000</b></td></tr><tr><td>spark</td><td>1,250</td><td>80,000</td><td>20,000</td><td>10,000</td><td>5,000</td><td><b>5,000</b></td></tr><tr><td>samza</td><td>750</td><td>48,000</td><td>12,000</td><td>24,000</td><td>12,000</td><td><b>12,000</b></td></tr><tr><td>adhoc</td><td>500</td><td>32,000</td><td>8,000</td><td>8,000</td><td>4,000</td><td><b>4,000</b></td></tr></table><p>Bottleneck: <b>CPU</b> everywhere. Nodes for 10,000 Hive mappers: <b>1,250</b>.</p>",
+    "steps": [
+     "Given 5,000 nodes and spark share 25% -> spark nodes = 5,000 × 0.25 = 1,250.",
+     "Given 1,250 nodes of 64 GB -> RAM = 80,000 GB; of 16 vCPU -> vCPU = 20,000.",
+     "Given 80,000 GB and 8 GB executors -> by RAM = 10,000.",
+     "Given 20,000 vCPU and 4-vCPU executors -> by CPU = 5,000.",
+     "Given by RAM 10,000 and by CPU 5,000 -> max = 5,000, bottleneck CPU.",
+     "Given a node of 64 GB / 16 vCPU and a mapper of 4 GB / 2 vCPU -> per node = min(16, 8) = 8.",
+     "Given 8 mappers per node and 10,000 mappers -> nodes = 10,000 / 8 = 1,250 (production has 2,000, so it fits)."
+    ],
+    "variants": [
+     "Quick bottleneck test: node RAM per vCPU = 64/16 = 4 GB; every container asks 2 GB per vCPU, so CPU runs out first with half the RAM idle.",
+     "2,000 nodes of 128 GB / 32 vCPU, spark 25%: 500 nodes, 64,000 GB, 16,000 vCPU; by RAM 8,000, by CPU 4,000; max 4,000 (CPU).",
+     "3,000 Spark executors {8 GB, 4 vCPU} on 64 GB / 16 vCPU nodes: per node min(8, 4) = 4; nodes = 750.",
+     "Utilisation 45% to 78%: 78 / 45 = 1.73, so 73% more work on the same hardware."
+    ]
+   },
+   "traps": [
+    "Take the <b>minimum</b> of the by-RAM and by-CPU counts, never the RAM count alone.",
+    "The reserve queue has no container size, so it gets no count.",
+    "Capacity is not a hard cap: idle capacity is lent out and reclaimed by pre-emption.",
+    "73% is 78/45 − 1, not 78 − 45 = 33 points."
+   ],
+   "answers": {
+    "1": "The Capacity Scheduler splits the cluster into queues with guaranteed shares and lets queues borrow idle capacity.",
+    "3": "YARN's Scheduler is pluggable: FIFO runs jobs in order, Capacity guarantees each queue a share, Fair gives running jobs equal shares. A queue's maximum containers = min(total RAM / container RAM, total vCPU / container vCPU). Example: spark queue of 1,250 nodes fits min(10,000, 5,000) = 5,000 executors.",
+    "5": "<p><b>Definition.</b> The RM Scheduler decides which queue or job gets containers.</p><p><b>Policies.</b> FIFO: submission order. Capacity: guaranteed queue shares, idle capacity borrowed, reclaimed by pre-emption. Fair: equal shares. DRF extends fairness to CPU and RAM together.</p><p><b>Example.</b> 5,000 nodes of 64 GB / 16 vCPU, production 40% = 2,000 nodes: by RAM 32,000, by CPU 16,000 Hive mappers, so 16,000 (CPU bottleneck). LinkedIn's shared cluster went from 45% to 78% utilisation.</p><p><b>Limitation.</b> Aggressive pre-emption kills long jobs; LinkedIn added a 30-second grace period and checkpoints.</p>"
+   },
+   "questions": [
+    {
+     "format": "mcq",
+     "q": "Which scheduler guarantees each team's queue a minimum share of the cluster?",
+     "options": [
+      "Capacity",
+      "FIFO",
+      "Fair",
+      "Round-robin"
+     ],
+     "a": "Capacity gives queues guaranteed percentages and lends idle capacity."
+    },
+    {
+     "format": "blank",
+     "q": "______ takes borrowed containers back from a queue; LinkedIn gave a ______-second warning first.",
+     "a": "Pre-emption; 30"
+    },
+    {
+     "format": "define",
+     "q": "Define Dominant Resource Fairness.",
+     "a": "A fairness rule that compares users by their largest share of any one resource (CPU or RAM), so CPU-heavy and RAM-heavy jobs are treated fairly together."
+    },
+    {
+     "format": "steps",
+     "q": "List the steps to find the maximum containers a queue can run.",
+     "a": "Queue nodes = nodes × share; total RAM and vCPU; by RAM = RAM / container RAM; by CPU = vCPU / container vCPU; max = the smaller; that resource is the bottleneck."
+    },
+    {
+     "format": "why",
+     "q": "Why did merging three clusters into one raise LinkedIn's utilisation?",
+     "a": "Each silo was idle at different times and could not lend machines. One YARN cluster lets busy workloads use idle capacity, so utilisation went from 45% to 78%."
+    },
+    {
+     "format": "distinguish",
+     "q": "Distinguish the Capacity and Fair schedulers.",
+     "a": "Capacity: fixed queue guarantees (e.g. 60/40), idle capacity borrowed; suits SLAs. Fair: all running jobs get equal shares; suits fast turnaround of short jobs."
+    },
+    {
+     "format": "scenario",
+     "q": "A cluster serves an ETL team with a 6 a.m. deadline and analysts who run ad-hoc queries all day. Last week an analyst's big query delayed the ETL.<br>i) Which scheduler was likely in use? ii) Which should replace it? iii) What lets analysts use idle ETL capacity at night? iv) What returns it when ETL starts?",
+     "a": "i) FIFO. ii) Capacity, with a guaranteed production queue. iii) Elastic borrowing of unused capacity. iv) Pre-emption, ideally with a grace period."
+    },
+    {
+     "format": "one_step",
+     "q": "A samza queue has 750 nodes of 64 GB and 16 vCPU. A Samza task needs {2 GB, 1 vCPU}. By RAM the queue fits 24,000 tasks. How many fit by CPU, and what is the maximum?",
+     "a": "750 × 16 = 12,000 vCPU / 1 = 12,000 by CPU; max = min(24,000, 12,000) = <b>12,000</b>, CPU bottleneck."
+    },
+    {
+     "format": "full_calc",
+     "q": "1,000 nodes, each 128 GB and 32 vCPU. Queue analytics = 50%. Spark executor {8 GB, 4 vCPU}. Find the maximum executors, the bottleneck, and the nodes needed for 1,000 executors.",
+     "a": "Nodes = 500. RAM = 64,000 GB, vCPU = 16,000. By RAM 8,000; by CPU 4,000. Max <b>4,000</b>, CPU. Per node min(16, 8) = 8; 1,000 / 8 = <b>125 nodes</b>."
+    },
+    {
+     "format": "long",
+     "q": "Compare the three YARN schedulers and explain capacity planning with a worked example. (10 marks)",
+     "a": "Use the scheduler table, then run the live-exercise table (production 16,000, spark 5,000, samza 12,000, adhoc 4,000; CPU bottleneck), add the 1,250-node answer and one line on pre-emption."
+    }
+   ],
+   "diagram": {
+    "file": "diagrams/w05-yarn-sched.svg",
+    "caption": "The live exercise's Capacity Scheduler queues on LinkedIn's 5,000-node cluster, with each queue's maximum containers. (The case study's real split had tez 7% and reserve 3%; the exercise merges them into reserve 10%.)"
+   }
+  },
+  {
+   "id": "columnar",
+   "chapter": 5,
+   "title": "Row vs columnar storage and Parquet",
+   "facts": [
+    "<b>Row store</b> (CSV, JSON, Avro): one whole record after another on disk.",
+    "<b>Columnar store</b> (Parquet, ORC): all values of one column stored together.",
+    "Slide example: 100-column, 10 TB table, 3-column query: CSV reads 10 TB, Parquet about 300 GB, <b>33×</b> faster, <b>97%</b> less I/O.",
+    "Parquet layout: file header, <b>row groups</b> (about 128 MB), each split into <b>column chunks</b>, each into <b>pages</b>; footer holds metadata and stats.",
+    "The footer stores <b>min/max per column chunk</b>, which enables <b>predicate pushdown</b>: skipping row groups a filter cannot match.",
+    "Spark pushes down by default: <code>spark.sql.parquet.filterPushdown=true</code>. A 10 TB Parquet query may read only 50 GB."
+   ],
+   "mechanism": [
+    "The query, e.g. <code>WHERE score &gt; 90</code>, first reads only the file footer.",
+    "It gets min/max of the score column for every row group.",
+    "Row group 1 has score in [60, 85]: max 85 is not above 90, so skip it with no I/O.",
+    "Row group 2 has score in [85, 99]: it may match, so read it.",
+    "Inside row group 2, read only the score column chunk, not the other columns."
+   ],
+   "why": [
+    "Analytics queries touch few columns of many rows; a column store reads only those columns.",
+    "Same-type values sit together, so they compress better.",
+    "Min/max stats let whole row groups be skipped before any data is read.",
+    "Row groups are independent, so each can go to its own Mapper (splittable).",
+    "Limit: writing a single record is awkward, so row formats (Avro) are better for streaming appends."
+   ],
+   "contrasts": [
+    {
+     "vs": "row store",
+     "head": [
+      "",
+      "Row store (CSV, Avro)",
+      "Columnar (Parquet, ORC)"
+     ],
+     "rows": [
+      [
+       "Disk layout",
+       "record by record",
+       "column by column"
+      ],
+      [
+       "SELECT score FROM users",
+       "reads id, name, age, score",
+       "reads score only"
+      ],
+      [
+       "Filter skipping",
+       "none in CSV",
+       "row groups skipped by min/max"
+      ],
+      [
+       "Compression",
+       "lower",
+       "higher (similar values together)"
+      ],
+      [
+       "Best for",
+       "writes, appends, exchange",
+       "read-heavy analytics"
+      ]
+     ]
+    }
+   ],
+   "scenarios": [
+    {
+     "cue": "a query needs 3 of 100 columns and the files are CSV",
+     "answer": "switch to a columnar format"
+    },
+    {
+     "cue": "a filter skips whole blocks using stored min and max values",
+     "answer": "predicate pushdown"
+    },
+    {
+     "cue": "a footer lists stats for each chunk of each column",
+     "answer": "Parquet footer / column chunk statistics"
+    },
+    {
+     "cue": "a 10 TB table is queried but only 50 GB is read from disk",
+     "answer": "columnar layout plus predicate pushdown"
+    }
+   ],
+   "calculation": {
+    "example": "<p>Slide (P1 slides 6, 16): D = 10 TB, N = 100 columns, k = 3 read.</p><ul><li>Read = D × k / N = 10 TB × 3/100 = 0.3 TB = <b>300 GB</b></li><li>I/O reduction = 1 − 3/100 = <b>97%</b></li><li>Speedup ≈ N / k = 100/3 ≈ <b>33×</b></li></ul><p>Pushdown (slide 23): 10 TB on disk, 50 GB read: 50/10,000 = 0.005, so 99.5% less, 200× faster.</p>",
+    "steps": [
+     "Given k = 4 of N = 80 columns -> fraction read = 4/80 = 0.05.",
+     "Given fraction 0.05 and D = 10 TB -> read = 0.5 TB = 500 GB.",
+     "Given fraction 0.05 -> reduction = 1 − 0.05 = 95%; speedup = 80/4 = 20×.",
+     "Given 6 h I/O-bound and fraction 0.05 -> new time ≈ 360 × 0.05 = 18 min.",
+     "Given row group min/max [60, 85] and filter score &gt; 90 -> max 85 &lt; 90, skip."
+    ],
+    "variants": [
+     "D = 20 TB, N = 200, k = 5: read 0.5 TB, reduction 97.5%, speedup 40×.",
+     "2 TB on disk, 40 GB read after pushdown: 40/2,000 = 0.02, reduction 98%, speedup 50×.",
+     "Filter score &lt; 70 with RG1 [60, 85], RG2 [85, 99]: read RG1 (min 60 &lt; 70), skip RG2 (min 85)."
+    ]
+   },
+   "traps": [
+    "Avro is a row format even though it is binary and self-describing.",
+    "The 33× assumes columns of equal size and an I/O-bound query; it is an estimate.",
+    "Skip a row group only when its range cannot match: for <code>&gt; 90</code> look at the max, for <code>&lt; 70</code> look at the min.",
+    "Pushdown is per row group; the whole file is not skipped unless every row group fails."
+   ],
+   "answers": {
+    "1": "Columnar storage keeps each column's values together on disk, so a query reads only the columns it needs.",
+    "3": "A row store must read every column of every row; a columnar store (Parquet, ORC) reads only the selected columns. Data read = D × k / N. Example: 3 of 100 columns of 10 TB reads 300 GB, a 97% cut and about 33× faster.",
+    "5": "<p><b>Definition.</b> Columnar storage writes all values of a column together; Parquet and ORC do this.</p><p><b>Structure.</b> Parquet: row groups (about 128 MB), column chunks, pages; footer with min/max per chunk.</p><p><b>Steps.</b> Read the footer, skip row groups whose range cannot match (predicate pushdown), read only needed column chunks.</p><p><b>Example.</b> 100 columns, 10 TB, query on 3: CSV reads 10 TB, Parquet about 300 GB, 33× faster.</p><p><b>Limitation.</b> Poor for record-by-record writes; use Avro for streaming ingest.</p>"
+   },
+   "questions": [
+    {
+     "format": "mcq",
+     "q": "What does predicate pushdown in Parquet use to skip row groups?",
+     "options": [
+      "min/max statistics in the file footer",
+      "the HDFS block replication factor",
+      "the Avro writer schema",
+      "gzip block boundaries"
+     ],
+     "a": "Footer stats per column chunk show which row groups cannot match the filter."
+    },
+    {
+     "format": "blank",
+     "q": "A Parquet file is divided into ______ of about 128 MB, which hold column ______, which hold pages.",
+     "a": "row groups; chunks"
+    },
+    {
+     "format": "define",
+     "q": "Define predicate pushdown.",
+     "a": "Applying a query's filter using stored min/max stats, so row groups that cannot match are skipped without being read."
+    },
+    {
+     "format": "steps",
+     "q": "List how Parquet answers WHERE score &gt; 90.",
+     "a": "Read footer; get score min/max per row group; skip groups with max ≤ 90; read the rest; read only the score column chunk in them."
+    },
+    {
+     "format": "why",
+     "q": "Why does a columnar format speed up a query that selects few columns?",
+     "a": "Each column is stored separately, so unread columns are physically skipped; I/O falls to roughly k/N of the table."
+    },
+    {
+     "format": "distinguish",
+     "q": "Distinguish row and columnar storage.",
+     "a": "Row: whole records stored one after another; reading one column reads all. Columnar: each column stored together; a query reads only its columns. Row suits writes, columnar suits analytics."
+    },
+    {
+     "format": "scenario",
+     "q": "A retail table has 50 columns and 5 TB. A daily report reads 2 columns and filters price &gt; 1000.<br>i) Which storage layout fits? ii) Name a format. iii) How much data does the column cut alone read? iv) What else lets it skip data?",
+     "a": "i) Columnar. ii) Parquet (or ORC). iii) 5 TB × 2/50 = 0.2 TB = 200 GB. iv) Predicate pushdown on row group min/max of price."
+    },
+    {
+     "format": "one_step",
+     "q": "A 10 TB table has 80 columns. The fraction read is already 4/80 = 0.05. How much data does the columnar query read?",
+     "a": "10 TB × 0.05 = <b>0.5 TB = 500 GB</b>."
+    },
+    {
+     "format": "full_calc",
+     "q": "A 12 TB, 60-column CSV table is queried for 3 columns in 2 hours. Find data read in Parquet, the I/O reduction, speedup and the new I/O-bound time.",
+     "a": "Fraction 3/60 = 0.05; read 0.6 TB = 600 GB; reduction 95%; speedup 20×; 120 min × 0.05 = <b>6 min</b>."
+    },
+    {
+     "format": "long",
+     "q": "What is columnar storage? Explain Parquet's layout and predicate pushdown with numbers. (10 marks)",
+     "a": "Use the 5-mark answer, the row vs columnar table, the score &gt; 90 walk-through and both calculations (300 GB / 97% / 33×; 50 GB of 10 TB = 200×)."
+    }
+   ],
+   "diagram": {
+    "file": "diagrams/w05-columnar.svg",
+    "caption": "A row store keeps whole records together, so reading one column reads them all; a columnar store keeps each column together and skips the rest."
+   }
+  },
+  {
+   "id": "formats",
+   "chapter": 5,
+   "title": "File formats: Avro, Parquet, ORC",
+   "facts": [
+    "Five formats: <b>Text/CSV</b> (row, external schema), <b>JSON</b> (row, not splittable raw), <b>Avro</b> (row), <b>Parquet</b> (columnar), <b>ORC</b> (columnar).",
+    "Avro, Parquet and ORC are <b>self-describing</b>: the schema (field names and types) travels inside the file. Avro's schema is JSON.",
+    "<b>Avro</b>: Snappy/Deflate; best for <b>schema evolution</b> and Kafka → HDFS ingest.",
+    "<b>Parquet</b>: Snappy/Gzip; best for Spark, Presto, ML pipelines.",
+    "<b>ORC</b>: Zlib/Snappy; best for Hive, <b>highest compression</b>, Hive ACID and vectorized reads.",
+    "<b>Schema evolution</b>: the schema changes (e.g. a new field) and old files and old readers keep working."
+   ],
+   "mechanism": [
+    "Avro writes the <b>writer schema</b> into the file with the data.",
+    "A reader brings its own <b>reader schema</b>.",
+    "Avro matches fields by name between the two schemas.",
+    "A field the reader expects but the file lacks gets its <b>default value</b>.",
+    "A field in the file that the reader does not know is <b>ignored</b>.",
+    "So new readers read old files (backward) and old readers read new files (forward)."
+   ],
+   "why": [
+    "Avro is row-oriented, so appending one event at a time is cheap: good for streams.",
+    "Reader/writer schema matching means producers can add fields without breaking consumers.",
+    "Parquet's columns and stats make read-heavy analytics fast, but per-record appends slow.",
+    "ORC compresses best and is built for Hive, so it fits warehouses and cold archives.",
+    "CSV has no embedded schema and no stats, so every query reads and parses every column."
+   ],
+   "contrasts": [
+    {
+     "vs": "Avro vs Parquet vs ORC",
+     "head": [
+      "",
+      "Avro",
+      "Parquet",
+      "ORC"
+     ],
+     "rows": [
+      [
+       "Orientation",
+       "row",
+       "columnar",
+       "columnar"
+      ],
+      [
+       "Codec",
+       "Snappy/Deflate",
+       "Snappy/Gzip",
+       "Zlib/Snappy"
+      ],
+      [
+       "Strength",
+       "schema evolution, appends",
+       "analytic reads, pushdown",
+       "highest compression, Hive ACID"
+      ],
+      [
+       "Best for",
+       "Kafka → HDFS ingest",
+       "Spark, Presto, ML",
+       "Hive warehouse"
+      ]
+     ]
+    },
+    {
+     "vs": "selection matrix",
+     "head": [
+      "Scenario",
+      "Format",
+      "Codec"
+     ],
+     "rows": [
+      [
+       "Streaming ingest (Kafka → HDFS)",
+       "Avro",
+       "Snappy"
+      ],
+      [
+       "Spark analytics pipeline",
+       "Parquet",
+       "Snappy"
+      ],
+      [
+       "Hive SQL warehouse",
+       "ORC",
+       "Zlib"
+      ],
+      [
+       "Data exchange / APIs",
+       "Avro or JSON",
+       "none"
+      ],
+      [
+       "ML features",
+       "Parquet",
+       "Gzip"
+      ],
+      [
+       "Archive / cold storage",
+       "ORC or Parquet",
+       "Zstd"
+      ]
+     ]
+    }
+   ],
+   "scenarios": [
+    {
+     "cue": "event producers keep adding fields and old consumers must not break",
+     "answer": "Avro schema evolution"
+    },
+    {
+     "cue": "a Spark team runs aggregations over a few columns of billions of rows",
+     "answer": "Parquet + Snappy"
+    },
+    {
+     "cue": "a Hive warehouse needs the smallest files and ACID updates",
+     "answer": "ORC + Zlib"
+    },
+    {
+     "cue": "data older than 2 years must be stored as cheaply as possible",
+     "answer": "ORC or Parquet + Zstd"
+    },
+    {
+     "cue": "an ingest layer lands Kafka events, converted nightly for analytics",
+     "answer": "Avro at ingest, Parquet for analytics"
+    }
+   ],
+   "calculation": null,
+   "traps": [
+    "Avro is self-describing and binary, but it is row-oriented, not columnar.",
+    "ORC is also correct for analytics on Hive; Parquet is the broader standard (Q2 note).",
+    "Missing field = default value; extra field = ignored. Do not swap them.",
+    "JSON lines is not splittable in raw form."
+   ],
+   "answers": {
+    "1": "Avro is a row format built for schema evolution; Parquet and ORC are columnar formats built for analytics.",
+    "3": "Avro stores rows with a JSON schema and handles schema evolution: missing fields take defaults, unknown fields are ignored. Parquet is columnar with min/max stats for fast analytics; ORC is columnar and compresses best for Hive. Example: Kafka events land as Avro, then convert nightly to Parquet + Snappy.",
+    "5": "<p><b>Definition.</b> A file format is how records are laid out on disk.</p><p><b>Options.</b> Row: CSV, JSON, Avro. Columnar: Parquet, ORC.</p><p><b>Schema evolution in Avro.</b> Writer schema stored in file, reader brings its schema, fields matched by name, missing fields get defaults, extra fields ignored.</p><p><b>Selection.</b> Avro + Snappy for streaming ingest; Parquet + Snappy for Spark analytics; ORC + Zlib for Hive; ORC/Parquet + Zstd for archive.</p><p><b>Example.</b> A new field in a Kafka event schema does not break old consumers.</p><p><b>Limitation.</b> Avro is slow for column-selective analytics.</p>"
+   },
+   "questions": [
+    {
+     "format": "mcq",
+     "q": "Which format is best for Kafka → HDFS ingest where the schema keeps changing?",
+     "options": [
+      "Avro",
+      "Parquet",
+      "ORC",
+      "CSV"
+     ],
+     "a": "Avro's reader/writer schema matching gives backward and forward compatibility, and rows append cheaply."
+    },
+    {
+     "format": "blank",
+     "q": "In Avro schema evolution, a missing field uses its ______ value and an extra field is ______.",
+     "a": "default; ignored"
+    },
+    {
+     "format": "define",
+     "q": "Define schema evolution.",
+     "a": "Changing a dataset's schema over time, such as adding a field, while old files and old programs keep working."
+    },
+    {
+     "format": "steps",
+     "q": "Explain the steps Avro uses to read a file written with an older schema.",
+     "a": "Read the writer schema from the file; take the reader schema; match fields by name; fill missing fields with defaults; ignore unknown fields."
+    },
+    {
+     "format": "why",
+     "q": "Why is ORC recommended for a Hive SQL warehouse?",
+     "a": "It is columnar, gives the highest compression, supports Hive ACID and vectorized reads."
+    },
+    {
+     "format": "distinguish",
+     "q": "Distinguish Avro and Parquet.",
+     "a": "Avro: row, schema evolution, append-friendly, for streaming ingest. Parquet: columnar, min/max stats and pushdown, for analytics."
+    },
+    {
+     "format": "scenario",
+     "q": "A payments company receives app events through Kafka; the app team adds fields every month. Analysts run Spark reports each morning. Old data is rarely read.<br>i) Ingest format? ii) Analytics format and codec? iii) Archive format and codec? iv) What happens when an old consumer reads an event with a new field?",
+     "a": "i) Avro (+ Snappy). ii) Parquet + Snappy. iii) ORC + Zstd. iv) The unknown field is ignored; the consumer works."
+    },
+    {
+     "format": "long",
+     "q": "Compare Avro, Parquet and ORC, explain schema evolution and give a format for each production scenario. (10 marks)",
+     "a": "Use the 5-mark answer, the three-format table and the selection matrix."
+    }
+   ],
+   "diagram": {
+    "file": "diagrams/w05-formats.svg",
+    "caption": "Avro schema evolution: the writer schema travels in the file, the reader brings its own, fields are matched by name, missing ones get defaults and extra ones are ignored."
+   }
+  },
+  {
+   "id": "compression",
+   "chapter": 5,
+   "title": "Compression codecs and splittability",
+   "facts": [
+    "<b>Splittable</b>: reading can start from any point in the file without decompressing from the beginning, so several Mappers read it in parallel.",
+    "Snappy: fast, medium ratio, not splittable alone (Parquet row groups are).",
+    "Gzip: slow, high ratio, <b>not splittable</b>. LZO: fast, medium, splittable with an index.",
+    "Bzip2: slowest, highest ratio, splittable. Zstd: fast, high ratio, not splittable (block-level).",
+    "<b>Gzip trap</b>: a 10 GB gzip CSV is read by exactly <b>1 Mapper</b>, though HDFS stores it in many blocks.",
+    "Best practice: Parquet + Snappy for analytics, Avro + Snappy for streaming ingest, no raw gzip on big CSV."
+   ],
+   "mechanism": [
+    "HDFS stores the file in blocks across nodes.",
+    "MapReduce asks whether the format is splittable.",
+    "If splittable, each split (block or Parquet row group) becomes its own Mapper.",
+    "Each Mapper runs on a node holding its split (data-local scheduling).",
+    "If not splittable (gzip), one Mapper reads the whole file from the start."
+   ],
+   "why": [
+    "Splittability decides parallelism: no splits means one Mapper and an idle cluster.",
+    "Splittable input lets the scheduler run tasks where the data is, avoiding network copies.",
+    "Codecs trade speed for size: Snappy for hot data read often, Zstd or Bzip2 for cold data.",
+    "A container format (Parquet, Avro) compresses inside its own blocks, so the file stays splittable even with Snappy."
+   ],
+   "contrasts": [
+    {
+     "vs": "codecs",
+     "head": [
+      "Codec",
+      "Speed / ratio",
+      "Splittable?"
+     ],
+     "rows": [
+      [
+       "Snappy",
+       "fast / medium",
+       "no (Parquet row groups are)"
+      ],
+      [
+       "Gzip",
+       "slow / high",
+       "no"
+      ],
+      [
+       "LZO",
+       "fast / medium",
+       "yes, with index"
+      ],
+      [
+       "Bzip2",
+       "slowest / highest",
+       "yes"
+      ],
+      [
+       "Zstd",
+       "fast / high",
+       "no (block-level)"
+      ]
+     ]
+    }
+   ],
+   "scenarios": [
+    {
+     "cue": "a 50 GB compressed CSV keeps one Mapper busy for hours while the cluster idles",
+     "answer": "gzip is not splittable"
+    },
+    {
+     "cue": "three Mappers read three row groups of one file at once",
+     "answer": "splittable Parquet"
+    },
+    {
+     "cue": "data must stay as plain text but still be split",
+     "answer": "bzip2 (or LZO with an index)"
+    },
+    {
+     "cue": "hot analytics data must decompress quickly",
+     "answer": "Snappy inside Parquet"
+    }
+   ],
+   "calculation": {
+    "example": "<p>Slide (P1 slides 20-21): a 10 GB gzip CSV gets <b>1 Mapper</b>. The same 10 GB as Parquet with 128 MB row groups gets 10 × 1,024 / 128 = <b>80</b> splits, so up to 80 Mappers in parallel.</p><p>Rule: splits = ⌈F / B⌉ if splittable, 1 if not.</p>",
+    "steps": [
+     "Given a gzip file of any size -> splits = 1.",
+     "Given F = 10 GB -> F = 10 × 1,024 = 10,240 MB.",
+     "Given 10,240 MB and B = 128 MB -> splits = 10,240 / 128 = 80.",
+     "Given 80 splits -> up to 80 Mappers in parallel."
+    ],
+    "variants": [
+     "10 GB with 256 MB row groups: 10,240 / 256 = 40 Mappers.",
+     "1 GB with 128 MB row groups: 1,024 / 128 = 8 Mappers.",
+     "300 MB with 128 MB blocks: ⌈300 / 128⌉ = ⌈2.34⌉ = 3 Mappers."
+    ]
+   },
+   "traps": [
+    "HDFS splitting a gzip file into blocks does not make it splittable for MapReduce.",
+    "Snappy alone is not splittable; Parquet + Snappy is, at row-group boundaries.",
+    "Bzip2 is splittable, gzip is not; T/F 3 hinges on this.",
+    "Round splits up: a partial last block still needs a Mapper."
+   ],
+   "answers": {
+    "1": "A splittable file can be read from any point, so multiple Mappers process different parts at the same time.",
+    "3": "Codecs trade speed for size, and only some are splittable: bzip2 and indexed LZO are; gzip, Snappy and Zstd alone are not. Example: a 10 GB gzip CSV gets 1 Mapper; as Parquet with 128 MB row groups it gets 80.",
+    "5": "<p><b>Definition.</b> Splittable means reading can start anywhere in the file without decompressing from the start.</p><p><b>Codecs.</b> Snappy fast/medium, Gzip slow/high, LZO fast/medium, Bzip2 slowest/highest, Zstd fast/high. Splittable: Bzip2, LZO with index.</p><p><b>Steps.</b> HDFS blocks; splittable files give one Mapper per split, run data-locally; gzip gives one Mapper.</p><p><b>Example.</b> 10 GB gzip CSV: 1 Mapper; Parquet + Snappy, 128 MB row groups: 80.</p><p><b>Limitation.</b> High-ratio codecs (Gzip, Bzip2) cost CPU on every read.</p>"
+   },
+   "questions": [
+    {
+     "format": "mcq",
+     "q": "Which codec is natively splittable?",
+     "options": [
+      "Bzip2",
+      "Gzip",
+      "Snappy",
+      "Zstd"
+     ],
+     "a": "Bzip2 is splittable; gzip, Snappy and Zstd alone are not."
+    },
+    {
+     "format": "blank",
+     "q": "A 10 GB gzip-compressed CSV is processed by exactly ______ Mapper(s).",
+     "a": "1"
+    },
+    {
+     "format": "define",
+     "q": "Define splittability.",
+     "a": "A file is splittable if Hadoop can start reading at any point without decompressing from the beginning, so different Mappers process different parts in parallel."
+    },
+    {
+     "format": "steps",
+     "q": "Explain how a splittable Parquet file is processed by MapReduce.",
+     "a": "Each row group is a split; one Mapper per split; each runs on a node holding that data; Mappers run in parallel."
+    },
+    {
+     "format": "why",
+     "q": "Why is raw gzip a bad choice for a large CSV on HDFS?",
+     "a": "Gzip can only be decompressed from the start, so one Mapper reads the whole file and the rest of the cluster sits idle."
+    },
+    {
+     "format": "distinguish",
+     "q": "Distinguish Snappy and Gzip.",
+     "a": "Snappy: fast, medium compression, used inside Parquet/Avro for hot data. Gzip: slow, high compression, not splittable as raw files."
+    },
+    {
+     "format": "scenario",
+     "q": "A logistics firm stores 20 GB of daily GPS logs as one gzip CSV. Jobs run on one Mapper.<br>i) Why one Mapper? ii) Which codec keeps it as text but splittable? iii) Which format + codec for analytics? iv) How many Mappers with 128 MB row groups?",
+     "a": "i) Gzip is not splittable. ii) Bzip2 (or LZO with index). iii) Parquet + Snappy. iv) 20 × 1,024 / 128 = 160."
+    },
+    {
+     "format": "one_step",
+     "q": "A Parquet file is 5,120 MB with 128 MB row groups. How many Mappers can read it in parallel?",
+     "a": "5,120 / 128 = <b>40</b>."
+    },
+    {
+     "format": "full_calc",
+     "q": "An 8 GB file is stored (a) as gzip CSV, (b) as Parquet with 256 MB row groups, (c) as Parquet with 128 MB row groups. Mappers in each case?",
+     "a": "(a) 1. (b) 8 × 1,024 / 256 = 32. (c) 8,192 / 128 = <b>64</b>."
+    },
+    {
+     "format": "long",
+     "q": "Compare Hadoop compression codecs and explain why splittability matters, with an example. (8 marks)",
+     "a": "Use the 5-mark answer and the codec table; show 1 Mapper for gzip vs 80 for Parquet."
+    }
+   ],
+   "diagram": {
+    "file": "diagrams/w05-compression.svg",
+    "caption": "Parquet row groups each feed their own Mapper; a gzip CSV is one stream, so one Mapper reads it all even though HDFS stores it in blocks."
+   }
+  }
+ ],
+ "pool": [
+  {
+   "src": "MCQ",
+   "n": "Q1",
+   "q": "Which component in YARN is responsible for global resource allocation across the entire cluster?",
+   "options": [
+    "(a) NodeManager",
+    "(b) ApplicationMaster",
+    "(c) ResourceManager",
+    "(d) NameNode"
+   ],
+   "topic": "yarn-arch",
+   "a": "<b>(c) ResourceManager</b><br>One RM per cluster allocates containers globally; the AM manages only its own job."
+  },
+  {
+   "src": "MCQ",
+   "n": "Q2",
+   "q": "Which Hadoop file format stores data in columnar format and is best suited for analytical, read-heavy workloads?",
+   "options": [
+    "(a) Avro",
+    "(b) Text/CSV",
+    "(c) Parquet",
+    "(d) JSON"
+   ],
+   "topic": "formats",
+   "a": "<b>(c) Parquet</b><br>Columnar, with min/max stats for predicate pushdown; Avro, CSV and JSON are row formats. ORC is also columnar: the instructor accepts it as partly correct with a justification (best for Hive), but Parquet is the broader standard."
+  },
+  {
+   "src": "MCQ",
+   "n": "Q3",
+   "q": "What does “splittable” mean for a file format in Hadoop?",
+   "options": [
+    "(a) The file can be deleted in parts by HDFS",
+    "(b) Multiple Mappers can process different parts of the file simultaneously",
+    "(c) The file format supports splitting schema across multiple NameNodes",
+    "(d) The file can be distributed across multiple data centres"
+   ],
+   "topic": "compression",
+   "a": "<b>(b) Multiple Mappers can process different parts of the file simultaneously</b><br>Reading can start anywhere in the file, which also allows data-local tasks."
+  },
+  {
+   "src": "MCQ",
+   "n": "Q4",
+   "q": "YARN was introduced in which major Hadoop version, and what did it replace?",
+   "options": [
+    "(a) Hadoop 1.0; replaced the NameNode",
+    "(b) Hadoop 2.0; replaced the monolithic JobTracker with a decoupled ResourceManager + ApplicationMaster",
+    "(c) Hadoop 3.0; replaced DataNodes with Containers",
+    "(d) Hadoop 2.0; replaced the Secondary NameNode with a Standby NameNode"
+   ],
+   "topic": "yarn-arch",
+   "a": "<b>(b) Hadoop 2.0; replaced the monolithic JobTracker with a decoupled ResourceManager + ApplicationMaster</b><br>(d) is the trap: the Standby NameNode is HDFS, not YARN."
+  },
+  {
+   "src": "True/False",
+   "n": "1",
+   "q": "Parquet is a row-oriented file format optimised for write-heavy workloads.",
+   "topic": "columnar",
+   "a": "<b>False.</b> Parquet is column-oriented and optimised for read-heavy analytics; the row-oriented, append-friendly format is Avro."
+  },
+  {
+   "src": "True/False",
+   "n": "2",
+   "q": "YARN allows multiple computation frameworks such as Spark and Tez to share resources on the same Hadoop cluster.",
+   "topic": "yarn-arch",
+   "a": "<b>True.</b> Each framework brings its own ApplicationMaster, so YARN runs MapReduce, Spark and Tez on one cluster."
+  },
+  {
+   "src": "True/False",
+   "n": "3",
+   "q": "Gzip-compressed files are natively splittable in Hadoop, allowing multiple Mappers to process them in parallel.",
+   "topic": "compression",
+   "a": "<b>False.</b> Gzip files are not splittable, so one Mapper reads the whole file; use bzip2 or Parquet + Snappy for parallel reads."
+  },
+  {
+   "src": "True/False",
+   "n": "4",
+   "q": "ORC format is specifically optimised for Hive workloads and achieves among the highest compression ratios of any Hadoop format.",
+   "topic": "formats",
+   "a": "<b>True.</b> ORC is columnar, best for Hive, with the highest compression, Hive ACID and vectorized reads."
+  },
+  {
+   "src": "Descriptive",
+   "n": "D1",
+   "q": "Explain YARN’s three-component architecture — ResourceManager, NodeManager, and ApplicationMaster. Draw a diagram showing how they interact when a Spark job is submitted to the cluster.",
+   "topic": "yarn-arch",
+   "a": "<p><b>ResourceManager</b> (1 per cluster): Scheduler grants containers; ApplicationsManager accepts jobs and starts each AM.<br><b>NodeManager</b> (1 per node): launches and monitors containers, heartbeats to the RM, enforces CPU/RAM limits.<br><b>ApplicationMaster</b> (1 per job): requests containers, has NMs launch tasks, retries failures, releases containers.</p><p><b>Diagram</b> (see the diagram in the YARN and its three components card): Client, RM, Spark AM, NM1–NM3, with numbered arrows:</p><ol><li>Client submits the job to the RM.</li><li>RM launches the Spark AM in a container.</li><li>AM registers with the RM and requests containers; the RM Scheduler grants them.</li><li>AM tells NM1–NM3 to launch executors.</li><li>Executors report status to the AM.</li><li>AM unregisters from the RM when done.</li></ol><p>Example: the Spark AM asks for 100 containers {4 cores, 8 GB}; the busy RM grants 80 and the AM runs executors in them.</p>"
+  },
+  {
+   "src": "Descriptive",
+   "n": "D2",
+   "q": "What is columnar storage? Why does it improve performance for analytics queries that select only a subset of columns? Use a concrete example with numbers to illustrate the I/O reduction.",
+   "topic": "columnar",
+   "a": "<p><b>Columnar storage</b> keeps all values of one column together on disk (Parquet, ORC); a row store (CSV, Avro) writes whole records one after another.</p><p><b>Why faster:</b> the query reads only the columns it names; Parquet's min/max stats skip whole row groups (predicate pushdown); same-type values compress better.</p><p><b>Example:</b> 100 columns, 10 TB, query on 3 columns.</p><table><tr><th>Format</th><th>Data read</th></tr><tr><td>CSV</td><td>10 TB</td></tr><tr><td>Parquet</td><td>10 × 3/100 = 0.3 TB = 300 GB</td></tr></table><p>I/O cut 97%, about <b>33×</b> faster.</p>"
+  },
+  {
+   "src": "Descriptive",
+   "n": "D3",
+   "q": "Compare Avro and Parquet. Explain what “schema evolution” means and why Avro handles it better. In which scenarios would you use each?",
+   "topic": "formats",
+   "a": "<table><tr><th></th><th>Avro</th><th>Parquet</th></tr><tr><td>Layout</td><td>row</td><td>columnar</td></tr><tr><td>Strength</td><td>schema evolution, appends</td><td>analytic reads, pushdown</td></tr><tr><td>Codec</td><td>Snappy/Deflate</td><td>Snappy/Gzip</td></tr></table><p><b>Schema evolution:</b> the schema changes over time (e.g. a new field) while old files and readers keep working.</p><p><b>Why Avro handles it:</b> the writer schema is stored with the data, the reader supplies its own schema, fields match by name; missing fields get defaults, unknown fields are ignored. Backward and forward compatible.</p><p><b>Use:</b> Avro for Kafka → HDFS ingest and data exchange; Parquet for Spark, Presto and ML analytics.</p>"
+  },
+  {
+   "src": "Analytical",
+   "n": "A1",
+   "q": "Data Lake Performance Migration:\nA Dhaka-based telecom company stores 10 TB of daily call-detail records (CDR) on HDFS as gzip-compressed CSV files. Their data engineers report that a Hive query selecting 4 of 80 columns takes 6 hours.\n– Identify two specific reasons why this configuration is slow\n– Propose a migration strategy: new format, compression codec, and partitioning scheme\n– Estimate the expected I/O reduction (show your calculation)\n– What YARN scheduler would you use and why, given that multiple teams share the cluster?",
+   "topic": "columnar",
+   "a": "<p><b>i) Why slow</b></p><ol><li>Gzip is not splittable: one Mapper per file, the cluster idles.</li><li>CSV is a row store: reading 4 columns parses all 80; no stats to skip data.</li></ol><p><b>ii) Migration:</b> ORC (Hive) or Parquet (if Spark reads it too); Snappy for hot data (Zlib for ORC in Hive, Zstd for archive); partition by date and region, e.g. <code>dt=YYYY-MM-DD/region=</code>; convert once, then nightly.</p><p><b>iii) I/O estimate</b></p><table><tr><td>Fraction read</td><td>4/80 = 0.05</td></tr><tr><td>Data read</td><td>10 TB × 0.05 = 500 GB</td></tr><tr><td>Reduction</td><td><b>95%</b> (20× less)</td></tr><tr><td>Time if I/O-bound</td><td>360 min × 0.05 ≈ <b>18 min</b></td></tr></table><p><b>iv) Scheduler:</b> Capacity: guaranteed queues per team (ETL, analysts, data science), idle capacity borrowed, so no team starves another. FIFO lets one long job block all.</p>"
+  },
+  {
+   "src": "Analytical",
+   "n": "A2",
+   "q": "YARN Failure Trace:\nA NodeManager (NM2) hosting 5 running containers for a MapReduce job fails mid-execution. Trace the complete failure recovery sequence: which components detect the failure, in what order, what state changes occur in the ResourceManager, and how are the 5 containers’ tasks restarted.",
+   "topic": "yarn-fault",
+   "a": "<ol><li>NM2 crashes; its 5 containers die; heartbeats stop.</li><li><b>RM</b> detects the missed heartbeats after the timeout (&gt;10 min) and declares NM2 lost.</li><li><b>RM state:</b> NM2 removed from schedulable capacity; its 5 containers marked <b>failed</b>.</li><li>RM notifies the MapReduce <b>AM</b>.</li><li>AM requests 5 replacement containers.</li><li>RM grants them on healthy nodes (e.g. NM1, NM3), preferring nodes with HDFS replicas of the input.</li><li>AM has those NMs relaunch the 5 tasks from their input splits; finished maps whose output was on NM2's disk may rerun.</li></ol><p>If the AM was on NM2, the RM restarts it (default 2 attempts); MapReduce recovers state from HDFS checkpoints.</p>"
+  },
+  {
+   "src": "Discussion",
+   "n": "L1",
+   "q": "Resource consolidation increases utilisation: merging 3 siloed clusters into one raised average utilisation from 45% to 78% — the same capacity served 73% more workload",
+   "topic": "yarn-sched",
+   "a": "<p><b>Claim:</b> one shared cluster uses hardware better than three silos.</p><p><b>For:</b> LinkedIn's silos (MapReduce, Spark, Samza) were idle at different times; merged, utilisation rose 45% → 78%, and 78/45 = 1.73, so 73% more work on the same hardware. No cross-cluster copying, one config instead of three.</p><p><b>Against:</b> workloads now compete, so queues, pre-emption and RM high availability become essential.</p>"
+  },
+  {
+   "src": "Discussion",
+   "n": "L2",
+   "q": "Capacity Scheduler enables SLAs: production queues guaranteed minimum resources; analyst adhoc queries cannot starve revenue-generating pipelines",
+   "topic": "yarn-sched",
+   "a": "<p><b>Claim:</b> guaranteed queues protect SLAs (promised finish times).</p><p><b>For:</b> production holds 40% at LinkedIn, so the 10% adhoc queue cannot delay revenue pipelines, while idle capacity is still lent out.</p><p><b>Against:</b> fixed percentages need tuning, and analysts may wait at busy times; Fair gives short jobs faster turnaround.</p>"
+  },
+  {
+   "src": "Discussion",
+   "n": "L3",
+   "q": "Pre-emption needs tuning: aggressive pre-emption killed long-running Spark jobs; LinkedIn set 30-second grace periods and added Spark checkpoint-on-preempt hooks",
+   "topic": "yarn-sched",
+   "a": "<p><b>Claim:</b> pre-emption is needed but must match the workload.</p><p><b>For:</b> without reclaiming borrowed containers, queue guarantees are empty promises.</p><p><b>Against:</b> killing a container wastes its work; long Spark jobs restarted repeatedly. LinkedIn's fix: a 30-second grace period and checkpoint-on-preempt hooks so jobs resume.</p>"
+  },
+  {
+   "src": "Discussion",
+   "n": "L4",
+   "q": "YARN is the OS; frameworks are processes: the paradigm shift — the cluster is the computer, YARN is its kernel",
+   "topic": "yarn-arch",
+   "a": "<p><b>Claim:</b> YARN is to a cluster what an OS kernel is to a computer.</p><p><b>For:</b> the RM allocates CPU and RAM as containers, NMs isolate them with cgroups, and frameworks are just applications with their own AM; the same three-tier design lives on in Kubernetes.</p><p><b>Against:</b> YARN sizes containers only by CPU and RAM, relies on HDFS for storage, and Kubernetes has replaced it for most new deployments.</p>"
+  },
+  {
+   "src": "Discussion",
+   "n": "L5",
+   "q": "Samza on YARN: stream processing is just another set of long-running containers; YARN’s fault tolerance restarts failed Samza tasks",
+   "topic": "yarn-fault",
+   "a": "<p><b>Claim:</b> a stream job is just long-running containers.</p><p><b>For:</b> Samza shares the cluster in its 15% queue, no separate stream cluster, and YARN restarts failed tasks on other nodes.</p><p><b>Against:</b> the containers hold capacity permanently, and the &gt;10 min NodeManager timeout is slow for real-time data, so Samza must resume from the right Kafka offset itself.</p>"
+  },
+  {
+   "src": "Live Exercise",
+   "n": "LE",
+   "q": "Task (20 minutes, pairs)\nModel LinkedIn’s 5,000-node YARN cluster in Python.\nGiven:\n• 5,000 nodes; each: 64 GB RAM, 16 vCPUs\n• Capacity Scheduler: production 40%, spark 25%, samza 15%, adhoc 10%, reserve 10%\n• Container sizes: Hive mapper: {4 GB, 2 vCPU}; Spark executor: {8 GB, 4 vCPU}; Samza task: {2 GB, 1 vCPU}\nQuestions:\n1 Max concurrent containers per queue?\n2 Which resource is the bottleneck (CPU or RAM)?\n3 If production needs 10,000 Hive mappers, how many nodes are required?",
+   "code": "NODES    = 5_000\nRAM_GB   = 64\nVCPUS    = 16\n\nqueues = {\n  \"production\": 0.40,\n  \"spark\":      0.25,\n  \"samza\":      0.15,\n  \"adhoc\":      0.10,\n  \"reserve\":    0.10,\n}\ncontainers = {\n  \"production\": {\"ram\": 4, \"cpu\": 2},\n  \"spark\":      {\"ram\": 8, \"cpu\": 4},\n  \"samza\":      {\"ram\": 2, \"cpu\": 1},\n  \"adhoc\":      {\"ram\": 4, \"cpu\": 2},\n}\n\nfor q, frac in queues.items():\n    nodes_q = NODES * frac\n    ram_q    = nodes_q * RAM_GB\n    cpu_q    = nodes_q * VCPUS\n    if q in containers:\n        c = containers[q]\n        by_ram = ram_q // c[\"ram\"]\n        by_cpu = cpu_q // c[\"cpu\"]\n        max_c = int(min(by_ram, by_cpu))\n        bottleneck = (\"RAM\" if by_ram &lt; by_cpu\n                             else \"CPU\")\n        print(f\"{q}: {max_c} containers \"\n              f\"(bottleneck: {bottleneck})\")",
+   "topic": "yarn-sched",
+   "a": "<p><b>Task:</b> run the skeleton; add Q3:</p><pre>import math\nc = containers[\"production\"]\nper_node = min(RAM_GB // c[\"ram\"], VCPUS // c[\"cpu\"])\nprint(per_node, math.ceil(10_000 / per_node))</pre><p><b>Expected output:</b></p><pre>production: 16000 containers (bottleneck: CPU)\nspark: 5000 containers (bottleneck: CPU)\nsamza: 12000 containers (bottleneck: CPU)\nadhoc: 4000 containers (bottleneck: CPU)\n8 1250</pre><p><b>1.</b> production 16,000; spark 5,000; samza 12,000; adhoc 4,000; reserve has no container size, so none.</p><p><b>2.</b> <b>CPU.</b> A node has 64/16 = 4 GB per vCPU; every container asks 2 GB per vCPU, so vCPUs run out with half the RAM idle.</p><p><b>3.</b> Per node min(64/4, 16/2) = 8 mappers; 10,000 / 8 = <b>1,250 nodes</b>, which fits in production's 2,000.</p>"
+  }
+ ],
+ "formulas": [
+  {
+   "name": "Columnar data read",
+   "formula": "Read = D × k / N",
+   "note": "D table size, k columns selected, N total columns"
+  },
+  {
+   "name": "Columnar I/O reduction",
+   "formula": "Reduction = 1 − k / N; speedup ≈ N / k",
+   "note": "10 TB, 3 of 100: 97%, 33×"
+  },
+  {
+   "name": "Pushdown saving",
+   "formula": "Speedup = D / R",
+   "note": "R = bytes actually read; 10 TB / 50 GB = 200×"
+  },
+  {
+   "name": "Mappers per file",
+   "formula": "Splits = ⌈F / B⌉, or 1 if gzip",
+   "note": "B = block or row group, about 128 MB"
+  },
+  {
+   "name": "Containers per queue",
+   "formula": "min(nodes·f·RAM / c_ram, nodes·f·CPU / c_cpu)",
+   "note": "smaller term is the bottleneck"
+  },
+  {
+   "name": "Nodes for a job",
+   "formula": "⌈T / min(RAM / c_ram, CPU / c_cpu)⌉",
+   "note": "T containers needed at once"
+  },
+  {
+   "name": "Extra work from utilisation",
+   "formula": "U_new / U_old − 1",
+   "note": "78/45 − 1 = 73%"
+  }
+ ],
+ "mock": {
+  "a": {
+   "marks": 4,
+   "q": "A bank keeps 20 TB of transaction logs with 50 columns as gzip-compressed CSV on HDFS. A fraud report reads 5 columns.<br>i) Why does each file get only one Mapper? ii) Which format and codec should replace it? iii) How much data would the report read after the switch? iv) What in the new format lets it skip whole blocks of rows?",
+   "a": "i) Gzip is not splittable, so reading must start at the file's beginning. ii) Parquet + Snappy (or ORC for Hive). iii) 20 TB × 5/50 = <b>2 TB</b>, a 90% cut. iv) Min/max stats per column chunk in the footer: predicate pushdown."
+  },
+  "b": {
+   "marks": 6,
+   "q": "A cluster of 1,000 nodes, each 128 GB RAM and 32 vCPU, runs YARN with queues analytics 50%, streaming 30%, adhoc 20%. Analytics runs Spark executors {8 GB, 4 vCPU}.<br>i) Which YARN component grants the containers? ii) Find the maximum executors in the analytics queue and the bottleneck. iii) A node running 6 executors dies: who detects it and who asks for replacements? iv) Which scheduler fits these three teams, and why?",
+   "a": "i) The ResourceManager's Scheduler. ii) 500 nodes; RAM 64,000 GB / 8 = 8,000; vCPU 16,000 / 4 = 4,000; max <b>4,000</b>, CPU bottleneck. iii) The RM detects missed heartbeats (&gt;10 min) and marks the 6 containers failed; the Spark ApplicationMaster requests 6 replacements. iv) Capacity: each team gets a guaranteed share and can borrow idle capacity."
+  },
+  "or_a": {
+   "marks": 4,
+   "q": "A company runs a 5,000-node Hadoop 1.x cluster and wants to add Spark jobs.<br>i) Name two limits of the JobTracker. ii) What did Hadoop 2.0 split it into? iii) How many ApplicationMasters run for 12 active jobs? iv) What is a container?",
+   "a": "i) MapReduce only; about 4,000-node ceiling (5,000 is past it). ii) A global ResourceManager and a per-job ApplicationMaster. iii) 12, one per job. iv) A slice of one node: set vcores plus set RAM, in which a task runs."
+  },
+  "or_b": {
+   "marks": 6,
+   "q": "A ride-sharing app streams trip events through Kafka; the schema gains a field each month. Each night a Spark job builds reports; 10 GB of the day's data is written per night.<br>i) Which format at ingest, and why? ii) What happens when a new reader opens an old file missing the new field? iii) Which format and codec for the nightly analytics copy? iv) How many Mappers can read the 10 GB night file with 128 MB row groups, and how many if it were one gzip CSV?",
+   "a": "i) Avro: row-oriented and append-friendly, with schema evolution. ii) The missing field gets its default value from the reader schema. iii) Parquet + Snappy. iv) 10,240 / 128 = <b>80</b> Mappers; gzip CSV: <b>1</b>."
+  }
+ }
+}

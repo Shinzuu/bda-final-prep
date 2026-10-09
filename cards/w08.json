@@ -1,0 +1,1259 @@
+{
+ "week": 8,
+ "title": "Data integration: Kafka, Lambda/Kappa, data lakes",
+ "summary": "How data moves from the systems that create it to the systems that analyse it: batch tools (Sqoop, Flume) and the Kafka event log. How Lambda and Kappa architectures combine batch and stream processing, and how a data lake stays usable instead of turning into a swamp.",
+ "topics": [
+  {
+   "id": "pipelines",
+   "chapter": 8,
+   "title": "From point-to-point ETL to event pipelines",
+   "facts": [
+    "ETL (Extract, Transform, Load) is a job that copies data from one system into another.",
+    "Point-to-point ETL joins every pair of systems with its own job: O(N&#178;) connections, 2,450 jobs at 50 systems.",
+    "Four faults of point-to-point ETL: brittle (schema change breaks jobs), no replay, no real time (latency &#8805; 24 h), no decoupling.",
+    "Event-driven pipeline: one central message bus (Kafka). Sources publish events, consumers subscribe.",
+    "Adding a new consumer to a bus needs zero changes to any source system.",
+    "Tool landscape: Sqoop = bulk DB sync, Flume = log collection, Kafka = real-time events, NiFi = visual no-code routing, Spark Streaming = processing streams."
+   ],
+   "mechanism": [
+    "Each source system publishes its events to the bus once",
+    "The bus stores the events durably, in order",
+    "Each consumer subscribes to the topics it needs and reads at its own pace",
+    "A new consumer subscribes and can replay stored history; no source changes"
+   ],
+   "why": [
+    "N systems on a bus need N connections instead of N &#215; (N &#8722; 1) jobs.",
+    "Decoupling: a source does not know or care who reads its events.",
+    "Replay: stored events let a late or crashed consumer catch up; nightly ETL loses them.",
+    "Real time: events flow in seconds, not after a 24-hour batch.",
+    "Cost: the bus is one critical system; if it is down, every flow stops."
+   ],
+   "contrasts": [
+    {
+     "vs": "event-driven pipeline",
+     "head": [
+      "",
+      "Point-to-point ETL",
+      "Event-driven pipeline"
+     ],
+     "rows": [
+      [
+       "Connections",
+       "N &#215; (N &#8722; 1), O(N&#178;)",
+       "N (one per system, to the bus)"
+      ],
+      [
+       "Latency",
+       "&#8805; 24 hours (nightly batch)",
+       "Seconds"
+      ],
+      [
+       "Replay",
+       "None; offline consumer loses data",
+       "Yes, from the retained log"
+      ],
+      [
+       "Schema change",
+       "Breaks the jobs on that pair",
+       "Only affects that topic's readers"
+      ],
+      [
+       "New consumer",
+       "New job per source",
+       "Subscribe; zero source changes"
+      ]
+     ]
+    },
+    {
+     "vs": "tool choice",
+     "head": [
+      "Tool",
+      "Direction",
+      "Use it for"
+     ],
+     "rows": [
+      [
+       "Sqoop",
+       "RDBMS &#8596; HDFS, batch",
+       "Nightly bulk copy of database tables"
+      ],
+      [
+       "Flume",
+       "Logs &#8594; HDFS, batch/micro-batch",
+       "Collecting server logs"
+      ],
+      [
+       "Kafka",
+       "Any &#8594; any, real-time",
+       "Central event bus: fraud events, clickstream, IoT"
+      ],
+      [
+       "NiFi",
+       "Any &#8594; any, visual",
+       "Drag-and-drop routing, IoT edge to cloud"
+      ],
+      [
+       "Spark Streaming",
+       "Kafka &#8594; HDFS/DB",
+       "Stateful aggregation, enrichment, joins on streams"
+      ]
+     ]
+    }
+   ],
+   "scenarios": [
+    {
+     "cue": "every new report needs a new nightly job from each source system",
+     "answer": "point-to-point ETL; replace with a message bus"
+    },
+    {
+     "cue": "a consumer was down overnight and its data is gone",
+     "answer": "no replay: a fault of point-to-point ETL"
+    },
+    {
+     "cue": "a new analytics team plugs in without touching the source apps",
+     "answer": "event-driven pipeline (decoupling)"
+    },
+    {
+     "cue": "an operator wants to route IoT files by dragging boxes, no code",
+     "answer": "Apache NiFi"
+    }
+   ],
+   "calculation": {
+    "example": "<p>Slide: 50 systems. Point-to-point jobs = 50 &#215; 49 = <b>2,450</b>. With a bus: <b>50</b> connections.</p>",
+    "steps": [
+     "Given N = 50 systems -&gt; each system sends to N &#8722; 1 = 49 others",
+     "Given 50 senders &#215; 49 targets -&gt; 2,450 jobs (ordered pairs)",
+     "Given 2,450 ordered jobs -&gt; one job per pair = 2,450 / 2 = 1,225",
+     "Given a bus -&gt; connections = N = 50"
+    ],
+    "variants": [
+     "N = 10: 10 &#215; 9 = 90 jobs (45 if each pair is counted once), bus 10",
+     "N = 20: 20 &#215; 19 = 380 jobs, bus 20",
+     "N = 30: 30 &#215; 29 = 870 jobs, bus 30"
+    ]
+   },
+   "traps": [
+    "The slide's 2,450 counts A&#8594;B and B&#8594;A as separate jobs. If you count each pair once, say so and divide by 2.",
+    "Spark Streaming processes streams; it does not ingest from a database. Do not list it as an ingestion tool.",
+    "NiFi is the visual tool, not Flume."
+   ],
+   "answers": {
+    "1": "Point-to-point ETL connects every pair of systems with its own job, giving O(N&#178;) jobs.",
+    "3": "Point-to-point ETL needs N &#215; (N &#8722; 1) jobs, so 50 systems need 2,450. An event-driven pipeline puts one message bus (Kafka) in the middle. Sources publish once and consumers subscribe, so 50 systems need 50 connections.",
+    "5": "<p><b>Definition:</b> an event-driven pipeline replaces direct ETL jobs with a central message bus.</p><ol><li>Sources publish events to the bus.</li><li>The bus keeps them in order and retains them.</li><li>Consumers subscribe and read at their own pace.</li></ol><p><b>Example:</b> 50 systems need 2,450 point-to-point jobs (50 &#215; 49) but only 50 bus connections. Point-to-point ETL is also brittle, cannot replay and is &#8805; 24 h late.</p><p><b>Limitation:</b> the bus is a single critical dependency, so it must be replicated.</p>"
+   },
+   "questions": [
+    {
+     "format": "mcq",
+     "q": "Which tool is the visual, no-code data-routing tool?",
+     "options": [
+      "Apache NiFi",
+      "Apache Flume",
+      "Apache Sqoop",
+      "Spark Streaming"
+     ],
+     "a": "NiFi is the drag-and-drop pipeline tool; Flume collects logs."
+    },
+    {
+     "format": "blank",
+     "q": "With N systems, point-to-point ETL creates O(____) connections.",
+     "a": "N&#178;"
+    },
+    {
+     "format": "define",
+     "q": "List the four faults of point-to-point ETL.",
+     "a": "Brittle (schema change breaks jobs); no replay; no real time (&#8805; 24 h); no decoupling."
+    },
+    {
+     "format": "steps",
+     "q": "Explain how an event-driven pipeline moves data from sources to consumers.",
+     "a": "Sources publish events to a central bus; the bus stores them in order; each consumer subscribes and reads at its own pace; a new consumer just subscribes and can replay history."
+    },
+    {
+     "format": "why",
+     "q": "Why does adding a consumer to an event bus need no change to the sources?",
+     "a": "Sources only write to the bus and never address a consumer, so a new subscriber reads the same topic without the source knowing."
+    },
+    {
+     "format": "distinguish",
+     "q": "Distinguish point-to-point ETL from an event-driven pipeline on connections and latency.",
+     "a": "ETL: N &#215; (N &#8722; 1) jobs, &#8805; 24 h late. Pipeline: N connections to one bus, seconds of latency."
+    },
+    {
+     "format": "scenario",
+     "q": "A retailer has 8 systems that each send nightly CSV files to every other system. Last week the stock system was down and lost a night of sales data.<br>i) Name this integration style. ii) How many jobs exist? iii) Which fault caused the lost data? iv) What should replace it?",
+     "a": "i) Point-to-point ETL. ii) 8 &#215; 7 = 56. iii) No replay. iv) An event-driven pipeline with Kafka as the bus (8 connections)."
+    },
+    {
+     "format": "one_step",
+     "q": "A firm has 12 systems. Point-to-point, each system sends to 11 others. How many ETL jobs?",
+     "a": "12 &#215; 11 = <b>132</b>."
+    },
+    {
+     "format": "full_calc",
+     "q": "A bank has 40 systems. Compute the point-to-point jobs (ordered), the jobs if counted once per pair, and the connections with a bus.",
+     "a": "40 &#215; 39 = <b>1,560</b>; 1,560 / 2 = <b>780</b>; bus = <b>40</b>."
+    },
+    {
+     "format": "long",
+     "q": "Explain why modern enterprises replace point-to-point ETL with event-driven pipelines. Use numbers.",
+     "a": "Point-to-point ETL gives every pair its own job: 50 systems need 50 &#215; 49 = 2,450. Those jobs break on schema changes, cannot replay lost data, run nightly (&#8805; 24 h) and bind each source to each consumer. A pipeline puts Kafka in the middle: sources publish once, consumers subscribe, so 50 systems need 50 connections, new consumers need zero source changes, and the retained log allows replay. Cost: the bus must be replicated because everything depends on it."
+    }
+   ],
+   "diagram": {
+    "file": "diagrams/w08-pipelines.svg",
+    "caption": "Point-to-point ETL wires every pair of systems (N × (N − 1) jobs); an event bus needs one link per system and lets consumers replay."
+   }
+  },
+  {
+   "id": "sqoop-flume",
+   "chapter": 8,
+   "title": "Batch ingestion: Sqoop and Flume",
+   "facts": [
+    "Sqoop (SQL-to-Hadoop) is a command-line tool for bulk transfer between an RDBMS (MySQL, Oracle, PostgreSQL, SQL Server) and HDFS, Hive or HBase.",
+    "Sqoop import: RDBMS &#8594; HDFS as CSV, Avro, Parquet or SequenceFile. Export: HDFS &#8594; RDBMS.",
+    "Sqoop incremental import copies only rows newer than a last-value checkpoint on a timestamp or auto-increment column.",
+    "Flume moves semi-structured logs (web server, application, IoT) into HDFS.",
+    "A Flume agent has three parts: Source (reads), Channel (buffers), Sink (writes).",
+    "Flume channel types: Memory (fast, lost on crash) or File (on disk, survives agent restart)."
+   ],
+   "mechanism": [
+    "Sqoop client connects to the database over JDBC",
+    "It submits a MapReduce job; each map task reads one primary-key range of rows in parallel",
+    "Rows land in HDFS (or Hive/HBase) as Parquet, CSV or Avro",
+    "Next run, incremental mode reads only rows past the last-value (for example txn_date &gt; 2024-06-12)",
+    "Flume: a Source reads log lines (Exec tail, Syslog, HTTP, Avro)",
+    "The Channel buffers the events",
+    "The Sink writes them to HDFS (or Kafka, HBase)"
+   ],
+   "why": [
+    "Sqoop lets Hive analytics run on HDFS without touching the live OLTP database.",
+    "Parallel map tasks give GB&#8211;TB/hour; a failed map task is retried by MapReduce.",
+    "Flume fan-in (many sources &#8594; one agent) and fan-out (one source &#8594; many sinks) aggregate logs from many servers.",
+    "File channel trades speed for durability: events survive an agent crash.",
+    "Limitation: both are batch. Real-time needs Kafka; modern stacks often replace Flume with Kafka producers."
+   ],
+   "contrasts": [
+    {
+     "vs": "Flume vs Kafka",
+     "head": [
+      "",
+      "Sqoop",
+      "Flume",
+      "Kafka"
+     ],
+     "rows": [
+      [
+       "Source data",
+       "Database tables",
+       "Log files",
+       "Any events"
+      ],
+      [
+       "Mode",
+       "Batch (nightly)",
+       "Batch / micro-batch",
+       "Real-time stream"
+      ],
+      [
+       "Target",
+       "HDFS, Hive, HBase (and back)",
+       "HDFS (also Kafka, HBase)",
+       "Any consumer"
+      ],
+      [
+       "Replay",
+       "Re-run the import",
+       "No",
+       "Yes, from offset"
+      ]
+     ]
+    }
+   ],
+   "scenarios": [
+    {
+     "cue": "nightly at 01:00, copy 10 M wallet transactions from Oracle into HDFS as Parquet",
+     "answer": "Sqoop import (bKash)"
+    },
+    {
+     "cue": "only copy rows added since yesterday's run",
+     "answer": "Sqoop incremental import (check-column + last-value)"
+    },
+    {
+     "cue": "push Spark results back into MySQL",
+     "answer": "Sqoop export"
+    },
+    {
+     "cue": "three web servers' access.log files collected into /logs/YYYY/MM/DD/",
+     "answer": "Flume (Source &#8594; Channel &#8594; Sink, fan-in)"
+    },
+    {
+     "cue": "log events must not be lost if the agent restarts",
+     "answer": "Flume File channel"
+    }
+   ],
+   "calculation": null,
+   "traps": [
+    "Sqoop is batch, not real-time streaming (pool T/F 1 is False).",
+    "Memory channel is faster but loses buffered events on a crash; File channel survives.",
+    "Flume is for logs, not database tables. Database &#8594; HDFS is Sqoop."
+   ],
+   "answers": {
+    "1": "Sqoop is a batch tool that copies tables in bulk between an RDBMS and HDFS.",
+    "3": "Sqoop imports database tables into HDFS by running a MapReduce job where each map task reads a primary-key range in parallel. Incremental import copies only rows past a last-value checkpoint. Example: bKash imports 10 M rows from Oracle nightly at 01:00.",
+    "5": "<p><b>Sqoop</b> moves database tables to and from HDFS in bulk. Steps: JDBC connect &#8594; MapReduce job splits rows by key range &#8594; map tasks write Parquet/CSV/Avro to HDFS; incremental mode copies only new rows. <b>Flume</b> moves logs to HDFS through an agent: Source reads, Channel buffers (Memory or File), Sink writes; fan-in gathers many servers. <b>Example:</b> bKash's nightly 10 M-row Sqoop import; web-server logs via Flume to /logs/YYYY/MM/DD/. <b>Limitation:</b> both are batch, with no real-time replay; Kafka covers that.</p>"
+   },
+   "questions": [
+    {
+     "format": "mcq",
+     "q": "Which Flume component buffers events between reading and writing?",
+     "options": [
+      "Channel",
+      "Source",
+      "Sink",
+      "Broker"
+     ],
+     "a": "Source reads, Channel buffers, Sink writes. Broker is a Kafka term."
+    },
+    {
+     "format": "blank",
+     "q": "Sqoop incremental import uses a ____ checkpoint on a timestamp or auto-increment column.",
+     "a": "last-value"
+    },
+    {
+     "format": "define",
+     "q": "Name the three components of a Flume agent.",
+     "a": "Source, Channel, Sink."
+    },
+    {
+     "format": "steps",
+     "q": "Describe how Sqoop imports a table into HDFS.",
+     "a": "Connect via JDBC; launch a MapReduce job; each map task reads one primary-key range in parallel; write files (Parquet/CSV/Avro) to HDFS; later runs use incremental last-value."
+    },
+    {
+     "format": "why",
+     "q": "Why choose a File channel over a Memory channel in Flume?",
+     "a": "The File channel keeps buffered events on disk, so they survive an agent crash; Memory is faster but loses them."
+    },
+    {
+     "format": "distinguish",
+     "q": "Distinguish Sqoop from Flume.",
+     "a": "Sqoop: database tables &#8596; HDFS, bulk, via MapReduce. Flume: log files &#8594; HDFS, via Source/Channel/Sink agents."
+    },
+    {
+     "format": "scenario",
+     "q": "A hospital copies its patient-visits table from PostgreSQL to Hadoop every night and also collects logs from 20 web servers.<br>i) Tool for the table? ii) How to avoid copying old rows again? iii) Tool for the logs? iv) Which part of that tool must survive a crash?",
+     "a": "i) Sqoop. ii) Incremental import with a last-value checkpoint. iii) Flume (fan-in). iv) Use a File channel."
+    },
+    {
+     "format": "long",
+     "q": "Compare Sqoop and Flume as batch ingestion tools, with one use case each.",
+     "a": "Sqoop copies tables between an RDBMS and HDFS/Hive/HBase. It runs a MapReduce job that reads key ranges in parallel, supports import, export and incremental import. Use: bKash's 10 M nightly Oracle rows into HDFS as Parquet. Flume collects logs through agents: Source &#8594; Channel (Memory or File) &#8594; Sink, with fan-in and fan-out. Use: web-server access logs into HDFS by date. Both are batch; for real-time events and replay use Kafka."
+    }
+   ],
+   "diagram": {
+    "file": "diagrams/w08-sqoop-flume.svg",
+    "caption": "Sqoop bulk-copies database tables to HDFS through parallel map tasks; Flume carries web-server logs to HDFS through an agent's Source, Channel and Sink."
+   }
+  },
+  {
+   "id": "kafka-log",
+   "chapter": 8,
+   "title": "Kafka: the append-only log",
+   "facts": [
+    "Kafka is a distributed, partitioned, replicated commit log, built at LinkedIn by Kreps, Narkhede and Rao (2011).",
+    "Topic: a named, append-only log for one event type. Partition: an ordered slice of a topic; P partitions run in parallel.",
+    "Offset: the integer position of a message in a partition. The consumer tracks its own offset (in the __consumer_offsets topic).",
+    "Broker: a Kafka server. Each partition has 1 leader and R &#8722; 1 follower replicas (default R = 3).",
+    "Consumer group: consumers that share a topic; each partition goes to exactly one consumer in the group.",
+    "Retention: messages stay for a set time (default 7 days) or size quota, even after being read."
+   ],
+   "mechanism": [
+    "A producer sends a message to a topic; the key's hash (or round-robin) picks the partition",
+    "The partition leader appends it at the end and gives it the next offset",
+    "Followers on other brokers copy it",
+    "Each consumer in a group pulls from its assigned partitions and advances its own offset",
+    "To replay, a consumer resets its offset to an earlier value (for example 0)",
+    "Old segments are deleted after the retention period",
+    "If a leader's broker fails, a follower becomes leader (ZooKeeper before Kafka 3.0, KRaft from 3.0)"
+   ],
+   "why": [
+    "Append-only gives durability, replay and decoupling for free (the founding insight).",
+    "Same key &#8594; same partition, so order is kept per key (for example per driver_id).",
+    "Replicas on other brokers let the cluster survive R &#8722; 1 broker failures.",
+    "The broker does not track consumers, so one log serves any number of consumer groups.",
+    "Limit: a consumer group cannot use more consumers than partitions; extras sit idle."
+   ],
+   "contrasts": [
+    {
+     "vs": "traditional queue",
+     "head": [
+      "",
+      "Traditional queue",
+      "Kafka log"
+     ],
+     "rows": [
+      [
+       "After a read",
+       "Message deleted",
+       "Message kept until retention ends"
+      ],
+      [
+       "Late consumer",
+       "Misses data",
+       "Reads from offset 0"
+      ],
+      [
+       "Who tracks position",
+       "Broker",
+       "Consumer (its own offset)"
+      ],
+      [
+       "Many readers",
+       "Message goes to one",
+       "Every group reads every message"
+      ]
+     ]
+    }
+   ],
+   "scenarios": [
+    {
+     "cue": "a new fraud model must be trained on last week's events without re-ingesting from the database",
+     "answer": "retention + replay from offset 0"
+    },
+    {
+     "cue": "fraud detection, balance update and audit all read every bKash transaction",
+     "answer": "three consumer groups on one topic"
+    },
+    {
+     "cue": "all pings from one driver must be processed in order",
+     "answer": "key by driver_id: same key &#8594; same partition"
+    },
+    {
+     "cue": "one server dies but no messages are lost",
+     "answer": "replication factor &gt; 1 (follower takes over as leader)"
+    },
+    {
+     "cue": "a fifth consumer joins a group reading a 4-partition topic and gets nothing",
+     "answer": "idle consumer: one partition per consumer per group"
+    }
+   ],
+   "calculation": {
+    "example": "<p>Slide: topic bkash-txns, P = 3 partitions, RF = 2. Copies = 3 &#215; 2 = <b>6</b>; followers per partition = 1; survives <b>1</b> broker failure. Pathao driver-location: P = 10; a group of 4 gets 3, 3, 2, 2 partitions.</p>",
+    "steps": [
+     "Given P and R -&gt; total partition copies = P &#215; R",
+     "Given R -&gt; followers per partition = R &#8722; 1",
+     "Given R -&gt; broker failures survived = R &#8722; 1",
+     "Given P partitions and C consumers in one group -&gt; active = min(P, C), idle = C &#8722; P if C &gt; P",
+     "Given P = 10, C = 4 -&gt; 10 / 4 = 2.5, so two consumers get 3 and two get 2"
+    ],
+    "variants": [
+     "page-views, 3 partitions, group of 5: 3 active, 2 idle",
+     "P = 10, default R = 3: 30 copies, 20 followers, survives 2 failures",
+     "P = 6, C = 4: two consumers get 2, two get 1"
+    ]
+   },
+   "traps": [
+    "Reading does not delete a message; retention decides deletion.",
+    "Order is guaranteed only within a partition, not across a whole topic.",
+    "Two different consumer groups each get every message; within one group a message goes to one consumer.",
+    "The broker does not track consumer position; the consumer does."
+   ],
+   "answers": {
+    "1": "A Kafka offset is the integer position of a message inside a partition.",
+    "3": "Kafka keeps messages for a set period (default 7 days) even after they are read. Each consumer tracks its own offset, so it can reset to 0 and replay history. Example: a new bKash analytics job reads the whole week without touching the source database.",
+    "5": "<p><b>Definition:</b> Kafka is a distributed, partitioned, replicated append-only log.</p><ol><li>A producer writes to a topic; the key hash picks a partition.</li><li>The leader appends it at the next offset; R &#8722; 1 followers copy it.</li><li>Consumer groups split partitions, one consumer per partition, and track their own offsets.</li><li>Messages stay until retention ends, so any consumer can replay.</li></ol><p><b>Example:</b> bkash-txns, 3 partitions, RF = 2: 6 copies, survives 1 broker failure.</p><p><b>Limitation:</b> consumers beyond the partition count sit idle; order holds only per partition.</p>"
+   },
+   "questions": [
+    {
+     "format": "mcq",
+     "q": "In a consumer group, how many consumers read one partition at a time?",
+     "options": [
+      "Exactly one",
+      "All of them",
+      "Two (leader and follower)",
+      "None; the broker pushes to every consumer"
+     ],
+     "a": "Each partition is assigned to exactly one consumer in a group."
+    },
+    {
+     "format": "blank",
+     "q": "Each partition has one leader and ____ follower replicas.",
+     "a": "R &#8722; 1"
+    },
+    {
+     "format": "define",
+     "q": "Define topic, partition, offset and broker.",
+     "a": "Topic: named append-only log. Partition: ordered slice of a topic. Offset: message position in a partition. Broker: Kafka server storing partitions."
+    },
+    {
+     "format": "steps",
+     "q": "Explain how a consumer replays a week of events.",
+     "a": "Messages are retained 7 days; the consumer resets its offset to 0 (or an earlier position); it reads forward through the log; it catches up to live data."
+    },
+    {
+     "format": "why",
+     "q": "Why are messages with the same key sent to the same partition?",
+     "a": "Order is kept only inside a partition, so one key's messages stay in order."
+    },
+    {
+     "format": "distinguish",
+     "q": "Distinguish a Kafka log from a traditional message queue.",
+     "a": "Queue deletes on read and the broker tracks position; Kafka keeps messages for the retention period and each consumer tracks its own offset, so late consumers can replay."
+    },
+    {
+     "format": "scenario",
+     "q": "Pathao sends GPS pings to topic driver-location (10 partitions, keyed by driver_id). Routing and dispatch both read it.<br>i) Why key by driver_id? ii) How do routing and dispatch both get every ping? iii) Routing runs 12 consumers; how many idle? iv) Routing crashes for an hour; is data lost?",
+     "a": "i) Keeps each driver's pings in order in one partition. ii) Each is a separate consumer group. iii) 12 &#8722; 10 = 2. iv) No; it resumes from its saved offset within retention."
+    },
+    {
+     "format": "one_step",
+     "q": "A topic has 8 partitions and replication factor 3. How many partition copies are stored?",
+     "a": "8 &#215; 3 = <b>24</b>."
+    },
+    {
+     "format": "full_calc",
+     "q": "Topic orders: P = 6, R = 3, one group of 4 consumers. Find copies, followers, broker failures survived, and partitions per consumer.",
+     "a": "Copies 6 &#215; 3 = <b>18</b>; followers 6 &#215; 2 = <b>12</b>; survives <b>2</b> failures; 6 / 4 = 1.5 so two consumers get <b>2</b>, two get <b>1</b>."
+    },
+    {
+     "format": "long",
+     "q": "Explain the Kafka data model and how it gives fault tolerance.",
+     "a": "A topic is a named append-only log split into P partitions for parallel work. Each message gets an offset; consumers track their own offset. Brokers store partitions; each partition has a leader and R &#8722; 1 followers on other brokers (default R = 3). Consumer groups divide partitions, one consumer per partition. Fault tolerance: a follower takes over if a leader's broker dies (ZooKeeper/KRaft election), and retention (7 days) lets a crashed consumer resume or replay. Example: bkash-txns, 3 partitions, RF = 2, survives 1 broker loss."
+    }
+   ],
+   "diagram": {
+    "file": "diagrams/w08-kafka-log.svg",
+    "caption": "Producers append to a topic's partitions; each partition is read by exactly one consumer in a group, which tracks its own offset."
+   }
+  },
+  {
+   "id": "kafka-speed",
+   "chapter": 8,
+   "title": "Why Kafka is fast",
+   "facts": [
+    "Four throughput tricks (P1): sequential disk writes, zero-copy transfer, batching, partition parallelism.",
+    "Sequential writes: about 600 MB/s vs about 100 MB/s random (paper slide); P1 quotes &lt; 1 MB/s random.",
+    "Zero-copy: the sendfile() system call sends data disk &#8594; kernel buffer &#8594; NIC: 2 copies instead of 4.",
+    "Batching: many messages per network round trip, set by batch.size and linger.ms; batches are compressed 5&#8211;10&#215;.",
+    "Paper benchmark (100-byte messages, one broker): producer Kafka 50.5 MB/s, RabbitMQ 14.7, ActiveMQ 4.3.",
+    "Consumer benchmark: Kafka 22.0 MB/s, RabbitMQ 8.2, ActiveMQ 4.0."
+   ],
+   "mechanism": [
+    "Producer groups messages into a compressed batch",
+    "Broker appends the batch to the end of the active segment file (sequential write)",
+    "OS page cache holds recent pages and prefetches the next ones",
+    "A consumer pulls from an offset; the .index file maps offset to byte position",
+    "Broker calls sendfile(): data goes from page cache to the network card, skipping user space",
+    "More partitions let more producers and consumers work at once"
+   ],
+   "why": [
+    "Disk heads do not jump when writing only at the end, so spinning disks get near-SSD throughput.",
+    "Zero-copy removes 2 copies and 2 context switches, so about 2&#215; throughput with CPU near zero.",
+    "The broker acknowledges a batch, not each message, cutting network overhead.",
+    "Consumers pull and track their own offsets, so the broker keeps no per-consumer queue.",
+    "Old MOM systems (ActiveMQ, RabbitMQ) were built for a few thousand transactional messages per second."
+   ],
+   "contrasts": [
+    {
+     "vs": "ActiveMQ / RabbitMQ",
+     "head": [
+      "",
+      "Kafka",
+      "ActiveMQ / RabbitMQ"
+     ],
+     "rows": [
+      [
+       "Built for",
+       "Log aggregation, 100 MB/s per broker",
+       "Transactional messaging, few thousand msgs/s"
+      ],
+      [
+       "Storage",
+       "Append-only log, kept for days",
+       "Queue, deleted after delivery"
+      ],
+      [
+       "Acknowledgement",
+       "Per batch",
+       "Per message"
+      ],
+      [
+       "Producer MB/s (paper)",
+       "50.5",
+       "4.3 / 14.7"
+      ],
+      [
+       "Replay",
+       "Yes",
+       "No"
+      ]
+     ]
+    }
+   ],
+   "scenarios": [
+    {
+     "cue": "data goes from disk to network without passing through the application's memory",
+     "answer": "zero-copy (sendfile())"
+    },
+    {
+     "cue": "producer waits a few milliseconds to fill a bigger request",
+     "answer": "batching (linger.ms, batch.size)"
+    },
+    {
+     "cue": "Kafka runs on spinning disks yet nearly matches SSD speed",
+     "answer": "sequential append-only writes + OS page cache"
+    },
+    {
+     "cue": "throughput doubles when the topic goes from 4 to 8 partitions",
+     "answer": "partition parallelism"
+    }
+   ],
+   "calculation": {
+    "example": "<p>Paper, producer, 100-byte messages: 50.5 MB/s &#247; 100 B = 50,500,000 / 100 = <b>505,000 msgs/s</b>. Kafka vs ActiveMQ = 50.5 / 4.3 &#8776; <b>11.7&#215;</b>; vs RabbitMQ = 50.5 / 14.7 &#8776; <b>3.4&#215;</b>. Disk: 600 / 100 = <b>6&#215;</b>. Zero-copy: 4 / 2 = <b>2&#215;</b>.</p>",
+    "steps": [
+     "Given MB/s -&gt; bytes/s = MB/s &#215; 1,000,000",
+     "Given bytes/s and message size -&gt; msgs/s = bytes/s &#247; size",
+     "Given two throughputs -&gt; speedup = Kafka &#247; other",
+     "Given sequential and random MB/s -&gt; advantage = sequential &#247; random",
+     "Given 4 copies (traditional) and 2 (sendfile) -&gt; 2 copies saved per message, about 2&#215;"
+    ],
+    "variants": [
+     "Consumer: 22.0 MB/s &#247; 100 B = 220,000 msgs/s; vs ActiveMQ 22.0 / 4.0 = 5.5&#215;; vs RabbitMQ &#8776; 2.7&#215;",
+     "1,000-byte messages at 50.5 MB/s: 50,500 msgs/s",
+     "Netflix: 100 billion events/day &#247; 86,400 &#8776; 1,157,407 events/s average; if the 5&#215; Super Bowl spike hit the 1.3 M/s peak, that would be 6.5 M/s",
+     "Netflix 7-day retention holds 100 B &#215; 7 = 700 billion events"
+    ]
+   },
+   "traps": [
+    "Zero-copy removes copies through user space; it does not mean no copies (2 remain).",
+    "Two different random-disk numbers appear: &lt; 1 MB/s (P1) and about 100 MB/s (paper). Quote the one the question gives.",
+    "The benchmark table treats 1 MB as 1,000,000 bytes: 50.5 MB/s of 100-byte messages = 505,000 msgs/s."
+   ],
+   "answers": {
+    "1": "Zero-copy uses sendfile() to send data from disk to the network without copying it through user space.",
+    "3": "Kafka writes only at the end of the log, so disk writes are sequential (about 600 MB/s vs much slower random). It batches messages and uses sendfile() zero-copy (4 copies down to 2). In the 2011 paper Kafka produced 50.5 MB/s against ActiveMQ's 4.3 MB/s, about 11.7&#215;.",
+    "5": "<p>Kafka reaches high throughput with four tricks.</p><ol><li><b>Sequential writes:</b> append-only, about 600 MB/s vs about 100 MB/s random (6&#215;).</li><li><b>Zero-copy:</b> sendfile(), disk &#8594; kernel &#8594; NIC, 2 copies instead of 4.</li><li><b>Batching:</b> compressed batches, one acknowledgement per batch.</li><li><b>Partition parallelism:</b> P partitions, up to P consumers per group.</li></ol><p><b>Example:</b> paper benchmark 50.5 MB/s = 505,000 msgs/s of 100 B, vs 43,000 for ActiveMQ.</p><p><b>Limitation:</b> batching adds a little latency (linger.ms).</p>"
+   },
+   "questions": [
+    {
+     "format": "mcq",
+     "q": "Which system call gives Kafka zero-copy transfer?",
+     "options": [
+      "sendfile()",
+      "fork()",
+      "mmap() of user buffers",
+      "fsync()"
+     ],
+     "a": "sendfile() moves data from page cache to the socket without a user-space copy."
+    },
+    {
+     "format": "blank",
+     "q": "Traditional brokers copy data ____ times per transfer; Kafka with sendfile() copies it ____ times.",
+     "a": "4; 2"
+    },
+    {
+     "format": "define",
+     "q": "List Kafka's four throughput techniques from Part 1.",
+     "a": "Sequential disk writes, zero-copy transfer, batching, partition parallelism."
+    },
+    {
+     "format": "steps",
+     "q": "Trace a message from producer to consumer showing where Kafka saves time.",
+     "a": "Producer batches and compresses; broker appends sequentially to the active segment; page cache holds it; consumer pulls by offset via .index; sendfile() sends page cache &#8594; NIC."
+    },
+    {
+     "format": "why",
+     "q": "Why does append-only storage make Kafka fast on spinning disks?",
+     "a": "Writing only at the end means the disk head never seeks, so writes run at sequential speed (about 600 MB/s)."
+    },
+    {
+     "format": "distinguish",
+     "q": "Distinguish Kafka from ActiveMQ on design goal and producer throughput.",
+     "a": "Kafka: log aggregation, retained log, 50.5 MB/s. ActiveMQ: transactional queue, deletes on delivery, 4.3 MB/s."
+    },
+    {
+     "format": "scenario",
+     "q": "A team moves from RabbitMQ to Kafka. Throughput jumps and CPU on the brokers drops.<br>i) Which trick cut CPU? ii) Which trick lets slow disks keep up? iii) Which setting makes the producer wait to fill a batch? iv) Paper speedup over RabbitMQ (producer)?",
+     "a": "i) Zero-copy sendfile(). ii) Sequential append-only writes. iii) linger.ms (with batch.size). iv) 50.5 / 14.7 &#8776; 3.4&#215;."
+    },
+    {
+     "format": "one_step",
+     "q": "Kafka consumes at 22.0 MB/s with 100-byte messages. Messages per second?",
+     "a": "22,000,000 / 100 = <b>220,000</b>."
+    },
+    {
+     "format": "full_calc",
+     "q": "From the paper's producer table, find Kafka's msgs/s (100 B messages) and its speedup over ActiveMQ and RabbitMQ.",
+     "a": "50.5 &#215; 1,000,000 / 100 = <b>505,000</b>; 50.5 / 4.3 &#8776; <b>11.7&#215;</b>; 50.5 / 14.7 &#8776; <b>3.4&#215;</b>."
+    },
+    {
+     "format": "long",
+     "q": "Explain why Kafka outperforms traditional message-oriented middleware.",
+     "a": "Traditional MOM handled a few thousand messages per second with per-message acks and deletion. Kafka appends to a log, so writes are sequential (about 600 MB/s vs about 100 random). sendfile() zero-copy removes 2 of 4 copies and cuts CPU. Producers send compressed batches with one ack each. Partitions let many producers and consumers work in parallel, and consumers track their own offsets so the broker keeps no queues. Result in the 2011 paper: 50.5 MB/s vs 4.3 (ActiveMQ) and 14.7 (RabbitMQ)."
+    }
+   ],
+   "diagram": {
+    "file": "diagrams/w08-kafka-speed.svg",
+    "caption": "A traditional broker copies data four times through user space; Kafka's sendfile() zero-copy sends it from the page cache to the NIC in two."
+   }
+  },
+  {
+   "id": "lambda-kappa",
+   "chapter": 8,
+   "title": "Lambda and Kappa architectures",
+   "facts": [
+    "Lambda (Nathan Marz, 2011): Batch layer, Speed layer, Serving layer.",
+    "Batch layer: immutable master dataset on HDFS, recomputed by Spark/Hive; accurate but 1&#8211;24 hours stale.",
+    "Speed layer: Kafka + Spark Streaming/Flink on data since the last batch; approximate but only seconds old.",
+    "Serving layer: merges views; query = batch view UNION real-time view. It does no processing.",
+    "Kappa (Jay Kreps, 2014): two parts only, log storage (Kafka or Iceberg on S3) and one stream engine (Flink, Spark Structured Streaming).",
+    "Lambda's weakness: the same logic is coded twice; 30&#8211;40% of engineering effort goes on keeping them in sync."
+   ],
+   "mechanism": [
+    "Lambda: raw events go to both the batch and the speed layer",
+    "Batch layer recomputes accurate views hourly or nightly; speed layer covers the gap since",
+    "Serving layer unions both views to answer a query",
+    "Kappa reprocessing: deploy a new version of the stream job",
+    "Start it at Kafka offset 0",
+    "It processes all history, then catches up to live events",
+    "When caught up, swap it into production and retire the old job"
+   ],
+   "why": [
+    "Lambda strengths: accuracy (batch recomputes from raw), low latency, fault tolerance, separation of concerns.",
+    "Lambda costs: two code paths, two clusters, a runtime merge, harder debugging.",
+    "Kappa works only if the stream engine can reprocess history as fast as it handles live data.",
+    "Kappa is NOT suitable when: TB+ history is too slow to replay; batch SQL (Hive, Spark) is preferred; regulation demands a separate batch reconciliation.",
+    "Netflix mixes both: Kafka is the single source both layers read, removing two ingestion paths."
+   ],
+   "contrasts": [
+    {
+     "vs": "Lambda vs Kappa",
+     "head": [
+      "",
+      "Lambda",
+      "Kappa"
+     ],
+     "rows": [
+      [
+       "Code paths",
+       "Two (batch + stream), kept in sync",
+       "One (stream only)"
+      ],
+      [
+       "Reprocessing",
+       "Re-run batch job on HDFS",
+       "Replay Kafka log from offset 0"
+      ],
+      [
+       "Latency",
+       "Low (speed) + high (batch)",
+       "Low throughout"
+      ],
+      [
+       "Complexity",
+       "High: two systems + merge",
+       "Lower: one pipeline"
+      ],
+      [
+       "Batch throughput",
+       "Very high (Spark/Hive)",
+       "Limited by stream engine"
+      ],
+      [
+       "Use when",
+       "Complex logic, batch ML training, regulatory batch reports",
+       "Stream engine fast enough; one code path worth the storage cost"
+      ]
+     ]
+    }
+   ],
+   "scenarios": [
+    {
+     "cue": "dashboard shows yesterday's totals from a nightly Hive job plus today's from Spark Streaming",
+     "answer": "Lambda (batch + speed, merged in serving)"
+    },
+    {
+     "cue": "a fee rule change must be coded in both the Hive job and the streaming job",
+     "answer": "Lambda's dual code path weakness"
+    },
+    {
+     "cue": "to fix a bug, a new stream job reads from offset 0 and then replaces the old one",
+     "answer": "Kappa reprocessing"
+    },
+    {
+     "cue": "the central bank requires a separate end-of-day batch reconciliation",
+     "answer": "Kappa not suitable; keep Lambda"
+    },
+    {
+     "cue": "the layer that only merges and answers queries",
+     "answer": "Serving layer"
+    }
+   ],
+   "calculation": null,
+   "traps": [
+    "The Serving layer does not process data; real-time views come from the Speed layer (pool MCQ 3).",
+    "Kappa is not 'Spark instead of Hadoop'; it removes the whole batch layer (pool MCQ 4, option d).",
+    "There is no Ingestion layer in Lambda; that is a data-lake layer.",
+    "Kappa keeps a serving store; what it drops is the batch layer."
+   ],
+   "answers": {
+    "1": "Kappa architecture drops Lambda's batch layer and reprocesses history by replaying the Kafka log.",
+    "3": "Lambda has a Batch layer (accurate, hours old), a Speed layer (approximate, seconds old) and a Serving layer that unions both. Its main cost is writing the same logic twice. Kappa keeps one stream job and replays from offset 0 to reprocess.",
+    "5": "<p><b>Lambda</b> (Marz, 2011) serves accurate and real-time views from the same data. Batch layer: HDFS + Spark/Hive, 1&#8211;24 h stale. Speed layer: Kafka + Flink, seconds. Serving layer: batch view UNION real-time view. <b>Kappa</b> (Kreps, 2014): a long-retention log plus one stream job; to reprocess, start a new job at offset 0, let it catch up, swap it in. <b>Example:</b> a bank dashboard = nightly Hive totals + today's stream. <b>Limitation:</b> Lambda needs two code paths (30&#8211;40% of effort); Kappa fails when TB+ history replays too slowly or regulators require batch reconciliation.</p>"
+   },
+   "questions": [
+    {
+     "format": "mcq",
+     "q": "Which component does Kappa remove from Lambda?",
+     "options": [
+      "The batch layer",
+      "The speed layer",
+      "The Kafka log",
+      "The serving store"
+     ],
+     "a": "Kappa keeps only log storage and one stream engine."
+    },
+    {
+     "format": "blank",
+     "q": "In the Lambda serving layer, a query result = batch view ____ real-time view.",
+     "a": "UNION"
+    },
+    {
+     "format": "define",
+     "q": "List the three Lambda layers and the latency of each.",
+     "a": "Batch (1&#8211;24 h, accurate), Speed (seconds old, approximate), Serving (merges and answers queries)."
+    },
+    {
+     "format": "steps",
+     "q": "List the Kappa reprocessing workflow.",
+     "a": "Deploy new job version; start at offset 0; process all history and catch up to live; swap into production and retire the old job."
+    },
+    {
+     "format": "why",
+     "q": "Why does Lambda cost so much to maintain?",
+     "a": "The same business logic lives in a batch job and a stream job; every change must be made twice and kept consistent (30&#8211;40% of effort), plus two clusters and a merge."
+    },
+    {
+     "format": "distinguish",
+     "q": "Distinguish Lambda and Kappa on code paths and reprocessing.",
+     "a": "Lambda: two code paths; reprocess by re-running the batch job on HDFS. Kappa: one stream code path; reprocess by replaying Kafka from offset 0."
+    },
+    {
+     "format": "scenario",
+     "q": "A telecom runs nightly Hive billing and a Flink job for live usage alerts. Engineers complain every tariff change takes two releases.<br>i) Which architecture is this? ii) Name the problem. iii) What would Kappa change? iv) Give one reason to keep the batch side.",
+     "a": "i) Lambda. ii) Dual code paths. iii) One stream job; reprocess by replay from offset 0. iv) Regulated billing needs separate batch reconciliation (or TB+ history replays too slowly)."
+    },
+    {
+     "format": "long",
+     "q": "Compare Lambda and Kappa and state when Kappa is not suitable.",
+     "a": "Lambda has batch (HDFS + Spark/Hive, accurate, hours old), speed (Kafka + Flink, seconds) and serving (union) layers; it is accurate and fast but needs two code paths, two clusters and a merge. Kappa keeps one stream job over a long-retention log and reprocesses by replaying from offset 0, so it is simpler, with batch throughput limited by the stream engine. Kappa is not suitable when (1) TB+ history is too slow to replay, (2) teams prefer batch SQL, (3) regulation demands batch reconciliation."
+    }
+   ],
+   "diagram": {
+    "file": "diagrams/w08-lambda-kappa.svg",
+    "caption": "Lambda runs a batch and a speed layer merged by a serving layer; Kappa keeps one stream job over a replayable Kafka log."
+   }
+  },
+  {
+   "id": "data-lake",
+   "chapter": 8,
+   "title": "Data lakes and the data swamp",
+   "facts": [
+    "Data lake: a central store for raw data at any scale and in any format, with no schema defined up front.",
+    "Four layers: Ingestion (Sqoop, Flume, Kafka, NiFi), Storage (HDFS, S3, ADLS), Processing (Spark, Hive, Presto), Catalogue/Governance (Atlas, Glue, Hive Metastore).",
+    "Storage is organised in zones: raw &#8594; processed &#8594; curated.",
+    "Data swamp: a lake without governance, where files pile up with no metadata, owners or quality guarantees.",
+    "Swamp symptoms: no catalogue, unclear current vs stale files, unversioned copies, PII mixed with other data.",
+    "Prevention: catalogue at ingest, owner per dataset, access control, automated quality checks, table format (Delta Lake, Iceberg) for ACID."
+   ],
+   "mechanism": [
+    "Ingestion tools pull data from every source and write raw files",
+    "Files land in the raw zone of HDFS or object storage",
+    "Processing engines transform them into processed and curated zones on demand",
+    "The catalogue records schema, lineage, owner and access policy for each dataset"
+   ],
+   "why": [
+    "Cheap, fast ingest: nothing is rejected for not fitting a schema.",
+    "Keeps full raw history for data science and ML.",
+    "Schema-on-read: structure is applied only when a query reads the data.",
+    "Risk: without the catalogue layer the lake becomes a swamp nobody can use or trust.",
+    "Mixed PII without access control breaks privacy rules."
+   ],
+   "contrasts": [
+    {
+     "vs": "data warehouse",
+     "head": [
+      "",
+      "Data lake",
+      "Data warehouse"
+     ],
+     "rows": [
+      [
+       "Schema",
+       "Schema-on-read (applied at query time)",
+       "Schema-on-write (must fit before load)"
+      ],
+      [
+       "Storage format",
+       "Raw files of any type on cheap storage",
+       "Cleaned, structured relational tables"
+      ],
+      [
+       "Users / use",
+       "Data science, ML, exploration, raw history",
+       "Fixed reports, BI dashboards, SQL by business users"
+      ],
+      [
+       "Data quality",
+       "Varies; needs governance",
+       "High, enforced at load"
+      ]
+     ]
+    }
+   ],
+   "scenarios": [
+    {
+     "cue": "analysts cannot find datasets and nobody knows which copy is current",
+     "answer": "data swamp"
+    },
+    {
+     "cue": "images, JSON logs and CSV exports all stored as-is for later ML",
+     "answer": "data lake (schema-on-read)"
+    },
+    {
+     "cue": "finance needs a fixed monthly report from cleaned tables",
+     "answer": "data warehouse"
+    },
+    {
+     "cue": "Apache Atlas tracks lineage and owners for every dataset",
+     "answer": "catalogue/governance layer"
+    },
+    {
+     "cue": "patient IDs are visible to every analyst in the lake",
+     "answer": "swamp symptom (PII mixed); fix with access control"
+    }
+   ],
+   "calculation": null,
+   "traps": [
+    "A lake still needs a schema; it is applied on read, not removed.",
+    "The swamp is caused by missing governance, not by data volume.",
+    "Delta Lake and Iceberg are table formats that add ACID; they are not separate lakes."
+   ],
+   "answers": {
+    "1": "A data swamp is a data lake with no governance: files without metadata, owners or quality checks.",
+    "3": "A data lake stores raw data of any format with schema applied on read, unlike a warehouse that loads only cleaned tables (schema-on-write). Without a catalogue and owners it turns into a swamp. Example: years of lab CSVs in S3 with no names or owners.",
+    "5": "<p><b>Definition:</b> a data lake is a central store of raw data in any format, schema-on-read.</p><ol><li>Ingestion: Sqoop, Flume, Kafka, NiFi.</li><li>Storage: HDFS/S3 in raw, processed, curated zones.</li><li>Processing: Spark, Hive, Presto.</li><li>Catalogue: Atlas, Glue, Hive Metastore.</li></ol><p><b>Example:</b> a hospital dumps all lab files to S3; with no catalogue, analysts cannot tell which is current and patient IDs leak. That is a swamp.</p><p><b>Limitation:</b> needs governance (owners, access control, quality checks, Delta Lake/Iceberg) to stay usable.</p>"
+   },
+   "questions": [
+    {
+     "format": "mcq",
+     "q": "Which layer of a data lake prevents it becoming a swamp?",
+     "options": [
+      "Catalogue / Governance",
+      "Ingestion",
+      "Storage",
+      "Processing"
+     ],
+     "a": "The catalogue tracks schema, lineage, owners and access."
+    },
+    {
+     "format": "blank",
+     "q": "A data lake applies schema on ____; a warehouse applies it on ____.",
+     "a": "read; write"
+    },
+    {
+     "format": "define",
+     "q": "List the four layers of a data lake.",
+     "a": "Ingestion, Storage, Processing, Catalogue/Governance."
+    },
+    {
+     "format": "steps",
+     "q": "Describe how data flows through a data lake.",
+     "a": "Ingest raw files; store in raw zone; process into processed and curated zones on demand; catalogue records schema, lineage, owner."
+    },
+    {
+     "format": "why",
+     "q": "Why do Delta Lake and Iceberg help prevent a swamp?",
+     "a": "They add ACID guarantees and versioning to lake files, so copies and current-vs-stale data are tracked."
+    },
+    {
+     "format": "distinguish",
+     "q": "Distinguish a data lake from a data warehouse.",
+     "a": "Lake: raw files, any format, schema-on-read, ML/exploration. Warehouse: cleaned tables, schema-on-write, BI reports."
+    },
+    {
+     "format": "scenario",
+     "q": "A telco has put three years of call logs, JSON app events and scanned forms into S3. Analysts now find five versions of the same table and customer phone numbers are open to everyone.<br>i) Lake or warehouse? ii) What has it become? iii) Name two symptoms shown. iv) Give two fixes.",
+     "a": "i) Data lake. ii) A data swamp. iii) Unversioned copies; PII mixed with other data. iv) Catalogue with owners; access control (or Iceberg/Delta Lake versioning, quality checks)."
+    },
+    {
+     "format": "long",
+     "q": "Explain the data lake architecture, the data swamp risk and how to prevent it.",
+     "a": "A lake stores raw data in any format, schema-on-read, through four layers: ingestion (Sqoop, Flume, Kafka, NiFi), storage (HDFS/S3 zones raw &#8594; processed &#8594; curated), processing (Spark, Hive, Presto) and catalogue (Atlas, Glue). Without governance it becomes a swamp: no catalogue, stale vs current unknown, unversioned copies, PII mixed in. Prevent it with a catalogue at ingest, owners, access control, quality checks and a table format such as Iceberg or Delta Lake."
+    }
+   ],
+   "diagram": {
+    "file": "diagrams/w08-data-lake.svg",
+    "caption": "A data lake's four layers: ingestion, zoned storage, processing, and the catalogue that keeps it from becoming a swamp."
+   }
+  }
+ ],
+ "pool": [
+  {
+   "src": "MCQ",
+   "n": "Q1",
+   "q": "Which tool is specifically designed to transfer data in bulk between an RDBMS (e.g., MySQL) and HDFS?",
+   "options": [
+    "(a) Apache Flume",
+    "(b) Apache Kafka",
+    "(c) Apache Sqoop",
+    "(d) Apache NiFi"
+   ],
+   "topic": "sqoop-flume",
+   "a": "<b>(c) Apache Sqoop</b><br>Sqoop (SQL-to-Hadoop) bulk-copies tables between a database and HDFS; Flume is for logs."
+  },
+  {
+   "src": "MCQ",
+   "n": "Q2",
+   "q": "Apache Kafka's data model is based on which fundamental storage abstraction?",
+   "options": [
+    "(a) B-tree indexes for fast point lookups",
+    "(b) Column-family storage (like HBase)",
+    "(c) Append-only immutable distributed logs (partitioned topics)",
+    "(d) Document storage with secondary indexes"
+   ],
+   "topic": "kafka-log",
+   "a": "<b>(c) Append-only immutable distributed logs (partitioned topics)</b><br>Kafka is a distributed, partitioned, replicated commit log."
+  },
+  {
+   "src": "MCQ",
+   "n": "Q3",
+   "q": "In the Lambda architecture, which layer handles <b>real-time</b>, <b>low-latency</b> query views?",
+   "options": [
+    "(a) Batch Layer",
+    "(b) Serving Layer",
+    "(c) Speed Layer",
+    "(d) Ingestion Layer"
+   ],
+   "topic": "lambda-kappa",
+   "a": "<b>(c) Speed Layer</b><br>The Serving layer only merges views; the Speed layer computes the seconds-old views."
+  },
+  {
+   "src": "MCQ",
+   "n": "Q4",
+   "q": "The Kappa architecture differs from the Lambda architecture primarily by:",
+   "options": [
+    "(a) Adding a third processing layer for machine learning",
+    "(b) Using only relational databases for both batch and stream storage",
+    "(c) Eliminating the batch layer and using Kafka log replay for all reprocessing",
+    "(d) Replacing Hadoop with Spark in the batch layer while keeping the speed layer"
+   ],
+   "topic": "lambda-kappa",
+   "a": "<b>(c) Eliminating the batch layer and using Kafka log replay for all reprocessing</b><br>Kappa removes the whole batch layer; (d) is the common misconception."
+  },
+  {
+   "src": "True/False",
+   "n": "1",
+   "q": "Apache Sqoop is designed for real-time streaming ingestion from transactional systems.",
+   "topic": "sqoop-flume",
+   "a": "<b>False.</b> Sqoop runs batch MapReduce imports. Corrected: Sqoop is designed for bulk batch transfer between an RDBMS and HDFS; real-time ingestion uses Kafka."
+  },
+  {
+   "src": "True/False",
+   "n": "2",
+   "q": "Kafka retains messages for a configurable period, allowing consumers to replay events from any past offset.",
+   "topic": "kafka-log",
+   "a": "<b>True.</b> Messages stay for the retention period (e.g. 7 days) after being read, so a consumer can reset its offset and replay."
+  },
+  {
+   "src": "True/False",
+   "n": "3",
+   "q": "The Lambda architecture requires maintaining two separate code paths implementing the same business logic.",
+   "topic": "lambda-kappa",
+   "a": "<b>True.</b> The same logic is written for the batch layer (Spark/Hive) and the speed layer (Spark Streaming) and must be kept in sync."
+  },
+  {
+   "src": "True/False",
+   "n": "4",
+   "q": "Apache Flume is the preferred tool for collecting and aggregating server log data into HDFS.",
+   "topic": "sqoop-flume",
+   "a": "<b>True.</b> Flume moves logs into HDFS through Source, Channel and Sink with fan-in from many servers."
+  },
+  {
+   "src": "Descriptive",
+   "n": "D1",
+   "q": "Explain the <b>Lambda architecture</b> with a labelled diagram. What are its three layers? What is its primary engineering disadvantage compared to the Kappa architecture?",
+   "topic": "lambda-kappa",
+   "a": "<img src=\"diagrams/w08-lambda.svg\" alt=\"Lambda architecture: raw data feeds a batch layer (HDFS + Spark/Hive) producing batch views and a speed layer (Kafka + Flink) producing real-time views; the serving layer unions both views for the dashboard.\"><ul><li><b>Batch:</b> master dataset on HDFS, recomputed hourly/nightly; accurate, 1&#8211;24 h stale.</li><li><b>Speed:</b> stream processing of data since the last batch; approximate, results within seconds.</li><li><b>Serving:</b> query = batch view UNION real-time view.</li></ul><p><b>Disadvantage vs Kappa:</b> two code paths for the same logic, kept in sync (30&#8211;40% of effort), plus two clusters and a runtime merge. Kappa has one stream code path.</p>"
+  },
+  {
+   "src": "Descriptive",
+   "n": "D2",
+   "q": "Describe how Apache Kafka achieves <b>high throughput and fault tolerance</b>. Explain the roles of topics, partitions, offsets, brokers, and replication factor in the Kafka data model.",
+   "topic": "kafka-log",
+   "a": "<table><tr><th>Term</th><th>Role</th></tr><tr><td>Topic</td><td>Named append-only log for one event type</td></tr><tr><td>Partition</td><td>Ordered slice of a topic; P partitions run in parallel; same key &#8594; same partition</td></tr><tr><td>Offset</td><td>Message position; each consumer tracks its own</td></tr><tr><td>Broker</td><td>Server storing partitions</td></tr><tr><td>Replication factor R</td><td>1 leader + R &#8722; 1 followers per partition (default 3)</td></tr></table><p><b>Throughput:</b> sequential writes, zero-copy sendfile(), batching, partition parallelism.</p><p><b>Fault tolerance:</b> a follower takes over when a leader's broker fails; retention lets a crashed consumer resume from its offset. Example: bkash-txns, 3 partitions, RF = 2 survives 1 broker failure.</p>"
+  },
+  {
+   "src": "Descriptive",
+   "n": "D3",
+   "q": "What is a <b>data lake</b>? How does it differ from a data warehouse in terms of schema enforcement, storage format, and typical use cases? What is a &#8220;data swamp&#8221; and how is it prevented?",
+   "topic": "data-lake",
+   "a": "<p><b>Data lake:</b> central store of raw data in any format, no upfront schema.</p><table><tr><th></th><th>Lake</th><th>Warehouse</th></tr><tr><td>Schema</td><td>On read</td><td>On write</td></tr><tr><td>Format</td><td>Raw files, any type</td><td>Cleaned relational tables</td></tr><tr><td>Use</td><td>ML, data science, exploration</td><td>BI reports, dashboards</td></tr></table><p><b>Data swamp:</b> a lake with no governance: no catalogue, stale vs current unknown, unversioned copies, PII mixed in.</p><p><b>Prevention:</b> catalogue at ingest, owner per dataset, access control, quality checks, Delta Lake/Iceberg for ACID.</p>"
+  },
+  {
+   "src": "Analytical",
+   "n": "A1",
+   "q": "<b>Pipeline Design for a Bank:</b> Design a data integration pipeline for a Bangladeshi commercial bank that must:<ul><li>(a) Synchronise 10 million customer records nightly from Oracle to Hadoop for analytics</li><li>(b) Detect fraudulent card-swipe events in real time with a decision within 200 ms</li><li>(c) Power a risk management dashboard with data no older than 5 minutes</li></ul>Specify which tool (Sqoop, Flume, Kafka, Spark Streaming) you would use at each stage. Justify each choice with reference to latency, throughput, and fault-tolerance requirements. Which architecture (Lambda or Kappa) fits best, and why?",
+   "topic": "pipelines",
+   "a": "<table><tr><th>Need</th><th>Tool</th><th>Latency</th><th>Throughput</th><th>Fault tolerance</th></tr><tr><td>(a) 10 M rows nightly</td><td>Sqoop (incremental import)</td><td>Hours is fine: batch</td><td>Parallel map tasks by key range, GB&#8211;TB/h</td><td>Failed map task retried; HDFS replicated</td></tr><tr><td>(b) Fraud &lt; 200 ms</td><td>Kafka topic (keyed by card no.) + Spark Streaming</td><td>Milliseconds</td><td>Partitions scale consumers</td><td>RF = 3; restart from last offset</td></tr><tr><td>(c) Dashboard &lt; 5 min</td><td>Second consumer group on same topic + Spark Streaming aggregates</td><td>Minutes</td><td>Same topic, no extra ingest</td><td>Replay from offset</td></tr></table><p>Flume is not used: it is for logs, not tables or card events.</p><p><b>Architecture: Lambda.</b> The bank has a real batch need (nightly sync, regulatory batch reports), which the slide lists as a reason Kappa is not suitable. Batch = Sqoop + HDFS + Hive; Speed = Kafka + Spark Streaming; Serving = dashboard. Cut the dual-path cost by making Kafka the single source both layers read.</p>"
+  },
+  {
+   "src": "Analytical",
+   "n": "A2",
+   "q": "<b>Lambda to Kappa Migration:</b> A team using Lambda architecture complains that maintaining two code paths (batch + stream) doubles development cost. Their CTO suggests migrating to Kappa. Analyse: (a) what must be true about the stream processing engine for Kappa to be viable; (b) what are the risks of migrating; (c) under what conditions is Kappa <b>not suitable</b> (give at least two concrete scenarios from the Bangladesh financial or healthcare sector)?",
+   "topic": "lambda-kappa",
+   "a": "<p><b>(a) Conditions:</b> the engine reprocesses history about as fast as live data; full history sits in a replayable log (long Kafka retention or Iceberg on S3; default is only 7 days); the logic fits a stream job; exactly-once processing so replays match.</p><p><b>(b) Risks:</b> TB+ replay may take days; batch throughput falls to stream-engine speed; storage cost of long retention; every Hive/Spark batch job must be rewritten and run in parallel during the switch; staff must learn stream SQL.</p><p><b>(c) Not suitable:</b></p><ol><li><b>Regulatory reconciliation:</b> Bangladesh Bank requires a daily end-of-day batch reconciliation; the batch layer must stay.</li><li><b>TB+ history:</b> a national health-records system recomputing 10 years of disease statistics after a coding change; one Spark batch job is far faster than replay.</li><li><b>Batch SQL preferred:</b> yearly credit-risk model training written in Hive/Spark SQL over full history.</li></ol><p><b>Verdict:</b> move streaming workloads to one Kappa path; keep batch where regulation or huge history demands it.</p>"
+  },
+  {
+   "src": "Discussion",
+   "n": "L1",
+   "q": "<b>Kafka as the single source of truth</b>: all events written to Kafka first; the speed and batch layers are both consumers of the same topic &#8212; eliminating the data inconsistency problem of classic Lambda (two separate ingestion paths)",
+   "topic": "lambda-kappa",
+   "a": "<b>Claim:</b> Netflix writes each event to Kafka once; Flink (speed, &lt; 1 min) and the S3 sink + Spark/Iceberg (batch, ~1 day) read the same topic, so both layers see the same data. <b>For:</b> no mismatch between layers; new consumers just subscribe. <b>Against:</b> Kafka becomes a single critical dependency (2,000+ brokers to keep up), and the two code paths still exist; only ingestion is unified."
+  },
+  {
+   "src": "Discussion",
+   "n": "L2",
+   "q": "<b>Retention enables reprocessing</b>: 7-day retention lets Netflix replay any event window when a Flink job has a bug or a Spark job fails",
+   "topic": "kafka-log",
+   "a": "<b>Claim:</b> reading does not delete events, so a fixed job resets its offset and recomputes the last week. <b>For:</b> bugs are fixed after the fact without asking devices to resend. <b>Against:</b> only 7 days; a bug found on day 8 needs the S3/Iceberg copy. At 100 billion events/day, 7 days is 700 billion events of storage; tiered storage (Kafka 3.6) moves old segments to S3."
+  },
+  {
+   "src": "Discussion",
+   "n": "L3",
+   "q": "<b>Kappa simplification</b>: Netflix increasingly moved batch jobs to Flink stream processing (processing historical S3 data as a bounded stream), reducing pipeline complexity",
+   "topic": "lambda-kappa",
+   "a": "<b>Claim:</b> a bounded stream (data with a start and an end, such as last month's S3 files) can be read by the same Flink code as live data, so one code path covers both. <b>For:</b> less duplicate code, fewer systems. <b>Against:</b> Netflix still keeps Spark + Iceberg for ML training and billing, where batch is easier or cheaper; the move is gradual."
+  },
+  {
+   "src": "Discussion",
+   "n": "L4",
+   "q": "<b>Schema Registry is non-negotiable at scale</b>: 4,000 topics &#215; evolving schemas &#8658; consumer breakage without schema governance",
+   "topic": "kafka-log",
+   "a": "<b>Claim:</b> a schema is a message's field names and types; if a producer renames a field, consumers break. Schema Registry stores the Avro/Protobuf schema per topic so consumers can read any past producer version. <b>For:</b> 4,000+ topics and 150+ Flink jobs cannot be coordinated by hand. <b>Against:</b> another service to run, and teams must follow compatibility rules. It is the streaming form of the data-swamp lesson."
+  },
+  {
+   "src": "Discussion",
+   "n": "L5",
+   "q": "<b>Backpressure is the real production problem</b>: during Super Bowl commercials, event rates spike 5&#215;; Kafka's durable log absorbs the burst; Flink consumers catch up within minutes",
+   "topic": "kafka-speed",
+   "a": "<b>Claim:</b> backpressure is data arriving faster than consumers can process. If the 5&#215; spike landed on the 1.3 M/s peak, that would be 6.5 M/s; Kafka appends the excess to disk and Flink catches up later. <b>For:</b> no data lost, no need to size consumers for the rare peak. <b>Against:</b> results lag by minutes during the spike (the 5-minute A/B latency slips), and brokers need spare disk."
+  },
+  {
+   "src": "Live Exercise",
+   "n": "Task",
+   "q": "Simulate a Kafka producer/consumer pipeline using the <b>kafka-python</b> library with a local single-broker cluster (Docker Compose provided below).<br>Quick-start: <code>pip install kafka-python</code>; <code>docker run -p 9092:9092 apache/kafka:3.7.0</code>",
+   "topic": "kafka-log",
+   "code": "import json, random, time\nfrom kafka import KafkaProducer, KafkaConsumer\n\nTOPIC   = \"play-events\"\nBROKER  = \"localhost:9092\"\nCONTENT = [f\"show_{i}\" for i in range(20)]\n\n# --- Producer ---\nproducer = KafkaProducer(\n  bootstrap_servers=BROKER,\n  value_serializer=lambda v:\n      json.dumps(v).encode())\n\nfor _ in range(1_000):\n    event = {\n      \"user_id\":    random.randint(1, 500),\n      \"content_id\": random.choice(CONTENT),\n      \"action\":     random.choice(\n                       [\"play\",\"pause\",\"seek\"]),\n      \"ts\":         int(time.time())\n    }\n    producer.send(TOPIC, event)\nproducer.flush()\nprint(\"Produced 1,000 events\")\n\n# --- Consumer ---\nconsumer = KafkaConsumer(\n  TOPIC,\n  bootstrap_servers=BROKER,\n  group_id=\"cse4345-group\",\n  auto_offset_reset=\"earliest\",\n  value_deserializer=lambda m:\n      json.loads(m.decode()))\n\ncounts = {}\nfor msg in consumer:\n    cid = msg.value[\"content_id\"]\n    counts[cid] = counts.get(cid, 0) + 1\n    if sum(counts.values()) >= 1_000:\n        break\nprint(sorted(counts.items(),\n             key=lambda x: -x[1])[:5])",
+   "a": "<p>The producer sends 1,000 JSON events (user 1&#8211;500, one of 20 shows, play/pause/seek); <code>flush()</code> waits until queued messages are sent. The consumer (group <code>cse4345-group</code>, <code>auto_offset_reset=\"earliest\"</code>) reads from the start, counts events per <code>content_id</code>, stops after 1,000 and prints the top 5 shows. Broker: <code>docker run -p 9092:9092 apache/kafka:3.7.0</code>.</p><p>Replay (goal 3): <code>consumer.seek_to_beginning(*consumer.assignment())</code>. New group (goal 4): change <code>group_id</code>.</p>"
+  },
+  {
+   "src": "Live Exercise",
+   "n": "1",
+   "q": "Run the producer &#8212; send 1,000 synthetic Netflix play events to topic <code>play-events</code>.",
+   "topic": "kafka-log",
+   "a": "Expected output: <code>Produced 1,000 events</code>. With one partition the messages sit at offsets 0&#8211;999. Running it again appends offsets 1,000&#8211;1,999; nothing is overwritten."
+  },
+  {
+   "src": "Live Exercise",
+   "n": "2",
+   "q": "Run the consumer &#8212; read all messages, count plays per <code>content_id</code>.",
+   "topic": "kafka-log",
+   "a": "Expected: 1,000 events read. The slide&#8217;s consumer counts every event per <code>content_id</code> (play, pause and seek alike), so each of the 20 shows gets about 1,000 / 20 = <b>50</b>; the top-5 print shows the largest. To count plays only, add <code>if msg.value[\"action\"] == \"play\"</code>: about 1,000 / 3 &#8776; 333 plays, about 16.7 per show. Exact counts change each run because the producer is random."
+  },
+  {
+   "src": "Live Exercise",
+   "n": "3",
+   "q": "Reset the consumer offset to the <i>beginning</i> and re-consume &#8212; verify idempotent results.",
+   "topic": "kafka-log",
+   "a": "After <code>seek_to_beginning</code> the same group re-reads all 1,000 events and gets identical counts. Reading did not delete anything, so the result is idempotent (same answer when repeated). If the producer ran again in between, there are 2,000 events: that is new data, not a broken replay."
+  },
+  {
+   "src": "Live Exercise",
+   "n": "4",
+   "q": "Change the consumer group ID and observe that a new group starts from offset 0.",
+   "topic": "kafka-log",
+   "a": "A new group has no committed offset, so with <code>auto_offset_reset=\"earliest\"</code> it reads all 1,000 events from offset 0. The old group's offset is untouched. Trap: kafka-python's default is \"latest\", which makes a new group read 0 events."
+  }
+ ],
+ "formulas": [
+  {
+   "name": "Point-to-point ETL jobs",
+   "formula": "N &#215; (N &#8722; 1); bus = N",
+   "note": "50 systems: 2,450 jobs vs 50 connections"
+  },
+  {
+   "name": "Partition copies",
+   "formula": "P &#215; R",
+   "note": "bkash-txns: 3 &#215; 2 = 6"
+  },
+  {
+   "name": "Broker failures survived",
+   "formula": "R &#8722; 1",
+   "note": "default R = 3 survives 2"
+  },
+  {
+   "name": "Active consumers in a group",
+   "formula": "min(P, C); idle = C &#8722; P (only if C &gt; P)",
+   "note": "one consumer per partition per group"
+  },
+  {
+   "name": "Messages per second",
+   "formula": "MB/s &#215; 1,000,000 &#247; message bytes",
+   "note": "50.5 MB/s, 100 B = 505,000 msgs/s"
+  },
+  {
+   "name": "Speedup",
+   "formula": "Kafka &#247; other",
+   "note": "50.5 / 4.3 &#8776; 11.7&#215;; 50.5 / 14.7 &#8776; 3.4&#215;"
+  },
+  {
+   "name": "Sequential vs random disk",
+   "formula": "seq &#247; random",
+   "note": "600 / 100 = 6&#215; (paper figures)"
+  },
+  {
+   "name": "Zero-copy",
+   "formula": "4 copies &#8594; 2 copies",
+   "note": "about 2&#215; throughput, CPU near zero"
+  },
+  {
+   "name": "Events per second",
+   "formula": "events per day &#247; 86,400",
+   "note": "Netflix 100 B/day &#8776; 1.16 M/s"
+  }
+ ],
+ "mock": {
+  "a": {
+   "marks": 4,
+   "q": "A ride-sharing firm streams driver GPS pings every 3 seconds to a Kafka topic with 10 partitions, keyed by driver_id, replication factor 3. The routing engine and the billing service both read the topic.<br>i) Why key by driver_id? ii) How do routing and billing each get every ping? iii) How many broker failures can the topic survive? iv) Routing scales to 14 consumers in one group. How many sit idle?",
+   "a": "i) Same key &#8594; same partition, so each driver's pings stay in order. ii) Each is its own consumer group. iii) R &#8722; 1 = 2. iv) 14 &#8722; 10 = 4 idle."
+  },
+  "b": {
+   "marks": 6,
+   "q": "The same firm loads its 5 M-row trips table from MySQL into HDFS nightly and also wants a fraud check on payments within 1 second. Name the tool for each, choose Lambda or Kappa for the whole system, and give one weakness of your choice.",
+   "a": "Trips table: Sqoop (incremental import by last-value, parallel map tasks, retry on failure). Payments: Kafka topic + Spark Streaming (milliseconds, RF for fault tolerance, replay from offset). Architecture: Lambda, because a real nightly batch path exists (batch = Sqoop + HDFS + Hive; speed = Kafka + Spark Streaming; serving merges). Weakness: two code paths for shared logic, 30&#8211;40% of effort to keep in sync; reduce it by making Kafka the single source both layers read."
+  },
+  "or_a": {
+   "marks": 4,
+   "q": "A hospital stores five years of lab CSVs, scanned reports and device logs in S3 with no catalogue. Analysts find four versions of the same table, and patient IDs are open to every user.<br>i) Lake or warehouse? ii) What has it become? iii) Name the layer that is missing. iv) Give two fixes.",
+   "a": "i) Data lake. ii) A data swamp. iii) Catalogue/Governance layer. iv) Catalogue with an owner per dataset; access control on PII (also quality checks, Iceberg/Delta Lake versioning)."
+  },
+  "or_b": {
+   "marks": 6,
+   "q": "The hospital's team runs Lambda: nightly Spark jobs plus a Flink stream for ICU alerts. The CTO wants Kappa. State what must be true of the stream engine, one risk of migrating, and one reason Kappa may not suit them. Show how Kappa reprocesses history.",
+   "a": "Must be true: the engine replays history about as fast as it handles live data, and full history is kept in a replayable log (Kafka long retention or Iceberg on S3). Risk: replaying TB+ of records may take days, and all batch jobs must be rewritten. Not suitable if: health regulators require a separate batch reconciliation, or batch SQL is preferred. Reprocessing: deploy new job version &#8594; start at offset 0 &#8594; catch up to live &#8594; swap in, retire the old job."
+  }
+ }
+}

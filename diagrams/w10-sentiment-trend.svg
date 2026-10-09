@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 370" font-family="Inter, Segoe UI, system-ui, sans-serif">
+<style>.bx{fill:var(--d-box,#fff7ed);stroke:var(--d-line,#b45309);stroke-width:1.5}
+.bx2{fill:var(--d-box2,#eff6ff);stroke:var(--d-line2,#1d4ed8);stroke-width:1.5}
+.bx3{fill:var(--d-box3,#ecfdf3);stroke:var(--d-line3,#15803d);stroke-width:1.5}
+.ln{stroke:var(--d-ink,#44403c);stroke-width:1.5;fill:none}
+.t{fill:var(--d-ink,#1c1b19);font-size:14px}.tb{fill:var(--d-ink,#1c1b19);font-size:14px;font-weight:600}
+.ts{fill:var(--d-mute,#78716c);font-size:12px}</style>
+<defs><marker id="ah-w10st" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--d-ink,#44403c)"/></marker></defs>
+<text class="tb" x="380" y="30" text-anchor="middle">VADER compound score</text>
+<rect class="bx" x="40" y="90" width="323.0" height="44" rx="8"/><rect class="bx2" x="363.0" y="90" width="34.0" height="44"/><rect class="bx3" x="397.0" y="90" width="323.0" height="44" rx="8"/>
+<text class="tb" x="200" y="117" text-anchor="middle">negative</text>
+<text class="tb" x="560" y="117" text-anchor="middle">positive</text>
+<text class="t" x="380" y="78" text-anchor="middle">neutral</text>
+<text class="ts" x="40" y="154" text-anchor="start">−1</text>
+<text class="ts" x="360.0" y="154" text-anchor="end">−0.05</text>
+<text class="ts" x="400.0" y="154" text-anchor="start">0.05</text>
+<text class="ts" x="720" y="154" text-anchor="end">+1</text>
+<line class="ln" x1="244.0" y1="222" x2="244.0" y2="138" marker-end="url(#ah-w10st)"/>
+<text class="t" x="244.0" y="240" text-anchor="middle">−0.40 → negative</text>
+<line class="ln" x1="390.2" y1="222" x2="390.2" y2="138" marker-end="url(#ah-w10st)"/>
+<text class="t" x="390.2" y="240" text-anchor="middle">0.03 → neutral</text>
+<line class="ln" x1="590.8" y1="222" x2="590.8" y2="138" marker-end="url(#ah-w10st)"/>
+<text class="t" x="590.8" y="240" text-anchor="middle">0.62 → positive</text>
+<text class="tb" x="380" y="282" text-anchor="middle">Trend detection: rate ÷ own baseline</text>
+<rect class="bx2" x="60" y="300" width="170" height="44" rx="8"/><text class="t" x="145.0" y="327.0" text-anchor="middle">baseline 10/h</text>
+<rect class="bx" x="290" y="300" width="170" height="44" rx="8"/><text class="t" x="375.0" y="327.0" text-anchor="middle">now 10,000/h</text>
+<rect class="bx3" x="520" y="300" width="180" height="44" rx="8"/><text class="tb" x="610.0" y="327.0" text-anchor="middle">1,000× → trending</text>
+<line class="ln" x1="230" y1="322" x2="288" y2="322" marker-end="url(#ah-w10st)"/>
+<line class="ln" x1="460" y1="322" x2="518" y2="322" marker-end="url(#ah-w10st)"/>
+
+</svg>

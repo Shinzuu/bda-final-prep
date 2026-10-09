@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 390" font-family="Inter, Segoe UI, system-ui, sans-serif"><style>.bx{fill:var(--d-box,#fff7ed);stroke:var(--d-line,#b45309);stroke-width:1.5}
+.bx2{fill:var(--d-box2,#eff6ff);stroke:var(--d-line2,#1d4ed8);stroke-width:1.5}
+.bx3{fill:var(--d-box3,#ecfdf3);stroke:var(--d-line3,#15803d);stroke-width:1.5}
+.ln{stroke:var(--d-ink,#44403c);stroke-width:1.5;fill:none}
+.t{fill:var(--d-ink,#1c1b19);font-size:14px}.tb{fill:var(--d-ink,#1c1b19);font-size:14px;font-weight:600}
+.ts{fill:var(--d-mute,#78716c);font-size:12px}</style><defs><marker id="ah-w08datalake" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--d-ink,#44403c)"/></marker></defs><text class="tb" x="380" y="36" text-anchor="middle">Data lake: four layers</text>
+<rect class="bx" x="20" y="150" width="150" height="60" rx="8"/>
+<text class="tb" x="95.0" y="177.0" text-anchor="middle">Ingestion</text>
+<text class="ts" x="95.0" y="194.0" text-anchor="middle">Sqoop, Flume, Kafka</text>
+<rect class="bx2" x="200" y="80" width="360" height="190" rx="8" stroke-dasharray="6 4"/>
+<text class="tb" x="380" y="108" text-anchor="middle">Storage: HDFS / S3</text>
+<rect class="bx2" x="215" y="150" width="85" height="50" rx="8"/>
+<text class="tb" x="257.5" y="180.0" text-anchor="middle">Raw</text>
+<rect class="bx2" x="325" y="150" width="100" height="50" rx="8"/>
+<text class="tb" x="375.0" y="180.0" text-anchor="middle">Processed</text>
+<rect class="bx2" x="450" y="150" width="95" height="50" rx="8"/>
+<text class="tb" x="497.5" y="180.0" text-anchor="middle">Curated</text>
+<path class="ln" d="M300,175 L325,175" marker-end="url(#ah-w08datalake)"/>
+<path class="ln" d="M425,175 L450,175" marker-end="url(#ah-w08datalake)"/>
+<text class="ts" x="380" y="240" text-anchor="middle">zones</text>
+<rect class="bx" x="595" y="150" width="150" height="60" rx="8"/>
+<text class="tb" x="670.0" y="177.0" text-anchor="middle">Processing</text>
+<text class="ts" x="670.0" y="194.0" text-anchor="middle">Spark, Hive, Presto</text>
+<path class="ln" d="M170,180 L215,180" marker-end="url(#ah-w08datalake)"/>
+<path class="ln" d="M560,180 L595,180" marker-end="url(#ah-w08datalake)" marker-start="url(#ah-w08datalake)"/>
+<rect class="bx3" x="20" y="300" width="725" height="56" rx="8"/>
+<text class="tb" x="382.5" y="325.0" text-anchor="middle">Catalogue / Governance</text>
+<text class="ts" x="382.5" y="342.0" text-anchor="middle">Atlas, Glue: schema, lineage, owner, access</text>
+<path class="ln" d="M95,300 L95,210" stroke-dasharray="4 4"/>
+<path class="ln" d="M380,300 L380,270" stroke-dasharray="4 4"/>
+<path class="ln" d="M670,300 L670,210" stroke-dasharray="4 4"/>
+<text class="ts" x="380" y="378" text-anchor="middle">Missing catalogue and owners: data swamp</text></svg>

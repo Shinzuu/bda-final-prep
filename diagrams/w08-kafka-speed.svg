@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 320" font-family="Inter, Segoe UI, system-ui, sans-serif"><style>.bx{fill:var(--d-box,#fff7ed);stroke:var(--d-line,#b45309);stroke-width:1.5}
+.bx2{fill:var(--d-box2,#eff6ff);stroke:var(--d-line2,#1d4ed8);stroke-width:1.5}
+.bx3{fill:var(--d-box3,#ecfdf3);stroke:var(--d-line3,#15803d);stroke-width:1.5}
+.ln{stroke:var(--d-ink,#44403c);stroke-width:1.5;fill:none}
+.t{fill:var(--d-ink,#1c1b19);font-size:14px}.tb{fill:var(--d-ink,#1c1b19);font-size:14px;font-weight:600}
+.ts{fill:var(--d-mute,#78716c);font-size:12px}</style><defs><marker id="ah-w08kafkaspeed" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--d-ink,#44403c)"/></marker></defs><text class="tb" x="20" y="48" text-anchor="start">Traditional broker: 4 copies</text>
+<rect class="bx2" x="20" y="62" width="110" height="50" rx="8"/>
+<text class="tb" x="75.0" y="92.0" text-anchor="middle">Disk</text>
+<rect class="bx2" x="170" y="62" width="130" height="50" rx="8"/>
+<text class="tb" x="235.0" y="92.0" text-anchor="middle">Kernel buffer</text>
+<rect class="bx" x="340" y="62" width="120" height="50" rx="8"/>
+<text class="tb" x="400.0" y="92.0" text-anchor="middle">User space</text>
+<rect class="bx2" x="500" y="62" width="130" height="50" rx="8"/>
+<text class="tb" x="565.0" y="92.0" text-anchor="middle">Socket buffer</text>
+<rect class="bx2" x="670" y="62" width="70" height="50" rx="8"/>
+<text class="tb" x="705.0" y="92.0" text-anchor="middle">NIC</text>
+<path class="ln" d="M130,87 L170,87" marker-end="url(#ah-w08kafkaspeed)"/>
+<text class="ts" x="150.0" y="80" text-anchor="middle">1</text>
+<path class="ln" d="M300,87 L340,87" marker-end="url(#ah-w08kafkaspeed)"/>
+<text class="ts" x="320.0" y="80" text-anchor="middle">2</text>
+<path class="ln" d="M460,87 L500,87" marker-end="url(#ah-w08kafkaspeed)"/>
+<text class="ts" x="480.0" y="80" text-anchor="middle">3</text>
+<path class="ln" d="M630,87 L670,87" marker-end="url(#ah-w08kafkaspeed)"/>
+<text class="ts" x="650.0" y="80" text-anchor="middle">4</text>
+<text class="tb" x="20" y="178" text-anchor="start">Kafka sendfile(): 2 copies</text>
+<rect class="bx3" x="20" y="192" width="110" height="50" rx="8"/>
+<text class="tb" x="75.0" y="222.0" text-anchor="middle">Disk</text>
+<rect class="bx3" x="250" y="192" width="150" height="50" rx="8"/>
+<text class="tb" x="325.0" y="214.0" text-anchor="middle">Page cache</text>
+<text class="ts" x="325.0" y="231.0" text-anchor="middle">kernel memory</text>
+<rect class="bx3" x="670" y="192" width="70" height="50" rx="8"/>
+<text class="tb" x="705.0" y="222.0" text-anchor="middle">NIC</text>
+<path class="ln" d="M130,217 L250,217" marker-end="url(#ah-w08kafkaspeed)"/>
+<text class="ts" x="190" y="210" text-anchor="middle">1</text>
+<path class="ln" d="M400,217 L670,217" marker-end="url(#ah-w08kafkaspeed)"/>
+<text class="ts" x="535" y="210" text-anchor="middle">2</text>
+<text class="ts" x="535" y="236" text-anchor="middle">skips user space</text>
+<text class="ts" x="380" y="292" text-anchor="middle">2 copies + 2 context switches removed: about 2× throughput</text></svg>

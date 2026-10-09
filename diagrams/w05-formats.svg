@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 360" font-family="Inter, Segoe UI, system-ui, sans-serif">
+<style>.bx{fill:var(--d-box,#fff7ed);stroke:var(--d-line,#b45309);stroke-width:1.5}
+.bx2{fill:var(--d-box2,#eff6ff);stroke:var(--d-line2,#1d4ed8);stroke-width:1.5}
+.bx3{fill:var(--d-box3,#ecfdf3);stroke:var(--d-line3,#15803d);stroke-width:1.5}
+.ln{stroke:var(--d-ink,#44403c);stroke-width:1.5;fill:none}
+.t{fill:var(--d-ink,#1c1b19);font-size:14px}.tb{fill:var(--d-ink,#1c1b19);font-size:14px;font-weight:600}
+.ts{fill:var(--d-mute,#78716c);font-size:12px}</style>
+<defs><marker id="ah-w05e" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--d-ink,#44403c)"/></marker></defs>
+<rect class="bx" x="30" y="56" width="200" height="210" rx="8"/>
+<text class="tb" x="130" y="80" text-anchor="middle">Avro file</text>
+<rect class="bx2" x="50" y="96" width="160" height="64" rx="8"/>
+<text class="tb" x="130.0" y="124.0" text-anchor="middle">writer schema</text>
+<text class="ts" x="130.0" y="142.0" text-anchor="middle">id, name, city</text>
+<rect class="bx2" x="50" y="184" width="160" height="64" rx="8"/>
+<text class="tb" x="130.0" y="212.0" text-anchor="middle">data rows</text>
+<text class="ts" x="130.0" y="230.0" text-anchor="middle">binary, row by row</text>
+<rect class="bx2" x="280" y="26" width="170" height="64" rx="8"/>
+<text class="tb" x="365.0" y="54.0" text-anchor="middle">reader schema</text>
+<text class="ts" x="365.0" y="72.0" text-anchor="middle">id, name, email</text>
+<rect class="bx" x="280" y="150" width="170" height="56" rx="8"/>
+<text class="tb" x="365.0" y="183.0" text-anchor="middle">match by name</text>
+<rect class="bx3" x="510" y="100" width="180" height="64" rx="8"/>
+<text class="tb" x="600.0" y="128.0" text-anchor="middle">default value</text>
+<text class="ts" x="600.0" y="146.0" text-anchor="middle">email: missing</text>
+<rect class="bx3" x="510" y="210" width="180" height="64" rx="8"/>
+<text class="tb" x="600.0" y="238.0" text-anchor="middle">ignored</text>
+<text class="ts" x="600.0" y="256.0" text-anchor="middle">city: extra</text>
+<line class="ln" x1="210" y1="136" x2="278" y2="166" marker-end="url(#ah-w05e)"/>
+<line class="ln" x1="210" y1="210" x2="278" y2="190" marker-end="url(#ah-w05e)"/>
+<line class="ln" x1="365" y1="90" x2="365" y2="148" marker-end="url(#ah-w05e)"/>
+<line class="ln" x1="450" y1="168" x2="508" y2="136" marker-end="url(#ah-w05e)"/>
+<line class="ln" x1="450" y1="190" x2="508" y2="234" marker-end="url(#ah-w05e)"/>
+<text class="ts" x="360" y="314" text-anchor="middle">New readers read old files (backward compatible)</text>
+<text class="ts" x="360" y="334" text-anchor="middle">Old readers read new files (forward compatible)</text>
+</svg>

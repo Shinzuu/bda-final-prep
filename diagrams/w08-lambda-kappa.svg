@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 400" font-family="Inter, Segoe UI, system-ui, sans-serif"><style>.bx{fill:var(--d-box,#fff7ed);stroke:var(--d-line,#b45309);stroke-width:1.5}
+.bx2{fill:var(--d-box2,#eff6ff);stroke:var(--d-line2,#1d4ed8);stroke-width:1.5}
+.bx3{fill:var(--d-box3,#ecfdf3);stroke:var(--d-line3,#15803d);stroke-width:1.5}
+.ln{stroke:var(--d-ink,#44403c);stroke-width:1.5;fill:none}
+.t{fill:var(--d-ink,#1c1b19);font-size:14px}.tb{fill:var(--d-ink,#1c1b19);font-size:14px;font-weight:600}
+.ts{fill:var(--d-mute,#78716c);font-size:12px}</style><defs><marker id="ah-w08lambdakappa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--d-ink,#44403c)"/></marker></defs><text class="tb" x="190" y="28" text-anchor="middle">Lambda (Marz, 2011)</text>
+<text class="tb" x="575" y="28" text-anchor="middle">Kappa (Kreps, 2014)</text>
+<line class="ln" x1="390" y1="40" x2="390" y2="380" stroke-dasharray="4 4"/>
+<rect class="bx" x="90" y="45" width="200" height="44" rx="8"/>
+<text class="tb" x="190.0" y="72.0" text-anchor="middle">Raw events</text>
+<rect class="bx" x="20" y="130" width="150" height="54" rx="8"/>
+<text class="tb" x="95.0" y="154.0" text-anchor="middle">Batch layer</text>
+<text class="ts" x="95.0" y="171.0" text-anchor="middle">hours old, exact</text>
+<rect class="bx2" x="210" y="130" width="150" height="54" rx="8"/>
+<text class="tb" x="285.0" y="154.0" text-anchor="middle">Speed layer</text>
+<text class="ts" x="285.0" y="171.0" text-anchor="middle">seconds, approx.</text>
+<rect class="bx3" x="60" y="235" width="260" height="54" rx="8"/>
+<text class="tb" x="190.0" y="259.0" text-anchor="middle">Serving layer</text>
+<text class="ts" x="190.0" y="276.0" text-anchor="middle">batch ∪ real-time</text>
+<rect class="bx" x="110" y="330" width="160" height="44" rx="8"/>
+<text class="tb" x="190.0" y="357.0" text-anchor="middle">Dashboard</text>
+<path class="ln" d="M150,89 L95,130" marker-end="url(#ah-w08lambdakappa)"/>
+<path class="ln" d="M230,89 L285,130" marker-end="url(#ah-w08lambdakappa)"/>
+<path class="ln" d="M95,184 L150,235" marker-end="url(#ah-w08lambdakappa)"/>
+<path class="ln" d="M285,184 L230,235" marker-end="url(#ah-w08lambdakappa)"/>
+<path class="ln" d="M190,289 L190,330" marker-end="url(#ah-w08lambdakappa)"/>
+<rect class="bx" x="475" y="45" width="200" height="44" rx="8"/>
+<text class="tb" x="575.0" y="72.0" text-anchor="middle">Raw events</text>
+<rect class="bx2" x="455" y="130" width="240" height="54" rx="8"/>
+<text class="tb" x="575.0" y="154.0" text-anchor="middle">Kafka log</text>
+<text class="ts" x="575.0" y="171.0" text-anchor="middle">all history, offset 0…N</text>
+<rect class="bx" x="455" y="235" width="240" height="54" rx="8"/>
+<text class="tb" x="575.0" y="259.0" text-anchor="middle">One stream job</text>
+<text class="ts" x="575.0" y="276.0" text-anchor="middle">live + replay from 0</text>
+<rect class="bx3" x="495" y="330" width="160" height="44" rx="8"/>
+<text class="tb" x="575.0" y="357.0" text-anchor="middle">Serving store</text>
+<path class="ln" d="M575,89 L575,130" marker-end="url(#ah-w08lambdakappa)"/>
+<path class="ln" d="M575,184 L575,235" marker-end="url(#ah-w08lambdakappa)"/>
+<path class="ln" d="M575,289 L575,330" marker-end="url(#ah-w08lambdakappa)"/></svg>

@@ -1,0 +1,1325 @@
+{
+ "week": 10,
+ "title": "Big data in real applications",
+ "summary": "This chapter applies the course's stack (Kafka, Spark, HDFS, Hive, Grafana) to three domains: social media graphs, time series forecasting and healthcare data. A flu surveillance case study shows what big data signals can and cannot replace.",
+ "topics": [
+  {
+   "id": "social-graph",
+   "chapter": 10,
+   "title": "Social media as a graph: communities, influence, Twitter's shape",
+   "facts": [
+    "Four data dimensions of social media: graph-structured, temporal, text (NLP), multimedia.",
+    "The graph (who follows or retweets whom) is the main object of analysis, not the single post.",
+    "Community: nodes more densely linked to each other than to the rest of the graph. Found with Louvain (Blondel 2008), O(n log n).",
+    "Modularity: fraction of edges inside communities minus the fraction expected by chance. Louvain maximises it.",
+    "Influence maximisation: choose k seed users so a message spreads furthest. NP-hard; Kempe's greedy method guarantees (1 &minus; 1/e) &asymp; 63% of optimal.",
+    "Kwak 2010: 41.7M users, 1.47B directed edges, 22.1% mutual follows, power law &alpha; &asymp; 2.276, average shortest path 4.12 hops, 85% of trends are news.",
+    "Kwak 2010 impact: seeding a campaign at high-PageRank users gives measurably different spread from seeding at high-follower users, so follower count is not the same as influence."
+   ],
+   "mechanism": [
+    "Louvain start: every node is its own community",
+    "Move each node into the neighbour community that gives the biggest modularity gain",
+    "Collapse each community into one super-node (edges between communities become weighted edges)",
+    "Repeat the move and collapse steps on the smaller graph",
+    "Stop when no move raises modularity (gain is zero)"
+   ],
+   "why": [
+    "Louvain is greedy and local, so it scales to billion-node graphs in Spark GraphX.",
+    "Modularity compares against chance, so a big group is not called a community just for being big.",
+    "Exact influence maximisation is NP-hard; greedy gives a proven 63% floor in reasonable time.",
+    "Twitter is sparse: 1.47B edges among 41.7M users is about 35 follows each, a tiny share of possible links.",
+    "Low reciprocity and fast news trends make Twitter a news medium, which is why health agencies watch it."
+   ],
+   "contrasts": [
+    {
+     "vs": "Other graph and clustering methods",
+     "head": [
+      "",
+      "Louvain",
+      "PageRank",
+      "K-Means"
+     ],
+     "rows": [
+      [
+       "Answers",
+       "Which group is a node in?",
+       "How important is a node?",
+       "Which points are close in space?"
+      ],
+      [
+       "Input",
+       "Graph links",
+       "Graph links",
+       "Feature vectors"
+      ],
+      [
+       "Output",
+       "Community labels",
+       "One score per node",
+       "Cluster labels"
+      ],
+      [
+       "Goal",
+       "Maximise modularity",
+       "Score by random-walk visit probability (no optimising)",
+       "Minimise distance to centroid"
+      ]
+     ]
+    },
+    {
+     "vs": "Twitter vs Facebook",
+     "head": [
+      "",
+      "Twitter (Kwak 2010)",
+      "Facebook"
+     ],
+     "rows": [
+      [
+       "Edge type",
+       "Directed (follow)",
+       "Undirected (friendship)"
+      ],
+      [
+       "Reciprocity",
+       "22.1% mutual",
+       "&asymp;100% (both must agree)"
+      ],
+      [
+       "Behaves like",
+       "News medium",
+       "Social network"
+      ]
+     ]
+    }
+   ],
+   "scenarios": [
+    {
+     "cue": "find tightly linked groups of accounts, such as a coordinated bot network",
+     "answer": "community detection (Louvain)"
+    },
+    {
+     "cue": "a ministry wants to pick 50 accounts to seed a vaccine message so it reaches the most people",
+     "answer": "influence maximisation (Kempe greedy)"
+    },
+    {
+     "cue": "rank accounts by how important they are in the follow graph",
+     "answer": "PageRank, not community detection"
+    },
+    {
+     "cue": "most follows are one-way and trending topics are headline news",
+     "answer": "Twitter as a news medium (Kwak 2010)"
+    },
+    {
+     "cue": "estimate how many users a tweet reaches in h hops with out-degree d",
+     "answer": "tree estimate d + d&sup2; + &hellip; + d^h, an overestimate"
+    }
+   ],
+   "calculation": {
+    "example": "<p>Discussion Q1 (P2 slide 15): out-degree d = 45, h = 3 hops, 41.7M users.</p><table><tr><th>Hop</th><th>New users</th></tr><tr><td>1</td><td>45</td></tr><tr><td>2</td><td>45&sup2; = 2,025</td></tr><tr><td>3</td><td>45&sup3; = 91,125</td></tr><tr><td><b>Total</b></td><td><b>93,195</b> (0.22% of 41.7M)</td></tr></table>",
+    "steps": [
+     "Given d = 45 -> hop 1 reaches 45 users",
+     "Given hop 1 = 45 and d = 45 -> hop 2 = 45 &times; 45 = 2,025",
+     "Given hop 2 = 2,025 -> hop 3 = 2,025 &times; 45 = 91,125",
+     "Given hops 45, 2,025, 91,125 -> total = 93,195",
+     "Given total 93,195 and 41.7M users -> share = 93,195 / 41,700,000 = 0.22%"
+    ],
+    "variants": [
+     "d = 30, h = 3: 30 + 900 + 27,000 = 27,930 users.",
+     "d = 40, h = 2: 40 + 1,600 = 1,640 users.",
+     "d = 45, h = 4: adds 45&#8308; = 4,100,625, total 4,193,820.",
+     "Greedy seeding, optimal reach 10,000: guaranteed at least 10,000 &times; (1 &minus; 1/e) &asymp; 6,321 users."
+    ]
+   },
+   "traps": [
+    "PageRank measures importance, not community membership; K-Means clusters vectors, not graph links.",
+    "The hop estimate is an upper bound: it counts shared followers again (clustering, overlapping neighbourhoods).",
+    "Kempe's result: the problem is NP-hard, the greedy answer is approximate (63%), not exact.",
+    "Sparse means few edges per node, not few nodes."
+   ],
+   "answers": {
+    "1": "Community detection finds groups of nodes more densely linked to each other than to the rest of the graph, usually with the Louvain algorithm.",
+    "3": "Louvain starts with each node alone, greedily merges nodes to raise modularity (edges inside groups minus the chance level), collapses groups into super-nodes and repeats until modularity stops rising. It runs in O(n log n), so it handles billion-node graphs. Example: finding a bot network that retweets only itself.",
+    "5": "<p><b>Social media data</b> is a graph: users are nodes, follows and retweets are edges. <b>Community detection</b> (Louvain) finds densely linked groups: start with each node alone, merge to raise modularity, collapse into super-nodes, repeat until no gain. <b>Influence maximisation</b> picks k seeds for widest spread; it is NP-hard, so Kempe's greedy method is used with a (1 &minus; 1/e) &asymp; 63% guarantee. <b>Example:</b> Kwak 2010 found Twitter has 41.7M users, 22.1% mutual follows and 4.12 average hops, so it acts as a news medium. With out-degree 45, a tweet reaches at most 93,195 users in 3 hops. <b>Limitation:</b> that estimate ignores overlapping followers, so it is too high.</p>"
+   },
+   "questions": [
+    {
+     "format": "mcq",
+     "q": "Which algorithm is designed to find communities by maximising modularity?",
+     "options": [
+      "Louvain",
+      "PageRank",
+      "K-Means",
+      "ARIMA"
+     ],
+     "a": "Louvain greedily merges nodes to raise modularity; PageRank ranks node importance."
+    },
+    {
+     "format": "blank",
+     "q": "Kempe et al. showed influence maximisation is ______, and the greedy method reaches at least ______ of the optimal spread.",
+     "a": "NP-hard; (1 &minus; 1/e) &asymp; 63%"
+    },
+    {
+     "format": "define",
+     "q": "Define modularity and list the four data dimensions of social media.",
+     "a": "Modularity: fraction of edges inside communities minus the fraction expected by chance. Dimensions: graph-structured, temporal, text (NLP), multimedia."
+    },
+    {
+     "format": "steps",
+     "q": "Describe the steps of the Louvain algorithm.",
+     "a": "<ol><li>Each node is its own community.</li><li>Move each node to the neighbour community with the largest modularity gain.</li><li>Collapse communities into super-nodes.</li><li>Repeat.</li><li>Stop when the gain is zero.</li></ol>"
+    },
+    {
+     "format": "why",
+     "q": "Why is Twitter called a news medium rather than a social network?",
+     "a": "Only 22.1% of follows are mutual, follower counts follow a power law with a few huge hubs, and 85% of trending topics are headline news (Kwak 2010)."
+    },
+    {
+     "format": "distinguish",
+     "q": "Distinguish community detection from PageRank.",
+     "a": "Community detection assigns each node to a densely linked group (Louvain, modularity). PageRank gives each node an importance score. One answers 'which group', the other 'how important'."
+    },
+    {
+     "format": "scenario",
+     "q": "A watchdog studies 2 million Bangla Facebook accounts that share election posts.<br>i) It wants groups that mostly share among themselves. Which method? ii) It wants 20 accounts to seed a fact-check. Which problem is this? iii) What guarantee does the greedy answer carry? iv) Each account shares to 40 others. Upper bound on reach in 2 hops?",
+     "a": "i) Community detection with Louvain. ii) Influence maximisation. iii) At least (1 &minus; 1/e) &asymp; 63% of the optimal spread. iv) 40 + 1,600 = 1,640 users."
+    },
+    {
+     "format": "one_step",
+     "q": "Hop 2 of a cascade reached 2,025 users and the average out-degree is 45. How many new users at hop 3?",
+     "a": "2,025 &times; 45 = <b>91,125</b>."
+    },
+    {
+     "format": "full_calc",
+     "q": "A tweet starts at one account. Average out-degree 30. Estimate users reached within 3 hops, and say why the real number is lower.",
+     "a": "30 + 30&sup2; + 30&sup3; = 30 + 900 + 27,000 = <b>27,930</b>. Lower in reality because followers overlap (clustering), so the same people are counted again, and most people do not retweet."
+    },
+    {
+     "format": "long",
+     "q": "Explain how social media graphs are analysed, covering community detection, influence maximisation and the structure Kwak et al. found on Twitter.",
+     "a": "Use the 5-mark answer: graph model, Louvain steps and modularity, influence maximisation with the 63% greedy guarantee, Kwak's 22.1% reciprocity, power law and 4.12 hops, then the 3-hop reach of 93,195 as an upper bound."
+    }
+   ],
+   "diagram": {
+    "file": "diagrams/w10-social-graph.svg",
+    "caption": "Communities are dense inside and sparsely linked between, which is what Louvain's modularity rewards; a hub bridges them."
+   }
+  },
+  {
+   "id": "sentiment-trend",
+   "chapter": 10,
+   "title": "Sentiment (VADER), trend detection and ethics",
+   "facts": [
+    "VADER: Valence Aware Dictionary for Sentiment Reasoning (Hutto &amp; Gilbert 2014), lexicon-and-rule based, tuned for social media text.",
+    "VADER handles capitalisation, punctuation (!!!), degree words (very, kind of), negation (not good) and emojis.",
+    "Compound score in [&minus;1, +1]: &gt; 0.05 positive, &lt; &minus;0.05 negative, otherwise neutral.",
+    "Trend detection: Locality-Sensitive Hashing (LSH) on character n-grams finds phrases whose frequency jumps against their own baseline.",
+    "Slide example: 10 per hour to 10,000 per hour is trending regardless of absolute volume. #QurbaniEid: 1,200&times; spike in 6 hours, 92% positive.",
+    "Ethical risks: suppressing dissent, microtargeting vulnerable users. Safeguards: transparency and purpose limitation."
+   ],
+   "mechanism": [
+    "Read tweets into a Spark DataFrame (from Kafka)",
+    "Apply VADER to each tweet with a UDF to get a compound score",
+    "Label each tweet positive, neutral or negative with the 0.05 cut-offs",
+    "Aggregate scores by time window and topic",
+    "In parallel, count each phrase per hour and divide by its historical baseline to flag spikes",
+    "Push the aggregates to the Grafana streaming dashboard (Week 9)"
+   ],
+   "why": [
+    "Rules and a lexicon need no labelled training data, so VADER works out of the box on short, noisy posts.",
+    "Comparing to a phrase's own baseline catches a small topic that suddenly explodes, which raw counts would miss.",
+    "Sentiment on a spike tells organic celebration from coordinated activity (#QurbaniEid was 92% positive).",
+    "Limitation: an English lexicon misreads Bangla, slang and sarcasm, so it needs a Bangla lexicon added.",
+    "The same scores that track public mood can flag critics, so purpose limits are needed."
+   ],
+   "contrasts": [
+    {
+     "vs": "Social media analyses and their ethical risk",
+     "head": [
+      "",
+      "Does",
+      "Ethical risk at scale"
+     ],
+     "rows": [
+      [
+       "Community detection",
+       "Finds densely linked groups",
+       "Profiling: exposes political or religious ties"
+      ],
+      [
+       "Sentiment analysis",
+       "Scores posts positive or negative",
+       "Suppressing dissent: flags critics of a policy"
+      ],
+      [
+       "Influence maximisation",
+       "Picks seed users for spread",
+       "Manipulation: spreads misinformation, microtargets the vulnerable"
+      ],
+      [
+       "Trend detection",
+       "Flags sudden frequency spikes",
+       "Amplifies coordinated campaigns if not checked"
+      ]
+     ]
+    }
+   ],
+   "scenarios": [
+    {
+     "cue": "classify posts as positive, neutral or negative, including emojis and 'NOT good'",
+     "answer": "VADER sentiment analysis"
+    },
+    {
+     "cue": "a phrase normally seen 10 times an hour suddenly appears 10,000 times",
+     "answer": "trend detection (spike against baseline, LSH on n-grams)"
+    },
+    {
+     "cue": "a government flags accounts posting negative views on its policy",
+     "answer": "ethical risk: suppressing dissent"
+    },
+    {
+     "cue": "check whether a hashtag spike is real celebration or a bot campaign",
+     "answer": "sentiment breakdown of the spike"
+    }
+   ],
+   "calculation": {
+    "example": "<p>P1 slide 12: a phrase goes from 10/hour to 10,000/hour.</p><p>Spike ratio = current / baseline = 10,000 / 10 = <b>1,000&times;</b>, so it is trending.</p><p>VADER on three posts: 0.62, 0.03, &minus;0.40 &rarr; positive, neutral, negative.</p>",
+    "steps": [
+     "Given baseline 10/hour and current 10,000/hour -> ratio = 10,000 / 10 = 1,000&times;",
+     "Given a compound of 0.62 -> 0.62 &gt; 0.05, positive",
+     "Given a compound of 0.03 -> between &minus;0.05 and 0.05, neutral",
+     "Given a compound of &minus;0.40 -> &lt; &minus;0.05, negative"
+    ],
+    "variants": [
+     "#QurbaniEid spike 1,200&times; on a baseline of 50 posts/hour: peak = 50 &times; 1,200 = 60,000 posts/hour.",
+     "20/hour to 6,000/hour: 6,000 / 20 = 300&times;.",
+     "Compound exactly 0.05: not greater than 0.05, so neutral. &minus;0.06: negative."
+    ]
+   },
+   "traps": [
+    "The cut-offs are strict: 0.05 itself is neutral.",
+    "Trending depends on the ratio to baseline, not on absolute volume.",
+    "VADER is rule-based, not a deep-learning classifier.",
+    "LSH here is for detecting trends, not for sentiment."
+   ],
+   "answers": {
+    "1": "VADER is a lexicon-and-rule-based sentiment analyser for social media that outputs a compound score in [&minus;1, +1].",
+    "3": "VADER scores each post using a word list plus rules for capitals, punctuation, degree words, negation and emojis. Compound above 0.05 is positive and below &minus;0.05 is negative. Example: 'NOT good!!!' scores more negative than 'not good'.",
+    "5": "<p><b>Sentiment analysis</b> scores text as positive, neutral or negative. VADER uses a lexicon and rules (capitals, !!!, very, not, emojis) and gives a compound score in [&minus;1, +1] with &plusmn;0.05 cut-offs. In Spark it runs as a UDF, then scores are aggregated by window and topic and sent to Grafana. <b>Trend detection</b> uses LSH on character n-grams and flags a phrase whose rate jumps against its baseline: 10 to 10,000 per hour is 1,000&times;. <b>Example:</b> #QurbaniEid spiked 1,200&times; and was 92% positive, so it was organic. <b>Limitation:</b> it can be used to flag critics, so transparency and purpose limitation are required.</p>"
+   },
+   "questions": [
+    {
+     "format": "mcq",
+     "q": "A VADER compound score of &minus;0.03 is classed as:",
+     "options": [
+      "Neutral",
+      "Negative",
+      "Positive",
+      "Invalid, scores must be in [0, 1]"
+     ],
+     "a": "Negative needs a score below &minus;0.05; &minus;0.03 is in the neutral band."
+    },
+    {
+     "format": "blank",
+     "q": "Twitter's trending algorithm uses ______ on character n-grams to detect spikes relative to a phrase's ______.",
+     "a": "Locality-Sensitive Hashing (LSH); historical baseline"
+    },
+    {
+     "format": "define",
+     "q": "Define VADER and list five text features it handles.",
+     "a": "A lexicon-and-rule-based sentiment analyser tuned for social media. Handles capitalisation, punctuation, degree modifiers, negation, emojis."
+    },
+    {
+     "format": "steps",
+     "q": "Describe a Spark pipeline for streaming tweet sentiment.",
+     "a": "<ol><li>Read tweets from Kafka into a DataFrame.</li><li>Apply VADER as a UDF.</li><li>Label with &plusmn;0.05 cut-offs.</li><li>Aggregate by time window and topic.</li><li>Push to Grafana.</li></ol>"
+    },
+    {
+     "format": "why",
+     "q": "Why does trend detection compare to a phrase's baseline instead of using raw counts?",
+     "a": "Big topics are always high. A ratio catches a small phrase that suddenly explodes (10 to 10,000 per hour) regardless of absolute volume."
+    },
+    {
+     "format": "distinguish",
+     "q": "Distinguish sentiment analysis from trend detection.",
+     "a": "Sentiment analysis asks how people feel in each post (VADER score). Trend detection asks which phrase is suddenly more frequent than usual (spike ratio). They combine: score the posts inside a spike."
+    },
+    {
+     "format": "scenario",
+     "q": "During a flood, a hashtag about relief goods rises from 40 to 8,000 posts an hour. Analysts run VADER on it.<br>i) What is the spike ratio? ii) Is it trending? iii) A post scores 0.05. Class? iv) Name one ethical risk if the government uses this to find critics.",
+     "a": "i) 8,000 / 40 = 200&times;. ii) Yes, it jumped far above its baseline. iii) Neutral (not above 0.05). iv) Suppressing dissent."
+    },
+    {
+     "format": "one_step",
+     "q": "A phrase's baseline is 50 posts/hour and the spike is 1,200&times;. Peak rate?",
+     "a": "50 &times; 1,200 = <b>60,000 posts/hour</b>."
+    },
+    {
+     "format": "full_calc",
+     "q": "Baseline 20/hour, current 6,000/hour. Three posts in the spike score 0.70, &minus;0.02, &minus;0.30. Give the ratio and the three classes.",
+     "a": "6,000 / 20 = <b>300&times;</b>. 0.70 positive; &minus;0.02 neutral; &minus;0.30 negative."
+    },
+    {
+     "format": "long",
+     "q": "Explain sentiment analysis and trend detection on social media, with one Bangladesh example and the ethical risks.",
+     "a": "Use the 5-mark answer: VADER features and cut-offs, the Spark UDF pipeline, LSH spike ratio, #QurbaniEid (1,200&times;, 92% positive), then suppressing dissent and microtargeting, with transparency and purpose limitation."
+    }
+   ],
+   "diagram": {
+    "file": "diagrams/w10-sentiment-trend.svg",
+    "caption": "VADER splits the compound score at &plusmn;0.05, and trend detection divides a phrase's current rate by its own baseline."
+   }
+  },
+  {
+   "id": "forecasting",
+   "chapter": 10,
+   "title": "Time series, ARIMA and Prophet at scale",
+   "facts": [
+    "Time series properties: order matters, autocorrelation, seasonality, trend, non-stationarity (mean and variance change over time).",
+    "ARIMA(p, d, q): AR uses past p values, I differences d times for stationarity, MA uses past q forecast errors.",
+    "Prophet (Taylor &amp; Letham 2018): y(t) = g(t) + s(t) + h(t) + &epsilon;(t): trend, seasonality, holidays, noise.",
+    "g(t) is piecewise linear or logistic with automatic changepoints; s(t) is a Fourier series, P = 365.25 (yearly) or 7 (weekly).",
+    "changepoint_prior_scale sets trend flexibility: 0.05 default (stiff), 0.5 flexible. Default uncertainty band is 80%.",
+    "Spark: groupBy(sku_id).applyInPandas fits 5,000 Prophet models in parallel: 8 hours to about 12 minutes on 20 executors (40&times;)."
+   ],
+   "mechanism": [
+    "Load all SKU series into one Spark DataFrame, one row per day per SKU",
+    "Group by sku_id, so each group is one independent series",
+    "applyInPandas sends each group to one task as a Pandas DataFrame",
+    "Inside the function, fit Prophet on columns ds and y and predict 90 days ahead",
+    "All 5,000 models fit in parallel across the cluster",
+    "Write forecasts to Hive/S3 as Parquet and serve them to the dashboard"
+   ],
+   "why": [
+    "Shuffling a time series destroys trend and seasonality, so standard i.i.d. regression is invalid.",
+    "ARIMA needs stationarity, struggles with several seasonal cycles and needs an expert to pick p, d, q, so it cannot be hand-fitted for 10,000 series.",
+    "Prophet's parts are readable, so analysts (not statisticians) can add holidays and adjust trend flexibility.",
+    "A sparse prior on the slope changes &delta; keeps most changepoints near zero, which avoids overfitting.",
+    "Each series is fitted independently, so the job is embarrassingly parallel in Spark."
+   ],
+   "contrasts": [
+    {
+     "vs": "ARIMA vs Prophet vs LSTM",
+     "head": [
+      "",
+      "ARIMA",
+      "Prophet",
+      "LSTM"
+     ],
+     "rows": [
+      [
+       "Kind",
+       "Classical statistics",
+       "Additive decomposable model",
+       "Neural network for sequences"
+      ],
+      [
+       "Input",
+       "Must be stationary",
+       "Handles trend and changepoints",
+       "Needs lots of data"
+      ],
+      [
+       "Seasonality",
+       "Struggles with several",
+       "Several at once (Fourier)",
+       "Learned implicitly"
+      ],
+      [
+       "Holidays",
+       "Not built in",
+       "h(t) term",
+       "Must be fed as features"
+      ],
+      [
+       "Tuning",
+       "Expert picks p, d, q",
+       "Automatic, readable knobs",
+       "Heavy, black box"
+      ],
+      [
+       "Best for",
+       "Short stationary series, small data",
+       "Thousands of business series",
+       "Long complex series with GPU budget"
+      ]
+     ]
+    }
+   ],
+   "scenarios": [
+    {
+     "cue": "forecast thousands of store-product series with Eid and Puja effects",
+     "answer": "Prophet with a holiday list, parallel via applyInPandas"
+    },
+    {
+     "cue": "one short, stable series with no strong seasonality",
+     "answer": "ARIMA"
+    },
+    {
+     "cue": "the model misses a sudden wave, a break in the trend",
+     "answer": "trend g(t) changepoints; raise changepoint_prior_scale"
+    },
+    {
+     "cue": "5,000 models take 8 hours on one machine",
+     "answer": "Spark groupBy + applyInPandas (40&times; speedup)"
+    },
+    {
+     "cue": "rows are shuffled before training and the pattern disappears",
+     "answer": "order matters / autocorrelation"
+    }
+   ],
+   "calculation": {
+    "example": "<p>P1 slide 19: 5,000 SKUs, 8 hours sequential, about 12 minutes on 20 executors.</p><table><tr><th>Quantity</th><th>Working</th><th>Result</th></tr><tr><td>Speedup</td><td>480 min / 12 min</td><td><b>40&times;</b></td></tr><tr><td>Time per model</td><td>28,800 s / 5,000</td><td><b>5.76 s</b></td></tr><tr><td>Models per executor</td><td>5,000 / 20</td><td><b>250</b></td></tr></table><p>Prophet sum: Eid week with g = 100, s = +15, h = +30, &epsilon; = &minus;2 gives y = <b>143</b>.</p>",
+    "steps": [
+     "Given 8 hours -> 8 &times; 60 = 480 minutes",
+     "Given 480 min sequential and 12 min parallel -> speedup = 480 / 12 = 40&times;",
+     "Given 8 h = 28,800 s and 5,000 models -> 5.76 s per model",
+     "Given 5,000 models and 20 executors -> 250 models per executor",
+     "Given g = 100, s = 15, h = 30, &epsilon; = &minus;2 -> y = 143"
+    ],
+    "variants": [
+     "10,000 SKUs at 5.76 s, 40 models at once: sequential 57,600 s = 16 h; parallel 1,440 s = 24 min; speedup still 40&times;.",
+     "400 wards at 2 s each, 20 in parallel: 800 s sequential, 40 s parallel, 20&times;.",
+     "Non-holiday week, y = 120, g = 110, &epsilon; = 0: s = +10.",
+     "Changepoint at t = 10: k = 0.5, m = 1, &delta; = 0.3, &gamma; = &minus;3. g(10) = 6 both sides, g(20) = 0.8 &times; 20 + 1 &minus; 3 = 14."
+    ]
+   },
+   "traps": [
+    "A sudden wave is a trend changepoint, not seasonality; h(t) only covers dates you list in advance.",
+    "Weekly seasonality on weekly data learns nothing: every point is the same weekday.",
+    "Prophet's default interval is 80%; set interval_width=0.95 for 95%.",
+    "ARIMA's d is the number of differences, not the number of seasons."
+   ],
+   "answers": {
+    "1": "Prophet is a time series forecasting model that splits a series into trend, seasonality, holidays and noise: y(t) = g(t) + s(t) + h(t) + &epsilon;(t).",
+    "3": "ARIMA(p, d, q) predicts from past values and past errors after differencing to stationarity, and needs an expert to tune it. Prophet adds a changepoint trend, Fourier seasonality and a holiday term, and tunes itself, so it scales to thousands of series. Example: 5,000 SKU forecasts drop from 8 hours to 12 minutes with applyInPandas.",
+    "5": "<p><b>Time series</b> data is ordered and autocorrelated, with trend and seasonality. <b>ARIMA</b>(p, d, q) needs stationary input and expert tuning, so it fails at 10,000 series. <b>Prophet</b> fits y(t) = g(t) + s(t) + h(t) + &epsilon;(t): piecewise trend with automatic changepoints, Fourier seasonality (P = 365.25, 7), user-listed holidays. <b>At scale:</b> group by sku_id, applyInPandas fits one Prophet per group in parallel, write Parquet to Hive/S3. <b>Example:</b> 5,000 SKUs, 8 h to 12 min on 20 executors, 40&times;. <b>Limitation:</b> with the default changepoint_prior_scale of 0.05 the trend is stiff and can miss a sudden break.</p>"
+   },
+   "questions": [
+    {
+     "format": "mcq",
+     "q": "In Prophet, which component should capture a sudden, unplanned shift in the level of a series?",
+     "options": [
+      "Trend g(t) via changepoints",
+      "Seasonality s(t)",
+      "Holidays h(t)",
+      "Noise &epsilon;(t)"
+     ],
+     "a": "A break is a trend changepoint; h(t) covers only listed dates and s(t) only repeating cycles."
+    },
+    {
+     "format": "blank",
+     "q": "In ARIMA(p, d, q), d is the number of times the series is ______ to make it ______.",
+     "a": "differenced; stationary"
+    },
+    {
+     "format": "define",
+     "q": "Define stationarity and list the four terms of the Prophet model.",
+     "a": "A stationary series has constant mean and variance over time. Terms: trend g(t), seasonality s(t), holidays h(t), noise &epsilon;(t)."
+    },
+    {
+     "format": "steps",
+     "q": "Describe how Spark fits 5,000 Prophet models in parallel.",
+     "a": "<ol><li>One DataFrame, a row per day per SKU.</li><li>groupBy sku_id.</li><li>applyInPandas sends each group to a task.</li><li>Prophet fits and forecasts inside the Pandas UDF.</li><li>All fit in parallel.</li><li>Write Parquet to Hive/S3, serve to dashboard.</li></ol>"
+    },
+    {
+     "format": "why",
+     "q": "Why can ARIMA not be used for 10,000 series at big data scale?",
+     "a": "Each series needs stationarity checks and an expert to choose p, d, q. That manual tuning cannot be repeated 10,000 times."
+    },
+    {
+     "format": "distinguish",
+     "q": "Distinguish ARIMA from Prophet.",
+     "a": "ARIMA: past values and errors, stationary input, expert tuning, weak on multiple seasonality, no holidays. Prophet: additive trend + Fourier seasonality + holidays, automatic, readable, parallel in Spark."
+    },
+    {
+     "format": "scenario",
+     "q": "A pharmacy chain forecasts daily sales for 5,000 SKUs. It takes 8 hours on one server.<br>i) Which model fits Eid effects? ii) Which Spark call parallelises it? iii) Speedup if it now takes 12 minutes? iv) Name the slowest step.",
+     "a": "i) Prophet with a holiday list. ii) groupBy('sku_id').applyInPandas. iii) 480 / 12 = 40&times;. iv) Model fitting (Prophet via Stan)."
+    },
+    {
+     "format": "one_step",
+     "q": "Fitting 5,000 models sequentially takes 8 hours. Time per model in seconds?",
+     "a": "8 &times; 3,600 / 5,000 = <b>5.76 s</b>."
+    },
+    {
+     "format": "full_calc",
+     "q": "10,000 SKUs, 5.76 s per model, 40 models fit at once. Sequential time, parallel time and speedup?",
+     "a": "10,000 &times; 5.76 = 57,600 s = <b>16 h</b>. 57,600 / 40 = 1,440 s = <b>24 min</b>. Speedup 960 / 24 = <b>40&times;</b>."
+    },
+    {
+     "format": "long",
+     "q": "Explain time series forecasting at big data scale: what makes time series special, ARIMA's limits, Prophet's model and how Spark scales it.",
+     "a": "Use the 5-mark answer: five properties, ARIMA(p, d, q) and its three limits, Prophet's four terms with changepoints and Fourier, the applyInPandas steps, the 40&times; example, the stiff-trend limitation."
+    }
+   ],
+   "diagram": {
+    "file": "diagrams/w10-forecasting.svg",
+    "caption": "Prophet adds four parts: a trend with changepoints, Fourier seasonality, listed holidays and noise."
+   }
+  },
+  {
+   "id": "anomaly",
+   "chapter": 10,
+   "title": "Anomaly detection: STL and Isolation Forest",
+   "facts": [
+    "Anomaly: a data point that does not conform to the expected pattern (outlier, change point or contextual deviation).",
+    "STL: Seasonal-Trend decomposition using LOESS. Splits a series into trend, seasonal and residual.",
+    "STL rule: flag a point if |residual| &gt; k &times; IQR of the residuals (IQR = Q3 &minus; Q1).",
+    "Isolation Forest: an ensemble of random trees; an anomaly needs fewer splits to isolate, so its path is shorter.",
+    "Isolation Forest assumes no data distribution and scales to millions of points in Spark MLlib.",
+    "Slide example: bKash agent jumps from 10 to 10,000 transactions per hour, flagged as possible money laundering."
+   ],
+   "mechanism": [
+    "STL: decompose the series into trend, seasonal and residual parts",
+    "Compute Q1, Q3 and IQR of the residuals",
+    "Flag points with |residual| above k &times; IQR",
+    "Isolation Forest: build many random trees, each splitting on a random feature at a random value",
+    "Measure how many splits each point needs to be isolated",
+    "Short average path length means anomaly"
+   ],
+   "why": [
+    "Removing trend and seasonality first stops a normal winter peak from being flagged.",
+    "IQR ignores extreme values, so one huge spike does not hide itself by inflating the threshold.",
+    "STL is interpretable and works well when seasonality is regular.",
+    "Isolation Forest needs no distribution assumption and handles many features, such as per-agent volumes.",
+    "Odd points sit alone, so random cuts separate them quickly."
+   ],
+   "contrasts": [
+    {
+     "vs": "STL vs Isolation Forest",
+     "head": [
+      "",
+      "STL",
+      "Isolation Forest"
+     ],
+     "rows": [
+      [
+       "Idea",
+       "Large leftover residual",
+       "Easy to isolate (short path)"
+      ],
+      [
+       "Needs",
+       "Regular seasonality in one series",
+       "No distribution assumption"
+      ],
+      [
+       "Strength",
+       "Interpretable",
+       "Scales to millions in Spark MLlib"
+      ],
+      [
+       "Slide use",
+       "Seasonal series",
+       "bKash agent volumes"
+      ]
+     ]
+    }
+   ],
+   "scenarios": [
+    {
+     "cue": "an agent's hourly transactions jump from 10 to 10,000",
+     "answer": "Isolation Forest anomaly (possible money laundering)"
+    },
+    {
+     "cue": "flag days whose value is far off after removing the weekly and yearly cycle",
+     "answer": "STL residual with k &times; IQR"
+    },
+    {
+     "cue": "a wearable streams heart rate per second and a sudden drop must raise an alert",
+     "answer": "streaming anomaly detection on time series"
+    }
+   ],
+   "calculation": {
+    "example": "<p>Residuals: 0.2, &minus;0.1, 0.3, &minus;0.4, 0.1, 5.0, &minus;0.2, 0.0; k = 3.</p><ol><li>Sorted: &minus;0.4, &minus;0.2, &minus;0.1, 0.0, 0.1, 0.2, 0.3, 5.0</li><li>Q1 = &minus;0.125, Q3 = 0.225 (inclusive interpolation)</li><li>IQR = 0.35; threshold = 3 &times; 0.35 = 1.05</li><li>Only |5.0| &gt; 1.05: the 6th point is the <b>anomaly</b></li></ol>",
+    "steps": [
+     "Given the residuals -> sort them",
+     "Given the sorted list -> Q1 = &minus;0.125, Q3 = 0.225",
+     "Given Q1 and Q3 -> IQR = 0.225 &minus; (&minus;0.125) = 0.35",
+     "Given IQR 0.35 and k = 3 -> threshold 1.05",
+     "Given threshold 1.05 -> compare each |residual|; only 5.0 exceeds it"
+    ],
+    "variants": [
+     "Same data, k = 1.5: threshold 0.525; largest normal |&minus;0.4| = 0.4, so still only 5.0 is flagged.",
+     "IQR = 2 and k = 3: threshold 6, a residual of &minus;7 is flagged (absolute value)."
+    ]
+   },
+   "traps": [
+    "Use the absolute value of the residual: big negative residuals are anomalies too.",
+    "The threshold uses the IQR of residuals, not of the raw series.",
+    "In Isolation Forest, anomalies have shorter paths, not longer."
+   ],
+   "answers": {
+    "1": "An anomaly is a data point that does not conform to the expected pattern of the series.",
+    "3": "STL splits the series into trend, seasonal and residual, then flags points whose |residual| exceeds k &times; IQR. Isolation Forest builds random trees and flags points that need few splits to isolate. Example: a bKash agent jumping from 10 to 10,000 transactions an hour.",
+    "5": "<p>An <b>anomaly</b> does not fit the expected pattern. <b>STL</b> (Seasonal-Trend decomposition using LOESS): decompose into trend, seasonal, residual; compute the residuals' IQR; flag |residual| &gt; k &times; IQR. Example: residuals with IQR 0.35 and k = 3 give threshold 1.05, so a residual of 5.0 is flagged. <b>Isolation Forest</b>: random trees cut the feature space; anomalies are isolated in fewer splits. It assumes no distribution and scales in Spark MLlib, as in bKash's per-agent monitoring. <b>Limitation:</b> STL needs regular seasonality, and k is a choice the slide leaves open.</p>"
+   },
+   "questions": [
+    {
+     "format": "mcq",
+     "q": "In an Isolation Forest, an anomaly is a point that:",
+     "options": [
+      "Needs fewer random splits to isolate",
+      "Needs more random splits to isolate",
+      "Has the largest seasonal component",
+      "Lies closest to a cluster centroid"
+     ],
+     "a": "Odd points sit alone, so random cuts reach them quickly: shorter path length."
+    },
+    {
+     "format": "blank",
+     "q": "STL flags a point when its absolute ______ exceeds k &times; ______.",
+     "a": "residual; IQR of the residuals"
+    },
+    {
+     "format": "define",
+     "q": "Define anomaly and list the three parts STL produces.",
+     "a": "A point that does not conform to the expected pattern. Trend, seasonal, residual."
+    },
+    {
+     "format": "steps",
+     "q": "Describe STL anomaly detection.",
+     "a": "<ol><li>Decompose into trend, seasonal, residual.</li><li>Find Q1, Q3, IQR of residuals.</li><li>Threshold = k &times; IQR.</li><li>Flag |residual| above it.</li></ol>"
+    },
+    {
+     "format": "why",
+     "q": "Why remove trend and seasonality before looking for anomalies?",
+     "a": "Otherwise a normal seasonal peak (every winter) looks extreme. The residual shows only what the pattern cannot explain."
+    },
+    {
+     "format": "distinguish",
+     "q": "Distinguish STL from Isolation Forest.",
+     "a": "STL: one seasonal series, flags large residuals, interpretable. Isolation Forest: random trees on many features, flags short-path points, no distribution assumption, scales in Spark MLlib."
+    },
+    {
+     "format": "scenario",
+     "q": "bKash monitors hourly transactions per agent. One agent goes from 10 to 10,000.<br>i) Which method does the slide use? ii) Why is this point easy for it? iii) What is the spike ratio? iv) What might it indicate?",
+     "a": "i) Isolation Forest. ii) It sits far from all others, so few splits isolate it. iii) 10,000 / 10 = 1,000&times;. iv) Possible money laundering."
+    },
+    {
+     "format": "one_step",
+     "q": "Residual IQR is 0.35 and k = 3. What is the threshold?",
+     "a": "3 &times; 0.35 = <b>1.05</b>."
+    },
+    {
+     "format": "full_calc",
+     "q": "Residuals 0.2, &minus;0.1, 0.3, &minus;0.4, 0.1, 5.0, &minus;0.2, 0.0. With k = 1.5, which points are anomalies?",
+     "a": "Q1 = &minus;0.125, Q3 = 0.225, IQR = 0.35, threshold 0.525. Only <b>5.0</b> is flagged."
+    },
+    {
+     "format": "long",
+     "q": "Explain two methods for anomaly detection in big time series data, with an example.",
+     "a": "Use the 5-mark answer: definition, STL steps and the worked threshold, Isolation Forest idea and bKash example, limitations."
+    }
+   ],
+   "diagram": {
+    "file": "diagrams/w10-anomaly.svg",
+    "caption": "STL removes trend and seasonality, then flags any residual whose absolute value exceeds k &times; IQR (here 3 &times; 0.35 = 1.05)."
+   }
+  },
+  {
+   "id": "health-data",
+   "chapter": 10,
+   "title": "Healthcare big data, privacy and AlphaFold",
+   "facts": [
+    "Four modalities: EHR (ICD-10, notes, FHIR), genomics (&asymp;200 GB per genome; 10,000 patients = 2 PB), wearables (per-second), imaging (DICOM, 200 MB-2 GB, unstructured).",
+    "EHR ML beats physician rules: ICU mortality (random forest, AUROC &gt; 0.90), 30-day readmission (20% fewer), sepsis 6 hours earlier. Needs 1M+ records.",
+    "HIPAA (USA): de-identify 18 PHI identifiers before research; consent. GDPR (EU): minimisation, purpose limitation, right to erasure.",
+    "PDPA Bangladesh: under development, GDPR-based; NID-linked records need explicit consent.",
+    "Protection: safe harbour, expert determination, differential privacy (calibrated noise on aggregates), federated learning (train at each hospital, data stays).",
+    "AlphaFold 2: 3D protein structure from amino-acid sequence; 170,000 PDB structures, MSAs over 250M UniProt sequences; 200M structures released 2022; 2024 Nobel."
+   ],
+   "mechanism": [
+    "EHR arrives as FHIR resources, genomics as Parquet, wearables through Kafka, images as DICOM",
+    "All land in a health data lake on HDFS/S3 with a Hive Metastore catalogue",
+    "De-identify records before research use (remove the 18 identifiers)",
+    "Train clinical ML models: readmission, mortality, imaging CNNs, variant calling",
+    "Where records cannot move, train with federated learning; publish aggregates with differential privacy"
+   ],
+   "why": [
+    "Images are binary DICOM files, so they need deep learning (CNN, ViT), not SQL.",
+    "Reliable clinical models need 1M+ patient records, which forces pooling data across hospitals.",
+    "Federated learning gets that scale without moving raw records, which consent and law forbid.",
+    "Small-area counts can identify one patient; calibrated noise blocks that inference.",
+    "AlphaFold is a big data problem because each query searches 250M sequences to build its MSA."
+   ],
+   "contrasts": [
+    {
+     "vs": "Privacy techniques",
+     "head": [
+      "",
+      "What it does",
+      "Protects against"
+     ],
+     "rows": [
+      [
+       "Safe harbour",
+       "Removes 18 named identifiers",
+       "Direct identification"
+      ],
+      [
+       "Expert determination",
+       "Statistician certifies low re-identification risk",
+       "Indirect identification"
+      ],
+      [
+       "Differential privacy",
+       "Adds calibrated noise to aggregates",
+       "Inferring one person from statistics"
+      ],
+      [
+       "Federated learning",
+       "Trains at each site, shares only model updates",
+       "Moving raw records between hospitals"
+      ]
+     ]
+    },
+    {
+     "vs": "HIPAA vs GDPR vs PDPA",
+     "head": [
+      "",
+      "Scope",
+      "Key rule"
+     ],
+     "rows": [
+      [
+       "HIPAA",
+       "US health data",
+       "Remove 18 PHI identifiers; consent"
+      ],
+      [
+       "GDPR",
+       "EU personal data",
+       "Minimisation, purpose limitation, erasure"
+      ],
+      [
+       "PDPA",
+       "Bangladesh, draft",
+       "Explicit consent for NID-linked records"
+      ]
+     ]
+    }
+   ],
+   "scenarios": [
+    {
+     "cue": "five hospitals want one sepsis model but cannot share patient files",
+     "answer": "federated learning"
+    },
+    {
+     "cue": "a health ministry publishes district counts of a rare disease",
+     "answer": "differential privacy"
+    },
+    {
+     "cue": "strip names, dates of birth, NIDs and phone numbers before research",
+     "answer": "de-identification (safe harbour)"
+    },
+    {
+     "cue": "predict a protein's 3D shape from its amino-acid sequence",
+     "answer": "AlphaFold"
+    },
+    {
+     "cue": "CT and MRI scans of 1 GB each",
+     "answer": "unstructured DICOM imaging, analysed with CNN/ViT"
+    }
+   ],
+   "calculation": {
+    "example": "<p>P1 slide 21: 10,000 patients &times; 200 GB per genome = 2,000,000 GB = <b>2 PB</b> (1 PB = 1,000,000 GB).</p>",
+    "steps": [
+     "Given 200 GB per genome and 10,000 patients -> 2,000,000 GB",
+     "Given 2,000,000 GB -> divide by 1,000,000 = 2 PB",
+     "Given 2 PB and HDFS replication 3 -> 6 PB of raw disk"
+    ],
+    "variants": [
+     "2,500 patients with replication 3: 2,500 &times; 200 = 500 TB; &times; 3 = 1.5 PB.",
+     "5,000 patients: 5,000 &times; 200 = 1,000,000 GB = 1 PB."
+    ]
+   },
+   "traps": [
+    "Stored in a file does not mean structured: DICOM images are unstructured.",
+    "HIPAA is for health data; US financial data falls under GLBA.",
+    "Federated learning moves the model, not the data; differential privacy adds noise, it does not encrypt.",
+    "AlphaFold predicts structure from sequence; it is not anomaly or fraud detection."
+   ],
+   "answers": {
+    "1": "Federated learning trains a model at each hospital and shares only model updates, so raw patient records never leave the site.",
+    "3": "Healthcare big data comes as EHR, genomics, wearables and DICOM images, all about identifiable patients. HIPAA requires removing 18 identifiers, and differential privacy and federated learning protect data used for models. Example: 10,000 genomes at 200 GB each need 2 PB.",
+    "5": "<p><b>Sources:</b> EHR (FHIR), genomics (200 GB each), wearables (per-second streams), DICOM images (200 MB to 2 GB, unstructured). They meet in a data lake on HDFS/S3 with a Hive Metastore. <b>Uses:</b> ICU mortality (AUROC &gt; 0.90), readmission (&minus;20%), sepsis 6 h earlier; needs 1M+ records. <b>Privacy:</b> HIPAA 18 identifiers, GDPR, PDPA consent for NID records; safe harbour, expert determination, differential privacy, federated learning. <b>Science:</b> AlphaFold predicts 3D protein shape from 170,000 structures and 250M sequences. <b>Limitation:</b> records are split across hospitals and laws, so integration is the hard part.</p>"
+   },
+   "questions": [
+    {
+     "format": "mcq",
+     "q": "Several hospitals want to train one model without moving raw records. Which technique?",
+     "options": [
+      "Federated learning",
+      "Differential privacy",
+      "Safe harbour de-identification",
+      "HL7 FHIR export"
+     ],
+     "a": "Federated learning trains at each site and shares only model updates."
+    },
+    {
+     "format": "blank",
+     "q": "HIPAA requires removing ______ PHI identifiers; one whole genome is about ______.",
+     "a": "18; 200 GB"
+    },
+    {
+     "format": "define",
+     "q": "Define differential privacy and list the four healthcare data modalities.",
+     "a": "Adding calibrated noise to aggregate statistics so no individual record can be inferred. EHR, genomics, wearables/IoT, medical imaging (DICOM)."
+    },
+    {
+     "format": "steps",
+     "q": "Describe how the four health data types reach a clinical model.",
+     "a": "<ol><li>FHIR, Parquet, Kafka and DICOM sources.</li><li>Land in an HDFS/S3 data lake with Hive Metastore.</li><li>De-identify.</li><li>Train readmission, mortality, imaging and genomics models.</li><li>Use federated learning or differential privacy where data cannot move or be exposed.</li></ol>"
+    },
+    {
+     "format": "why",
+     "q": "Why is AlphaFold called a big data problem?",
+     "a": "Each query builds an MSA by searching 250M UniProt sequences (&gt;200 GB), and training used 170,000 PDB structures on 128 TPU v3 cores for weeks."
+    },
+    {
+     "format": "distinguish",
+     "q": "Distinguish differential privacy from federated learning.",
+     "a": "Differential privacy adds noise to published aggregates. Federated learning keeps raw data at each hospital and moves only model updates."
+    },
+    {
+     "format": "scenario",
+     "q": "DGHS wants a national readmission model from 30 hospitals' EHRs, plus a public dashboard of cases by upazila.<br>i) How to train without pooling records? ii) How to protect small counts on the dashboard? iii) Which Bangladesh rule covers NID-linked records? iv) How many records does the slide say are needed?",
+     "a": "i) Federated learning. ii) Differential privacy. iii) PDPA: explicit consent. iv) 1 million+."
+    },
+    {
+     "format": "one_step",
+     "q": "A study sequences 5,000 genomes at 200 GB each. Total in PB?",
+     "a": "5,000 &times; 200 = 1,000,000 GB = <b>1 PB</b>."
+    },
+    {
+     "format": "full_calc",
+     "q": "2,500 genomes at 200 GB each are stored on HDFS with replication 3. Raw disk needed?",
+     "a": "2,500 &times; 200 = 500,000 GB = 500 TB; &times; 3 = <b>1.5 PB</b>."
+    },
+    {
+     "format": "long",
+     "q": "Explain the sources, uses and privacy controls of healthcare big data.",
+     "a": "Use the 5-mark answer: four modalities with sizes, data lake, three clinical predictions, the three laws, four protection techniques, AlphaFold, the integration limitation."
+    }
+   ],
+   "diagram": {
+    "file": "diagrams/w10-health-data.svg",
+    "caption": "Four health data types land in one HDFS/S3 lake with a Hive Metastore and feed clinical, imaging and genomics models."
+   }
+  },
+  {
+   "id": "flu-surveillance",
+   "chapter": 10,
+   "title": "Syndromic surveillance and the Google Flu Trends lesson",
+   "facts": [
+    "Physician-reported cases reach CDC 1 to 2 weeks after symptoms (ILINet: &gt;3,000 sentinel physicians, weekly).",
+    "Syndromic surveillance uses pre-diagnosis signals: posts peak 7 to 10 days before ER visits; pharmacy antipyretic sales spike 3 to 5 days before confirmation.",
+    "Other signals: ER chief complaints via NLP; search volume (1-week lead).",
+    "BioSense: near real-time data from 3,500+ emergency departments; syndromes extracted automatically.",
+    "Google Flu Trends: r&sup2; = 0.97 on 2003-2008 data, then over-predicted flu by 2&times; in 2012-2013 and was discontinued.",
+    "Post-GFT: BioSense ED visits as the main signal, Prophet for seasonality and season-start changepoints, Twitter as a covariate, ensembles (FluSight).",
+    "Twitter adds lead time, not accuracy: its signal arrives about 2 weeks before ILINet but with about 30% higher error (latency vs precision)."
+   ],
+   "mechanism": [
+    "Sources: Twitter (NLP), pharmacy sales, ER chief complaints, search trends",
+    "All publish events to a Kafka event bus",
+    "Spark Streaming runs NLP and aggregates counts per region and time window",
+    "An alert engine fires when a count breaches its threshold",
+    "A Grafana dashboard shows the signals to health officers",
+    "Officers confirm against clinical reporting before acting"
+   ],
+   "why": [
+    "Outbreaks grow exponentially, so a 1 to 2 week reporting lag is costly.",
+    "Proxy data measures behaviour (health anxiety, media coverage), not incidence, so it drifts.",
+    "GFT failed partly because Google's own autocomplete changes, opaque to CDC, shifted the features.",
+    "Prophet's g + s + h parts let epidemiologists inspect each piece, unlike black-box models.",
+    "High in-sample r&sup2; does not guarantee out-of-sample accuracy when behaviour changes."
+   ],
+   "contrasts": [
+    {
+     "vs": "Traditional vs syndromic surveillance",
+     "head": [
+      "",
+      "Traditional (ILINet)",
+      "Syndromic"
+     ],
+     "rows": [
+      [
+       "Source",
+       "Physician-reported cases",
+       "Posts, pharmacy, ER notes, searches"
+      ],
+      [
+       "Speed",
+       "1 to 2 weeks behind",
+       "Days ahead"
+      ],
+      [
+       "Accuracy",
+       "Ground truth",
+       "Noisy proxy"
+      ],
+      [
+       "Role",
+       "Main record",
+       "Early warning, a supplement"
+      ]
+     ]
+    }
+   ],
+   "scenarios": [
+    {
+     "cue": "paracetamol sales jump across a district before hospitals report cases",
+     "answer": "syndromic surveillance (pharmacy signal, 3-5 days ahead)"
+    },
+    {
+     "cue": "a search-based model fit past years well but doubled the real flu rate",
+     "answer": "Google Flu Trends lesson: supplement, not replace"
+    },
+    {
+     "cue": "media coverage drives searches up while cases stay low",
+     "answer": "proxy data amplifies noise"
+    },
+    {
+     "cue": "combine ED visits as the main input with tweets as an extra regressor",
+     "answer": "post-GFT Prophet nowcasting with a covariate"
+    }
+   ],
+   "calculation": null,
+   "traps": [
+    "GFT did not replace CDC surveillance; it failed and was discontinued.",
+    "Syndromic signals are early warnings, not ground truth.",
+    "Twitter enters the post-GFT model as a covariate, not as the main signal.",
+    "r&sup2; = 0.97 was in-sample; it says nothing about future seasons."
+   ],
+   "answers": {
+    "1": "Syndromic surveillance uses non-traditional signals, such as posts, pharmacy sales and ER notes, that show illness before a diagnosis is reported.",
+    "3": "Sources stream through Kafka into Spark Streaming, which aggregates them and triggers an alert engine and a Grafana dashboard. The signals lead clinical reports by days. Google Flu Trends over-predicted by 2&times; in 2012-2013, so these signals must supplement clinical reporting, not replace it.",
+    "5": "<p><b>Problem:</b> physician reports reach CDC 1 to 2 weeks late. <b>Syndromic surveillance</b> uses earlier signals: posts (7-10 days before ER visits), pharmacy antipyretic sales (3-5 days), ER chief complaints, searches. <b>Pipeline:</b> sources &rarr; Kafka &rarr; Spark Streaming (NLP, aggregation) &rarr; alert engine + Grafana. <b>Example:</b> Google Flu Trends had r&sup2; = 0.97 in-sample but over-predicted by 2&times; in 2012-2013 because search behaviour changed. CDC now uses BioSense ED visits with Prophet and Twitter as a covariate. <b>Limitation:</b> proxy data reflects anxiety and media, so it supplements clinical reporting and never replaces it.</p>"
+   },
+   "questions": [
+    {
+     "format": "mcq",
+     "q": "Why did Google Flu Trends fail in 2012-2013?",
+     "options": [
+      "Search behaviour changed, so the model over-predicted flu by 2&times;",
+      "Kafka could not handle the query volume",
+      "CDC stopped sharing ILINet data",
+      "It used Prophet instead of ARIMA"
+     ],
+     "a": "Proxy data drifted with anxiety, media and autocomplete changes."
+    },
+    {
+     "format": "blank",
+     "q": "Pharmacy antipyretic sales spike ______ days before clinical confirmation; flu tweets peak ______ days before ER visits.",
+     "a": "3 to 5; 7 to 10"
+    },
+    {
+     "format": "define",
+     "q": "Define syndromic surveillance and list four of its data sources.",
+     "a": "Surveillance from non-traditional signals that show illness before diagnosis. Social media, pharmacy sales, ER chief complaints, search query volume."
+    },
+    {
+     "format": "steps",
+     "q": "Describe the syndromic surveillance pipeline.",
+     "a": "<ol><li>Sources publish to Kafka.</li><li>Spark Streaming runs NLP and aggregates.</li><li>Alert engine on threshold breach.</li><li>Grafana dashboard.</li><li>Confirm with clinical data.</li></ol>"
+    },
+    {
+     "format": "why",
+     "q": "Why must big data signals supplement, not replace, clinical reporting?",
+     "a": "They measure behaviour, not incidence. GFT shows they drift: r&sup2; = 0.97 in-sample, then 2&times; too high when behaviour changed."
+    },
+    {
+     "format": "distinguish",
+     "q": "Distinguish ILINet from BioSense.",
+     "a": "ILINet: &gt;3,000 sentinel physicians send weekly ILI counts, 1-2 weeks late. BioSense: near real-time ED data from 3,500+ departments with automatic syndrome extraction."
+    },
+    {
+     "format": "scenario",
+     "q": "A Bangladesh team sees fever posts and paracetamol sales rise in Sylhet before DGHS reports.<br>i) Name this approach. ii) Which tool carries both streams? iii) Which signal usually leads by 3-5 days? iv) Should the team announce an outbreak from these alone?",
+     "a": "i) Syndromic surveillance. ii) Kafka. iii) Pharmacy sales. iv) No: they are early signals to check against clinical data (GFT lesson)."
+    },
+    {
+     "format": "long",
+     "q": "Explain syndromic surveillance with its pipeline and the Google Flu Trends lesson.",
+     "a": "Use the 5-mark answer: lag problem, four signals with lead times, Kafka-Spark-alert-Grafana pipeline, GFT failure and causes, post-GFT design, supplement-not-replace."
+    }
+   ],
+   "diagram": {
+    "file": "diagrams/w10-flu-surveillance.svg",
+    "caption": "Syndromic surveillance streams four early signals through Kafka into Spark Streaming, which drives alerts and a Grafana dashboard."
+   }
+  }
+ ],
+ "pool": [
+  {
+   "src": "MCQ",
+   "n": "Q1",
+   "q": "Facebook's Prophet library is primarily designed for:",
+   "options": [
+    "(a) Graph analytics and community detection in social networks",
+    "(b) Real-time stream processing of events",
+    "(c) Time series forecasting with decomposable trend, seasonality, and holiday components",
+    "(d) Text sentiment classification using deep learning"
+   ],
+   "topic": "forecasting",
+   "a": "<b>(c) Time series forecasting with decomposable trend, seasonality, and holiday components</b><br>Prophet fits y(t) = g(t) + s(t) + h(t) + &epsilon;(t)."
+  },
+  {
+   "src": "MCQ",
+   "n": "Q2",
+   "q": "Which algorithm is most commonly used for community detection in large-scale social network graphs?",
+   "options": [
+    "(a) K-Means clustering",
+    "(b) PageRank",
+    "(c) Louvain algorithm",
+    "(d) ARIMA"
+   ],
+   "topic": "social-graph",
+   "a": "<b>(c) Louvain algorithm</b><br>It maximises modularity in O(n log n); PageRank ranks importance, not groups."
+  },
+  {
+   "src": "MCQ",
+   "n": "Q3",
+   "q": "HIPAA in the United States primarily regulates the privacy and security of:",
+   "options": [
+    "(a) Financial transaction data and bank records",
+    "(b) Healthcare data including patient records and medical information",
+    "(c) Social media user data and behavioural profiles",
+    "(d) Government data retention and public records"
+   ],
+   "topic": "health-data",
+   "a": "<b>(b) Healthcare data including patient records and medical information</b><br>HIPAA is the Health Insurance Portability and Accountability Act; financial data falls under GLBA."
+  },
+  {
+   "src": "MCQ",
+   "n": "Q4",
+   "q": "DeepMind's AlphaFold used big data and deep learning to solve:",
+   "options": [
+    "(a) Real-time financial fraud detection at bank-card transaction scale",
+    "(b) Social network influence maximisation over billion-node graphs",
+    "(c) The protein structure prediction problem, predicting 3D structure from amino acid sequence",
+    "(d) Time series anomaly detection in IoT sensor streams"
+   ],
+   "topic": "health-data",
+   "a": "<b>(c) The protein structure prediction problem, predicting 3D structure from amino acid sequence</b><br>Trained on 170,000 PDB structures with MSAs from 250M sequences; 2024 Nobel Prize in Chemistry."
+  },
+  {
+   "src": "True/False",
+   "n": "1",
+   "q": "Google Flu Trends successfully replaced traditional CDC flu surveillance and has been used as the primary source ever since.",
+   "topic": "flu-surveillance",
+   "a": "<b>False.</b> GFT over-predicted flu by 2&times; in 2012-2013 and was discontinued.<br><b>Corrected:</b> Google Flu Trends failed, and CDC still relies on clinical reporting, with big data signals only as a supplement."
+  },
+  {
+   "src": "True/False",
+   "n": "2",
+   "q": "Time series data is order-sensitive: randomly shuffling the records in a time series changes the analysis result.",
+   "topic": "forecasting",
+   "a": "<b>True.</b> Autocorrelation, trend and seasonality exist only in time order; shuffling destroys them."
+  },
+  {
+   "src": "True/False",
+   "n": "3",
+   "q": "Social network graphs are typically sparse, with most nodes connected to only a small fraction of all possible neighbours.",
+   "topic": "social-graph",
+   "a": "<b>True.</b> Real social networks are scale-free (power-law degrees): most nodes have few links and a few hubs have millions. Twitter had 1.47B edges among 41.7M users, about 35 follows each out of millions possible."
+  },
+  {
+   "src": "True/False",
+   "n": "4",
+   "q": "Medical imaging data such as MRI and CT scans is classified as structured data because it is stored in files.",
+   "topic": "health-data",
+   "a": "<b>False.</b> Being in a file does not make data structured.<br><b>Corrected:</b> MRI and CT scans are unstructured binary DICOM files (200 MB to 2 GB), analysed by deep learning, not SQL."
+  },
+  {
+   "src": "Descriptive",
+   "n": "D1",
+   "q": "Describe three types of analysis commonly performed on social media data (e.g., community detection, sentiment analysis, influence maximisation). For each, state one specific ethical risk that arises when the analysis is deployed at scale.",
+   "topic": "sentiment-trend",
+   "a": "<table><tr><th>Analysis</th><th>What it does</th><th>Ethical risk at scale</th></tr><tr><td>Community detection</td><td>Louvain finds groups more densely linked inside than outside, by maximising modularity.</td><td>Profiling: group labels expose political or religious ties users never shared.</td></tr><tr><td>Sentiment analysis</td><td>VADER scores each post in [&minus;1, +1]; &gt; 0.05 positive, &lt; &minus;0.05 negative.</td><td>Suppressing dissent: flagging people who criticise a government policy.</td></tr><tr><td>Influence maximisation</td><td>Picks k seed users for widest spread; greedy gives &ge; 63% of optimal.</td><td>Manipulation: spreading misinformation or microtargeting vulnerable users.</td></tr></table><p>Safeguard for all three: transparency and purpose limitation.</p>"
+  },
+  {
+   "src": "Descriptive",
+   "n": "D2",
+   "q": "What is the difference between ARIMA and Facebook Prophet for time series forecasting? Under what conditions would you prefer Prophet over ARIMA? When might ARIMA still be the better choice?",
+   "topic": "forecasting",
+   "a": "<p><b>ARIMA(p, d, q)</b> predicts from past p values and past q errors after differencing d times to make the series stationary. <b>Prophet</b> adds up trend with changepoints, Fourier seasonality and a holiday term: y = g + s + h + &epsilon;.</p><p><b>Prefer Prophet</b> when the series has several seasonalities, holiday effects (Eid, Puja), trend shifts, missing data or outliers, or when thousands of series must be fitted automatically (5,000 SKUs in 12 minutes with applyInPandas).</p><p><b>ARIMA is still better</b> for a short, stationary series with no strong seasonality and little data, where an expert can tune one important series closely.</p>"
+  },
+  {
+   "src": "Descriptive",
+   "n": "D3",
+   "q": "Identify three data integration and privacy challenges specific to healthcare big data analytics. For each, describe one technical mitigation strategy (e.g., differential privacy, federated learning, de-identification).",
+   "topic": "health-data",
+   "a": "<table><tr><th>Challenge</th><th>Mitigation</th></tr><tr><td>Records carry names, DOB, NID, phone; HIPAA bars research use as-is</td><td><b>De-identification:</b> safe harbour removes the 18 identifiers, or expert determination certifies low risk</td></tr><tr><td>Models need 1M+ records, but data cannot leave each hospital (consent, PDPA)</td><td><b>Federated learning:</b> train at each hospital, share only model updates</td></tr><tr><td>Published counts for small areas can reveal one patient</td><td><b>Differential privacy:</b> add calibrated noise to aggregates</td></tr></table><p>Integration itself: FHIR, Parquet genomics, Kafka wearables and DICOM images meet in one HDFS/S3 lake with a Hive Metastore.</p>"
+  },
+  {
+   "src": "Analytical",
+   "n": "A1",
+   "q": "Flu Outbreak Early-Warning System for Bangladesh: Design a big data system to detect flu outbreaks in Bangladesh using Twitter/Facebook posts and pharmacy purchase records from major pharmacy chains. (a) How would you collect and ingest these two data sources? (Specify tools: Kafka, Sqoop, Flume, REST API) (b) What features would you extract from each source for a prediction model? (Name specific NLP features and pharmacy signal metrics) (c) What model would you use, and how would you validate it against ground-truth CDC/DGHS surveillance data? (d) What are the ethical risks of this system? How would you mitigate them?",
+   "topic": "flu-surveillance",
+   "a": "<p><b>Design:</b> sources &rarr; Kafka &rarr; Spark Streaming &rarr; alert engine + Grafana (the CDC pattern).</p><table><tr><th>Part</th><th>Social posts</th><th>Pharmacy sales</th></tr><tr><td>(a) Ingest</td><td>REST APIs (X API v2, Facebook Pages), keyword filter in Bangla and English, producer writes to Kafka topic <code>social_raw</code></td><td>Sqoop for nightly bulk import from the chains' databases; Flume ships POS logs to Kafka topic <code>pharmacy_sales</code></td></tr><tr><td>(b) Features</td><td>Daily flu-keyword post count per district; share of symptom terms (fever, cough, 'jor'); first-person illness flag; VADER/Bangla sentiment; ratio to 4-week baseline</td><td>Daily paracetamol and cough-syrup units per district; week-on-week % change; z-score vs same week last year</td></tr></table><p><b>(c) Model:</b> Prophet per district on DGHS weekly ILI counts, yearly seasonality, Eid holidays, social and pharmacy features as extra regressors; run districts in parallel with applyInPandas. <b>Validate</b> with a rolling backtest against DGHS counts: error (MAE), lead time, hit rate, false alarms, and test on an unseen season (GFT had r&sup2; = 0.97 in-sample and still failed).</p><p><b>(d) Ethics:</b> privacy (keep district counts only, drop user IDs, add differential-privacy noise); panic from false alarms (an officer confirms before any announcement); bias against rural and older people who post less (weight with pharmacy and DGHS data); misuse for watching individuals (purpose limitation, access logs, PDPA consent).</p>"
+  },
+  {
+   "src": "Analytical",
+   "n": "A2",
+   "q": "Retail Demand Forecasting Pipeline: A large Bangladeshi supermarket chain needs 90-day demand forecasts for 5,000 store–product SKU combinations. Design the end-to-end big data pipeline: (a) data ingestion from POS systems; (b) storage and partitioning strategy in HDFS/S3; (c) forecasting model choice (ARIMA vs. Prophet vs. LSTM) and justification; (d) how you parallelise model fitting across 5,000 SKUs using Spark; (e) how forecasts are served to the inventory management dashboard. Identify the primary bottleneck in your pipeline.",
+   "topic": "forecasting",
+   "a": "<table><tr><th>Stage</th><th>Design</th></tr><tr><td>(a) Ingest</td><td>Tills send sale events to Kafka topic <code>pos_sales</code>; Sqoop bulk-loads history; Spark aggregates to (sku_id, date, units)</td></tr><tr><td>(b) Storage</td><td>Raw Parquet on HDFS/S3 partitioned by date; daily aggregate Hive table partitioned by date, bucketed by sku_id; forecasts partitioned by run_date</td></tr><tr><td>(c) Model</td><td><b>Prophet:</b> weekly and yearly seasonality, holidays (Eid, Puja, Pohela Boishakh), automatic changepoints, tolerates gaps. ARIMA needs hand tuning per series; LSTM needs much data, GPUs and is a black box</td></tr><tr><td>(d) Parallel fit</td><td><code>daily.groupBy(\"sku_id\").applyInPandas(fit, schema)</code>; each group goes to one task, Prophet fits inside the Pandas UDF</td></tr><tr><td>(e) Serve</td><td>Write Parquet to Hive/S3; load latest run into a serving table; dashboard (Superset/Grafana) shows yhat with bands and reorder alerts</td></tr></table><p><b>Numbers:</b> 8 h = 480 min sequential; 12 min on 20 executors; speedup = 480 / 12 = <b>40&times;</b>; 5.76 s per model; 250 models per executor.</p><p><b>Bottleneck:</b> model fitting (Prophet via Stan, the 8-hour step). Skewed SKUs with long histories finish last; cap history and add cores.</p>"
+  },
+  {
+   "src": "Discussion",
+   "n": "1",
+   "q": "Kwak et al. found Twitter's average shortest path is 4.12 hops over 41.7M users. If a misinformation tweet is retweeted by a high-PageRank account, estimate how many users it reaches within 3 hops assuming an average out-degree of 45. What graph property makes this estimate an overestimate? [CLO4 — Apply]",
+   "topic": "social-graph",
+   "a": "<p><b>Estimate:</b> 45 + 45&sup2; + 45&sup3; = 45 + 2,025 + 91,125 = <b>93,195 users</b> (0.22% of 41.7M).</p><p><b>For an overestimate:</b> clustering. Followers overlap, so the tree counts the same people again; most viewers also do not retweet.</p><p><b>Against:</b> a high-PageRank account may have over a million followers, so hop 1 alone can beat 45.</p>"
+  },
+  {
+   "src": "Discussion",
+   "n": "2",
+   "q": "A Prophet model for weekly hospital admissions has strong annual and weekly seasonality but misses a sudden COVID-19 wave onset. Identify which Prophet component should detect this changepoint and explain what prior hyperparameter controls the model's sensitivity to new changepoints. [CLO4 — Analyse]",
+   "topic": "forecasting",
+   "a": "<p><b>Component:</b> the trend g(t). A wave is a structural break, not a repeating cycle or a listed holiday.</p><p><b>Hyperparameter:</b> <code>changepoint_prior_scale</code>, the scale of the sparse prior on the slope changes &delta;. Default 0.05 keeps the trend stiff and smooths over the wave; raising it (e.g. 0.5) lets the trend bend.</p><p><b>Against raising it:</b> the trend then chases noise and the forecast band widens, so tune on held-out weeks.</p>"
+  },
+  {
+   "src": "Discussion",
+   "n": "3",
+   "q": "Design a dengue fever surveillance system for Bangladesh using BioSense-style ED data, Twitter signals, and Prophet forecasting. Specify: data sources, pipeline architecture (Kafka + Spark), model inputs, and how you would validate the system before policy use. [CLO4 — Design]",
+   "topic": "flu-surveillance",
+   "a": "<ul><li><b>Sources:</b> ED visits (FHIR) as main signal, NS1 lab results, dengue tweets as leading signal, rainfall.</li><li><b>Pipeline:</b> Kafka topics &rarr; Spark Streaming de-identifies and aggregates per district &rarr; Parquet &rarr; nightly Prophet per district via applyInPandas &rarr; alerts + Grafana.</li><li><b>Inputs:</b> weekly dengue-like visits, yearly (monsoon) seasonality, Eid holidays, tweets and rainfall as regressors.</li><li><b>Validate:</b> backtest on past seasons and an unseen season; compare with and without Twitter.</li></ul><p><b>For:</b> earlier warning. <b>Against:</b> tweets skew urban and young, so ED data stays primary.</p>"
+  },
+  {
+   "src": "Live Exercise",
+   "n": "Task",
+   "q": "Live Exercise — Prophet Flu Forecasting in Python. Task (25 minutes, pairs): Fit a Prophet model to synthetic weekly flu incidence data and produce a 12-week forecast. Install: pip install prophet matplotlib pandas",
+   "code": "import pandas as pd\nimport numpy as np\nfrom prophet import Prophet\nimport matplotlib.pyplot as plt\n\nrng = np.random.default_rng(42)\ndates = pd.date_range(\"2021-01-04\",\n                      periods=156, freq=\"W\")\n# Annual flu seasonality + noise\nili = (5 + 3*np.sin(\n          2*np.pi*np.arange(156)/52\n          - np.pi/2)\n       + rng.normal(0, 0.5, 156)).clip(0)\ndf = pd.DataFrame({\"ds\": dates, \"y\": ili})\n\n# Optional: add Eid holiday\nholidays = pd.DataFrame({\n   \"holiday\": \"Eid\",\n   \"ds\":       pd.to_datetime([\n                 \"2021-05-13\",\"2022-05-03\",\n                 \"2023-04-22\"]),\n   \"lower_window\": 0,\n   \"upper_window\": 3,\n})\n\nm = Prophet(\n    yearly_seasonality=True,\n    weekly_seasonality=False,\n    changepoint_prior_scale=0.05,\n    holidays=holidays)\nm.fit(df)\nfuture = m.make_future_dataframe(\n    periods=12, freq=\"W\")\nforecast = m.predict(future)\nm.plot(forecast)\nm.plot_components(forecast)\nplt.show()",
+   "topic": "forecasting",
+   "a": "<p>Run the skeleton, then refit with the changes below.</p><pre>m = Prophet(yearly_seasonality=True,\n            weekly_seasonality=False,\n            changepoint_prior_scale=0.05,   # try 0.5\n            holidays=holidays,\n            interval_width=0.95)            # 95% band\nm.fit(df)\nfc = m.predict(m.make_future_dataframe(periods=12, freq=\"W\"))\nm.plot(fc); m.plot_components(fc)</pre><p>Expected: dates run 2021-01-10 to 2023-12-31 (weeks end Sunday); the forecast covers 2024-01-07 to 2024-03-24 and rises from the yearly low (true curve 2.0) towards about 4.3.</p>"
+  },
+  {
+   "src": "Live Exercise",
+   "n": "1",
+   "q": "Generate 3 years of synthetic weekly ILI data with annual seasonality + noise.",
+   "topic": "forecasting",
+   "a": "The skeleton does it: 156 weekly dates (156 / 52 = 3 years), a sine with period 52 weeks running from 2 to 8 around a mean of 5, plus noise with SD 0.5. Columns must be named <code>ds</code> and <code>y</code>."
+  },
+  {
+   "src": "Live Exercise",
+   "n": "2",
+   "q": "Fit Prophet with yearly and weekly seasonality.",
+   "topic": "forecasting",
+   "a": "<code>yearly_seasonality=True</code> fits the annual Fourier wave (P = 365.25). Keep <code>weekly_seasonality=False</code>: with one point per week, always a Sunday, there is no within-week pattern to learn."
+  },
+  {
+   "src": "Live Exercise",
+   "n": "3",
+   "q": "Plot the forecast with 95% uncertainty intervals.",
+   "topic": "forecasting",
+   "a": "Pass <code>interval_width=0.95</code> (default is 80%), then <code>m.plot(forecast)</code>. Expected: data dots, the yhat line and a band from yhat_lower to yhat_upper that widens into the future."
+  },
+  {
+   "src": "Live Exercise",
+   "n": "4",
+   "q": "Add a holiday for “Eid” (spike in healthcare visits) and observe the effect.",
+   "topic": "forecasting",
+   "a": "Expected effect is near zero: the synthetic data has no Eid spike, and the 2022 window (05-03 to 05-06) contains no Sunday, so it matches no point. Add +3 to the Eid weeks and the components plot shows an Eid bar near +3."
+  },
+  {
+   "src": "Live Exercise",
+   "n": "5",
+   "q": "Change changepoint_prior_scale from 0.05 to 0.5 and compare trend flexibility.",
+   "topic": "forecasting",
+   "a": "At 0.05 the trend stays nearly flat around 5 (the true trend). At 0.5 it wiggles, absorbs noise and part of the seasonal wave, and the future band widens. Higher reacts faster to real breaks but overfits stable data."
+  }
+ ],
+ "formulas": [
+  {
+   "name": "Prophet model",
+   "formula": "y(t) = g(t) + s(t) + h(t) + &epsilon;(t)",
+   "note": "trend + seasonality + holidays + noise"
+  },
+  {
+   "name": "Prophet trend",
+   "formula": "g(t) = (k + a(t)&#7488;&delta;) t + (m + a(t)&#7488;&gamma;)",
+   "note": "&delta; slope changes at changepoints, sparse prior"
+  },
+  {
+   "name": "Fourier seasonality",
+   "formula": "s(t) = &Sigma; [a&#8345; cos(2&pi;nt/P) + b&#8345; sin(2&pi;nt/P)], n = 1..N",
+   "note": "P = 365.25 yearly, 7 weekly"
+  },
+  {
+   "name": "ARIMA(p, d, q)",
+   "formula": "AR past p values; I difference d times; MA past q errors",
+   "note": "needs stationary input"
+  },
+  {
+   "name": "Speedup",
+   "formula": "T_sequential / T_parallel",
+   "note": "480 min / 12 min = 40&times; (5,000 SKUs)"
+  },
+  {
+   "name": "Reach in h hops",
+   "formula": "d + d&sup2; + &hellip; + d^h",
+   "note": "upper bound; d = 45, h = 3 gives 93,195"
+  },
+  {
+   "name": "Greedy influence bound",
+   "formula": "spread &ge; (1 &minus; 1/e) &times; optimal &asymp; 0.632 &times; optimal",
+   "note": "Kempe et al. 2003"
+  },
+  {
+   "name": "Modularity (words)",
+   "formula": "fraction of edges inside communities &minus; fraction expected by chance",
+   "note": "Louvain maximises it"
+  },
+  {
+   "name": "Power law",
+   "formula": "P(k) &prop; k^(&minus;&alpha;), &alpha; &asymp; 2.276",
+   "note": "Twitter follower counts (Kwak 2010)"
+  },
+  {
+   "name": "Spike ratio",
+   "formula": "current rate / baseline rate",
+   "note": "10 to 10,000 per hour = 1,000&times;"
+  },
+  {
+   "name": "VADER classes",
+   "formula": "&gt; 0.05 positive; &lt; &minus;0.05 negative; else neutral",
+   "note": "compound in [&minus;1, +1]"
+  },
+  {
+   "name": "STL anomaly rule",
+   "formula": "|residual| &gt; k &times; IQR, IQR = Q3 &minus; Q1",
+   "note": "IQR of residuals, not raw data"
+  },
+  {
+   "name": "Genomics storage",
+   "formula": "200 GB &times; patients (&times; replication)",
+   "note": "10,000 patients = 2 PB"
+  }
+ ],
+ "mock": {
+  "a": {
+   "marks": 4,
+   "q": "Dhaka's health office streams Bangla Facebook posts and pharmacy paracetamol sales into a cluster to catch dengue early.<br>i) Which tool should carry both event streams? (1)<br>ii) A dengue phrase rises from 20 to 6,000 posts an hour. What is the spike ratio? (1)<br>iii) A post scores a VADER compound of 0.04. Which class? (1)<br>iv) Why must this system not replace DGHS reports? (1)",
+   "a": "i) Kafka. ii) 6,000 / 20 = <b>300&times;</b>. iii) Neutral (between &minus;0.05 and 0.05). iv) Proxy signals reflect behaviour, not cases; Google Flu Trends over-predicted by 2&times;. They supplement clinical reporting."
+  },
+  "b": {
+   "marks": 6,
+   "q": "A hospital group forecasts weekly admissions for 400 wards with Prophet.<br>i) Write the Prophet model and name each term. (2)<br>ii) In an Eid week, g = 80, s = +6, h = +12, &epsilon; = 0. Forecast? (1)<br>iii) Each ward's model takes 2 s; Spark fits 20 at a time. Sequential time, parallel time? (1)<br>iv) The model missed a sudden COVID wave. Which term should catch it, and which hyperparameter controls that? (2)",
+   "a": "i) y(t) = g(t) + s(t) + h(t) + &epsilon;(t): trend, seasonality, holidays, noise. ii) 80 + 6 + 12 + 0 = <b>98</b>. iii) 400 &times; 2 = <b>800 s</b>; 800 / 20 = <b>40 s</b> (20&times;). iv) Trend g(t) via changepoints; <code>changepoint_prior_scale</code> (raise from 0.05 to bend faster)."
+  },
+  "or_a": {
+   "marks": 4,
+   "q": "DGHS wants one sepsis model from 30 hospitals and a public dashboard of cases by upazila.<br>i) How can it train without pooling records? (1)<br>ii) How can it stop small counts revealing a patient? (1)<br>iii) Which US law requires removing 18 identifiers? (1)<br>iv) A linked genomics study has 5,000 patients at 200 GB each. Storage in PB? (1)",
+   "a": "i) Federated learning. ii) Differential privacy. iii) HIPAA. iv) 5,000 &times; 200 = 1,000,000 GB = <b>1 PB</b>."
+  },
+  "or_b": {
+   "marks": 6,
+   "q": "A researcher studies a misinformation cascade on X.<br>i) Give the steps of Louvain for finding the groups that spread it. (2)<br>ii) Average out-degree is 40. Upper bound on users reached in 2 hops? (1)<br>iii) Why is that an overestimate? (1)<br>iv) Kwak et al. found 22.1% reciprocity. What does that say about Twitter compared with Facebook? (2)",
+   "a": "i) Each node alone; move nodes to the neighbour community with the biggest modularity gain; collapse to super-nodes; repeat until no gain. ii) 40 + 1,600 = <b>1,640</b>. iii) Followers overlap (clustering), so people are counted twice, and not everyone reshares. iv) Most follows are one-way, so Twitter is a directed news medium; Facebook friendship is mutual (&asymp;100%), a social network."
+  }
+ }
+}

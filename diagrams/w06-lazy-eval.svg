@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 380" font-family="Inter, Segoe UI, system-ui, sans-serif"><style>.bx{fill:var(--d-box,#fff7ed);stroke:var(--d-line,#b45309);stroke-width:1.5}
+.bx2{fill:var(--d-box2,#eff6ff);stroke:var(--d-line2,#1d4ed8);stroke-width:1.5}
+.bx3{fill:var(--d-box3,#ecfdf3);stroke:var(--d-line3,#15803d);stroke-width:1.5}
+.ln{stroke:var(--d-ink,#44403c);stroke-width:1.5;fill:none}
+.t{fill:var(--d-ink,#1c1b19);font-size:14px}.tb{fill:var(--d-ink,#1c1b19);font-size:14px;font-weight:600}
+.ts{fill:var(--d-mute,#78716c);font-size:12px}</style><defs><marker id="ah-w06lazyeval" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--d-ink,#44403c)"/></marker></defs><rect class="bx2" x="150" y="30" width="270" height="188" rx="8"/>
+<rect class="bx3" x="150" y="236" width="270" height="128" rx="8"/>
+<rect class="bx" x="170" y="48" width="230" height="40" rx="8"/>
+<text class="tb" x="285.0" y="73.0" text-anchor="middle">Load (HDFS read)</text>
+<rect class="bx" x="170" y="106" width="230" height="40" rx="8"/>
+<text class="tb" x="285.0" y="131.0" text-anchor="middle">filter(amount &gt; 1000)</text>
+<rect class="bx" x="170" y="164" width="230" height="40" rx="8"/>
+<text class="tb" x="285.0" y="189.0" text-anchor="middle">map(compute_fee)</text>
+<rect class="bx" x="170" y="252" width="230" height="40" rx="8"/>
+<text class="tb" x="285.0" y="277.0" text-anchor="middle">reduceByKey(sum)</text>
+<rect class="bx" x="170" y="310" width="230" height="40" rx="8"/>
+<text class="tb" x="285.0" y="335.0" text-anchor="middle">saveAsTextFile()</text>
+<path class="ln" d="M285,88 L285,106" marker-end="url(#ah-w06lazyeval)"/>
+<path class="ln" d="M285,146 L285,164" marker-end="url(#ah-w06lazyeval)"/>
+<path class="ln" d="M285,204 L285,252" marker-end="url(#ah-w06lazyeval)"/>
+<path class="ln" d="M285,292 L285,310" marker-end="url(#ah-w06lazyeval)"/>
+<text class="tb" x="440" y="54" text-anchor="start">Stage 1</text>
+<text class="t" x="440" y="132" text-anchor="start">narrow steps,</text>
+<text class="t" x="440" y="151" text-anchor="start">pipelined</text>
+<path class="ln" d="M130,227 L690,227" stroke-dasharray="5 4"/>
+<text class="t" x="440" y="220" text-anchor="start">shuffle: stage boundary</text>
+<text class="tb" x="440" y="260" text-anchor="start">Stage 2</text>
+<text class="t" x="440" y="335" text-anchor="start">action: DAG runs here</text>
+<text class="t" x="130" y="126" text-anchor="end">lazy:</text>
+<text class="t" x="130" y="145" text-anchor="end">only recorded</text></svg>

@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 370" font-family="Inter, Segoe UI, system-ui, sans-serif"><style>.bx{fill:var(--d-box,#fff7ed);stroke:var(--d-line,#b45309);stroke-width:1.5}
+.bx2{fill:var(--d-box2,#eff6ff);stroke:var(--d-line2,#1d4ed8);stroke-width:1.5}
+.bx3{fill:var(--d-box3,#ecfdf3);stroke:var(--d-line3,#15803d);stroke-width:1.5}
+.ln{stroke:var(--d-ink,#44403c);stroke-width:1.5;fill:none}
+.t{fill:var(--d-ink,#1c1b19);font-size:14px}.tb{fill:var(--d-ink,#1c1b19);font-size:14px;font-weight:600}
+.ts{fill:var(--d-mute,#78716c);font-size:12px}</style><defs><marker id="ah-w08kafkalog" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--d-ink,#44403c)"/></marker></defs><rect class="bx" x="180" y="40" width="330" height="310" rx="8" stroke-dasharray="6 4"/>
+<text class="tb" x="345" y="64" text-anchor="middle">Topic: page-views</text>
+<rect class="bx3" x="545" y="40" width="200" height="310" rx="8" stroke-dasharray="6 4"/>
+<text class="tb" x="645" y="64" text-anchor="middle">Consumer group A</text>
+<rect class="bx" x="20" y="90" width="120" height="50" rx="8"/>
+<text class="tb" x="80.0" y="120.0" text-anchor="middle">Producer A</text>
+<rect class="bx2" x="200" y="90" width="290" height="50" rx="8"/>
+<text class="tb" x="345.0" y="112.0" text-anchor="middle">Partition 0</text>
+<text class="ts" x="345.0" y="129.0" text-anchor="middle">offsets 0, 1, 2 … (append)</text>
+<rect class="bx3" x="565" y="90" width="160" height="50" rx="8"/>
+<text class="tb" x="645.0" y="120.0" text-anchor="middle">Consumer 1</text>
+<path class="ln" d="M140,115 L200,115" marker-end="url(#ah-w08kafkalog)"/>
+<path class="ln" d="M490,115 L565,115" marker-end="url(#ah-w08kafkalog)"/>
+<rect class="bx" x="20" y="170" width="120" height="50" rx="8"/>
+<text class="tb" x="80.0" y="200.0" text-anchor="middle">Producer B</text>
+<rect class="bx2" x="200" y="170" width="290" height="50" rx="8"/>
+<text class="tb" x="345.0" y="192.0" text-anchor="middle">Partition 1</text>
+<text class="ts" x="345.0" y="209.0" text-anchor="middle">offsets 0, 1, 2 … (append)</text>
+<rect class="bx3" x="565" y="170" width="160" height="50" rx="8"/>
+<text class="tb" x="645.0" y="200.0" text-anchor="middle">Consumer 2</text>
+<path class="ln" d="M140,195 L200,195" marker-end="url(#ah-w08kafkalog)"/>
+<path class="ln" d="M490,195 L565,195" marker-end="url(#ah-w08kafkalog)"/>
+<rect class="bx" x="20" y="250" width="120" height="50" rx="8"/>
+<text class="tb" x="80.0" y="280.0" text-anchor="middle">Producer C</text>
+<rect class="bx2" x="200" y="250" width="290" height="50" rx="8"/>
+<text class="tb" x="345.0" y="272.0" text-anchor="middle">Partition 2</text>
+<text class="ts" x="345.0" y="289.0" text-anchor="middle">offsets 0, 1, 2 … (append)</text>
+<rect class="bx3" x="565" y="250" width="160" height="50" rx="8"/>
+<text class="tb" x="645.0" y="280.0" text-anchor="middle">Consumer 3</text>
+<path class="ln" d="M140,275 L200,275" marker-end="url(#ah-w08kafkalog)"/>
+<path class="ln" d="M490,275 L565,275" marker-end="url(#ah-w08kafkalog)"/>
+<text class="ts" x="345" y="330" text-anchor="middle">ordered within each partition</text>
+<text class="ts" x="645" y="322" text-anchor="middle">one consumer per partition;</text>
+<text class="ts" x="645" y="338" text-anchor="middle">each tracks its own offset</text></svg>
