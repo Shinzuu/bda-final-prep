@@ -1,0 +1,290 @@
+{
+ "week": 10,
+ "title": "Big Data in Real Applications: Social Media, Time Series &amp; Health Data",
+ "primer": [
+  "This week is about using the big data tools from Weeks 1 to 9 (HDFS, Kafka, Spark, Hive, Grafana) on three real domains: social media, time series and healthcare (P1 slide 5). The tools stay the same. What changes is the shape of the data and the risks.",
+  "<b>Social media data</b> is mainly a <i>graph</i>: people are nodes, and \"follows\" or \"retweets\" are edges. It is also timestamped, full of messy short text (slang, emojis, Bangla-English mixing) and heavy on images and video (P1 slide 7). Common analyses: <b>community detection</b> (finding tightly linked groups, using the Louvain algorithm), <b>influence maximisation</b> (picking the few users to seed so a message spreads furthest), <b>sentiment analysis</b> (is a post positive or negative, using VADER) and <b>trend detection</b> (spotting a phrase whose frequency suddenly jumps above its normal level).",
+  "<b>Time series data</b> is a list of values in time order, like weekly flu cases or daily sales. Order matters: shuffle the rows and the pattern is gone. Today's value is linked to yesterday's (autocorrelation). Most series have a <b>trend</b> (long-run drift up or down) and <b>seasonality</b> (repeating cycles, like every winter or every weekend) (P1 slide 14).",
+  "Three forecasting tools appear. <b>ARIMA</b> is the classic statistics model: it predicts from past values and past errors, but needs a stable (stationary) series and expert tuning. <b>Facebook Prophet</b> splits a series into parts you can read: y(t) = trend g(t) + seasonality s(t) + holidays h(t) + noise. It fits thousands of series automatically, and Spark can run one Prophet model per group in parallel with <code>applyInPandas</code> (P1 slides 16, 19). <b>LSTM</b> is a neural network for sequences. For <b>anomaly detection</b> the slides give STL (flag big leftover residuals) and Isolation Forest (odd points are easy to cut off from the rest) (P1 slide 18).",
+  "<b>Healthcare big data</b> comes in four forms: electronic health records (EHR), genomics (one genome is about 200 GB), wearables (per-second streams) and medical images (DICOM files of 200 MB to 2 GB) (P1 slide 21). ML on EHR data can predict ICU deaths, readmissions and sepsis earlier than doctors' rules of thumb (P1 slide 23). Because the data is about real patients, privacy law (HIPAA in the USA, GDPR in the EU, the upcoming PDPA in Bangladesh) shapes every design. Tools to protect it: de-identification, differential privacy (adding calibrated noise) and federated learning (training at each hospital without moving the raw data) (P1 slide 24).",
+  "<b>AlphaFold</b> (DeepMind) is the science example: trained on 170,000 known protein structures and searches across 250 million sequences, it predicts a protein's 3D shape from its amino-acid sequence. It released 200 million predicted structures in 2022 and won the 2024 Nobel Prize in Chemistry (P1 slides 25, 26, 32).",
+  "Part 2 adds two papers and a case study. <b>Kwak et al. (2010)</b> crawled 41.7 million Twitter users and 1.47 billion follow edges and found Twitter behaves like a <i>news medium</i>, not a friendship network: only 22.1% of follows are mutual and 85% of trending topics are headline news (P2 slides 5 to 7). <b>Taylor &amp; Letham (2018)</b> is the Prophet paper (P2 slides 9, 10).",
+  "The case study is <b>flu surveillance</b>. Official CDC reports lag 1 to 2 weeks. Twitter posts, pharmacy sales, ER notes and searches can show an outbreak earlier (P1 slide 28). But <b>Google Flu Trends</b> over-predicted flu by 2&times; in 2012-2013 because search behaviour changed. The lesson: big data signals are a <i>supplement</i> to clinical reporting, never a replacement (P1 slide 29, P2 slide 14)."
+ ],
+ "sections": [
+  {
+   "part": "Part 1",
+   "heading": "Student Assessment Pool: MCQ",
+   "questions": [
+    {
+     "n": "Q1",
+     "q": "Facebook's Prophet library is primarily designed for:",
+     "options": [
+      "(a) Graph analytics and community detection in social networks",
+      "(b) Real-time stream processing of events",
+      "(c) Time series forecasting with decomposable trend, seasonality, and holiday components",
+      "(d) Text sentiment classification using deep learning"
+     ],
+     "a": "<p><b>Answer: (c) Time series forecasting with decomposable trend, seasonality, and holiday components.</b></p><p>Why: Prophet models a series as y(t) = g(t) + s(t) + h(t) + &epsilon;(t): trend, seasonality, holidays and noise (P1 slide 16). \"Decomposable\" means it splits the forecast into these separate, readable parts.</p><ul><li>(a) Wrong: graph analytics and community detection use GraphX, NetworkX or Louvain, not Prophet (P1 slide 31 notes).</li><li>(b) Wrong: real-time stream processing is the job of Kafka and Spark Streaming. Prophet fits a model to historical data.</li><li>(d) Wrong: Prophet has nothing to do with text or sentiment. Sentiment on social media uses tools like VADER (P1 slide 11).</li></ul>"
+    },
+    {
+     "n": "Q2",
+     "q": "Which algorithm is most commonly used for community detection in large-scale social network graphs?",
+     "options": [
+      "(a) K-Means clustering",
+      "(b) PageRank",
+      "(c) Louvain algorithm",
+      "(d) ARIMA"
+     ],
+     "a": "<p><b>Answer: (c) Louvain algorithm.</b></p><p>Why: a community is a group of nodes more densely linked to each other than to the rest of the graph. Louvain starts with every node in its own community, greedily merges nodes to raise <i>modularity</i> (edges inside communities minus what chance would give), collapses communities into super-nodes and repeats until modularity stops rising. It runs in O(n log n), so it scales to billion-node graphs in Spark GraphX (P1 slide 9).</p><ul><li>(a) Wrong: K-Means clusters points (vectors) by distance, not graph links.</li><li>(b) Wrong: PageRank scores how important a node is, not which group it belongs to.</li><li>(d) Wrong: ARIMA is a time series forecasting method (P1 slide 31 notes).</li></ul>"
+    },
+    {
+     "n": "Q3",
+     "q": "HIPAA in the United States primarily regulates the privacy and security of:",
+     "options": [
+      "(a) Financial transaction data and bank records",
+      "(b) Healthcare data including patient records and medical information",
+      "(c) Social media user data and behavioural profiles",
+      "(d) Government data retention and public records"
+     ],
+     "a": "<p><b>Answer: (b) Healthcare data including patient records and medical information.</b></p><p>Why: HIPAA is the Health Insurance Portability and Accountability Act. It requires removing 18 PHI (protected health information) identifiers before research use, and consent (P1 slides 24, 32).</p><ul><li>(a) Wrong: US financial data falls under GLBA (or Basel III for banks), not HIPAA (P1 slide 32 notes).</li><li>(c) Wrong: social media profiles are not health records. In the EU, GDPR would cover them.</li><li>(d) Wrong: government record keeping is handled by other laws, not a health privacy act.</li></ul>"
+    },
+    {
+     "n": "Q4",
+     "q": "DeepMind's AlphaFold used big data and deep learning to solve:",
+     "options": [
+      "(a) Real-time financial fraud detection at bank-card transaction scale",
+      "(b) Social network influence maximisation over billion-node graphs",
+      "(c) The protein structure prediction problem, predicting 3D structure from amino acid sequence",
+      "(d) Time series anomaly detection in IoT sensor streams"
+     ],
+     "a": "<p><b>Answer: (c) The protein structure prediction problem, predicting 3D structure from amino acid sequence.</b></p><p>Why: a protein's 3D shape decides what it does, and lab methods take months per protein. AlphaFold 2 was trained on 170,000 structures from the Protein Data Bank, used multiple sequence alignments built from 250 million UniProt sequences, reached a median GDT score above 92%, and released 200 million predicted structures in 2022 (P1 slides 25, 26). It won the 2024 Nobel Prize in Chemistry (P1 slide 32).</p><ul><li>(a) Wrong: fraud detection is an anomaly detection task (like the bKash Isolation Forest example, P1 slide 18), not AlphaFold.</li><li>(b) Wrong: influence maximisation is Kempe et al.'s greedy algorithm (P1 slide 10).</li><li>(d) Wrong: IoT anomaly detection uses STL or Isolation Forest (P1 slide 18).</li></ul>"
+    }
+   ]
+  },
+  {
+   "part": "Part 1",
+   "heading": "Student Assessment Pool: True/False",
+   "questions": [
+    {
+     "n": "1",
+     "q": "Google Flu Trends successfully replaced traditional CDC flu surveillance and has been used as the primary source ever since.",
+     "a": "<p><b>False.</b></p><p>Google Flu Trends over-fitted to search behaviour and over-predicted flu incidence by 2&times; in 2012-2013, and it was discontinued (P1 slides 28, 29; P2 slide 14). Syndromic surveillance gives early signals, not ground truth.</p><p><b>Corrected:</b> Google Flu Trends failed (2&times; over-prediction in 2012-2013) and was discontinued; CDC still relies on clinical reporting (ILINet, BioSense), with big data signals used only as a supplement.</p>"
+    },
+    {
+     "n": "2",
+     "q": "Time series data is order-sensitive: randomly shuffling the records in a time series changes the analysis result.",
+     "a": "<p><b>True.</b></p><p>In a time series, the order is the signal: today's value is correlated with yesterday's (autocorrelation), and trend and seasonality only exist in time order, so shuffling rows destroys them (P1 slide 14).</p><p>Analogy: shuffle the pages of a diary and you can still count the words, but you can no longer tell what happened first.</p>"
+    },
+    {
+     "n": "3",
+     "q": "Social network graphs are typically sparse, with most nodes connected to only a small fraction of all possible neighbours.",
+     "a": "<p><b>True.</b></p><p>Each user links to a tiny share of all other users. Twitter in 2010 had 41.7 million users but only 1.47 billion follow edges, and follower counts follow a power law where only the top 0.05% have over a million followers (P2 slides 5, 6).</p><p>Check: possible directed edges = 41.7M &times; (41.7M &minus; 1) &asymp; 1.74 &times; 10^15, so 1.47 billion edges is about 0.00008% of them. Average out-degree &asymp; 1.47B / 41.7M &asymp; 35.3.</p>"
+    },
+    {
+     "n": "4",
+     "q": "Medical imaging data such as MRI and CT scans is classified as structured data because it is stored in files.",
+     "a": "<p><b>False.</b></p><p>Being stored in a file does not make data structured. CT, MRI, X-ray and pathology slides are <b>unstructured binary files</b> (DICOM, 200 MB to 2 GB each), kept in PACS and analysed by deep learning (CNN, ViT), not SQL (P1 slide 21).</p><p><b>Corrected:</b> Medical imaging data such as MRI and CT scans is classified as unstructured data (binary DICOM files), even though it is stored in files.</p>"
+    }
+   ]
+  },
+  {
+   "part": "Part 1",
+   "heading": "Student Assessment Pool: Descriptive",
+   "questions": [
+    {
+     "n": "D1",
+     "q": "Describe three types of analysis commonly performed on social media data (e.g., community detection, sentiment analysis, influence maximisation). For each, state one specific ethical risk that arises when the analysis is deployed at scale.",
+     "a": "<p><b>Social media analytics</b> treats a platform as a graph of users (nodes) and interactions (edges) with timestamped text attached (P1 slide 7). Three common analyses:</p><ol><li><b>Community detection.</b> Finds groups of users more densely linked to each other than to the rest of the graph. The Louvain algorithm merges nodes to maximise modularity and scales to billion-node graphs in Spark GraphX (P1 slide 9). Use: interest groups, political factions, bot networks.<br><i>Ethical risk:</i> profiling. Labelling users by group can expose political views, religion or sexuality they never shared, and can be used to target or watch a whole faction.</li><li><b>Sentiment analysis.</b> Scores each post as positive, neutral or negative. VADER gives a compound score in [&minus;1, +1]; above 0.05 is positive, below &minus;0.05 negative (P1 slide 11).<br><i>Ethical risk:</i> suppressing dissent. A government can flag posts with negative sentiment about its policy and target their authors (P1 slide 12). Errors on Bangla slang or sarcasm can also wrongly flag people.</li><li><b>Influence maximisation.</b> Chooses k seed users so a message spreads to the most people. It is NP-hard; Kempe et al.'s greedy method reaches at least (1 &minus; 1/e) &asymp; 63% of the best spread (P1 slide 10).<br><i>Ethical risk:</i> manipulation. The same method that spreads a health message can spread misinformation or micro-target ads at vulnerable users (P1 slide 12).</li></ol><p><b>Mitigation in one line:</b> transparency and purpose limitation: say what the analysis is for and use it only for that (P1 slide 12).</p><p><b>Example:</b> the #QurbaniEid spike (1,200&times; in 6 hours) was checked with VADER plus a Bangla lexicon: 92% positive, so it was real celebration, not a coordinated campaign (P1 slide 12).</p>"
+    },
+    {
+     "n": "D2",
+     "q": "What is the difference between ARIMA and Facebook Prophet for time series forecasting? Under what conditions would you prefer Prophet over ARIMA? When might ARIMA still be the better choice?",
+     "a": "<p><b>ARIMA(p, d, q)</b> (AutoRegressive Integrated Moving Average) predicts the next value from the past p values (AR), after differencing the series d times to make it stationary (I), plus the past q forecast errors (MA) (P1 slide 14). \"Stationary\" means the mean and variance do not change over time.</p><p><b>Prophet</b> fits an additive model y(t) = g(t) + s(t) + h(t) + &epsilon;(t): piecewise trend with automatic changepoints, Fourier seasonality (yearly, weekly, daily at once), a user list of holidays, and noise (P1 slide 16).</p><table><tr><th>Point</th><th>ARIMA</th><th>Prophet</th></tr><tr><td>Input</td><td>Needs stationary data</td><td>Handles trend and changepoints directly</td></tr><tr><td>Seasonality</td><td>Struggles with several seasonal cycles</td><td>Several seasonalities at once</td></tr><tr><td>Holidays</td><td>Not built in</td><td>h(t) term (Eid, Puja, elections)</td></tr><tr><td>Tuning</td><td>Expert picks p, d, q</td><td>Automatic; analysts tune readable knobs</td></tr><tr><td>Scale</td><td>Cannot hand-fit 10,000 series</td><td>One model per series, parallel in Spark</td></tr></table><p><b>Prefer Prophet when:</b> the series has strong or multiple seasonality, holiday effects, trend shifts, missing data or outliers, and when you must forecast thousands of series automatically (P1 slides 15, 16; P2 slide 10). Example: 5,000 SKU demand forecasts, 8 hours down to about 12 minutes with applyInPandas (P1 slide 19).</p><p><b>ARIMA can still be better when:</b> the series is short, stationary, has no strong seasonality and the dataset is small (P1 slide 14). It is a well-understood statistical model, and an expert can tune it closely for one important series.</p>"
+    },
+    {
+     "n": "D3",
+     "q": "Identify three data integration and privacy challenges specific to healthcare big data analytics. For each, describe one technical mitigation strategy (e.g., differential privacy, federated learning, de-identification).",
+     "a": "<p><b>Healthcare big data</b> mixes EHR records, genomics, wearable streams and DICOM images (P1 slide 21), all about identifiable patients under laws like HIPAA, GDPR and Bangladesh's PDPA (P1 slide 24).</p><ol><li><b>Challenge: identifiable patient records used for research.</b> EHRs hold names, dates of birth, NIDs and phone numbers. HIPAA requires removing 18 PHI identifiers first.<br><i>Mitigation: de-identification.</i> Safe harbour removes the 18 identifiers (name, DOB, zip, NID, phone, etc.); expert determination uses a statistical disclosure check by a qualified expert (P1 slide 24).</li><li><b>Challenge: data cannot leave each hospital.</b> Reliable models need 1 million+ patient records (P1 slide 23), but records sit in separate hospitals and moving them breaks consent and law (PDPA needs explicit consent for NID-linked records).<br><i>Mitigation: federated learning.</i> Train the model inside each hospital and share only model updates, never raw data (P1 slide 24).</li><li><b>Challenge: published statistics can leak individuals.</b> Even counts like \"patients with condition X in zip Y\" can reveal one person when the group is small, especially after joining EHR, genomic and wearable data.<br><i>Mitigation: differential privacy.</i> Add calibrated random noise to aggregate results so no single record can be inferred (P1 slide 24).</li></ol><p><b>Also an integration problem:</b> formats differ (FHIR resources, Parquet genomics, Kafka wearable streams, DICOM binaries). A common health data lake on HDFS/S3 with a Hive Metastore and the HL7 FHIR standard brings them together (P1 slides 21, 22).</p>"
+    }
+   ]
+  },
+  {
+   "part": "Part 1",
+   "heading": "Student Assessment Pool: Analytical",
+   "questions": [
+    {
+     "n": "A1",
+     "q": "Flu Outbreak Early-Warning System for Bangladesh: Design a big data system to detect flu outbreaks in Bangladesh using Twitter/Facebook posts and pharmacy purchase records from major pharmacy chains. (a) How would you collect and ingest these two data sources? (Specify tools: Kafka, Sqoop, Flume, REST API) (b) What features would you extract from each source for a prediction model? (Name specific NLP features and pharmacy signal metrics) (c) What model would you use, and how would you validate it against ground-truth CDC/DGHS surveillance data? (d) What are the ethical risks of this system? How would you mitigate them?",
+     "a": "<p><b>Goal:</b> catch flu outbreaks before the 1 to 2 week lag of physician reports (P1 slide 28), using the CDC syndromic surveillance pattern: sources &rarr; Kafka &rarr; Spark Streaming &rarr; alert engine + Grafana (P1 slide 29).</p><p><b>(a) Collect and ingest</b></p><ul><li><b>Social posts:</b> pull from the Twitter/X API v2 and Facebook public Pages through their <b>REST APIs</b> (keyword filters in English and Bangla: \"jor\", fever, flu, cough). A small producer writes each post as JSON to a <b>Kafka</b> topic <code>social_raw</code>.</li><li><b>Pharmacy sales:</b> chains keep sales in relational databases. Use <b>Sqoop</b> for nightly bulk import of history into HDFS, and for near-real-time, ship POS log files with <b>Flume</b> (or CDC events) into a Kafka topic <code>pharmacy_sales</code>.</li><li>Land both raw streams in HDFS/S3 as Parquet partitioned by date and district, for replay and training.</li></ul><p><b>(b) Features</b></p><ul><li><b>NLP from posts:</b> daily count of flu-keyword posts per district (location from profile or geotag); share of posts with symptom terms (fever, cough, \"can't taste\"); first-person illness flag (\"I have fever\" vs news about flu); VADER/Bangla-lexicon sentiment; ratio of today's count to its 4-week baseline (the trend-spike idea, P1 slide 12).</li><li><b>Pharmacy signals:</b> daily units of OTC antipyretics (paracetamol, ibuprofen) and cough syrup per district; week-on-week % change; z-score versus the same week last year; share of stores in a district with a spike. These spike 3 to 5 days before clinical confirmation; social posts peak 7 to 10 days before ER visits (P1 slide 28).</li></ul><p><b>(c) Model and validation</b></p><ul><li>Model: <b>Prophet</b> per district on DGHS weekly ILI counts, with yearly seasonality, Eid/Puja holidays, and the social and pharmacy features as extra regressors (covariates, as CDC did with Twitter, P2 slide 14). Run all districts in parallel with Spark <code>applyInPandas</code>. An Isolation Forest on the daily features gives a second, spike-based alarm. Combine them in a small ensemble, since ensembles beat single models (P2 slide 15).</li><li>Validation: rolling-origin backtest. Train on years 1 to n, forecast the next weeks, compare with DGHS reported ILI. Report error (MAE), correlation, and for alerts: lead time in days, hit rate (outbreaks caught) and false alarm rate. Test on a later season the model never saw, because Google Flu Trends had r&sup2; = 0.97 in-sample and still failed (P2 slide 14).</li></ul><p><b>(d) Ethical risks and mitigation</b></p><ul><li>Privacy: posts tie illness to named people. Keep only district-level counts, drop user IDs after aggregation, add differential-privacy noise to small counts.</li><li>False alarms and panic: media coverage drives searches and posts even when cases are low (P2 slide 14). Treat signals as early warnings that a health officer checks, never as automatic public announcements.</li><li>Bias: rural and older people post less, so they are under-counted. Weight with pharmacy data and DGHS data.</li><li>Misuse: the same pipeline could be used to watch individuals. Purpose limitation, access logs and consent rules under PDPA (P1 slides 12, 24).</li></ul>"
+    },
+    {
+     "n": "A2",
+     "q": "Retail Demand Forecasting Pipeline: A large Bangladeshi supermarket chain needs 90-day demand forecasts for 5,000 store–product SKU combinations. Design the end-to-end big data pipeline: (a) data ingestion from POS systems; (b) storage and partitioning strategy in HDFS/S3; (c) forecasting model choice (ARIMA vs. Prophet vs. LSTM) and justification; (d) how you parallelise model fitting across 5,000 SKUs using Spark; (e) how forecasts are served to the inventory management dashboard. Identify the primary bottleneck in your pipeline.",
+     "a": "<p><b>Baseline from the slides:</b> fitting 5,000 Prophet models one after another on one machine takes 8+ hours; with Spark applyInPandas on 20 executors it takes about 12 minutes, a 40&times; speedup (P1 slide 19). An SKU (stock keeping unit) here is one product in one store.</p><p><b>(a) Ingestion from POS</b></p><ul><li>Each till (point-of-sale system) sends sale events to <b>Kafka</b> (topic <code>pos_sales</code>) in real time. For stores with poor connectivity, upload end-of-day files; bulk-load historical sales from the central database with <b>Sqoop</b>.</li><li>A Spark job aggregates events to one row per day per SKU: <code>(sku_id, store_id, date, units)</code>.</li></ul><p><b>(b) Storage and partitioning</b></p><ul><li>Raw events in HDFS/S3 as Parquet, partitioned by <code>date</code> (easy daily appends and deletion of old data).</li><li>Daily aggregate table in Hive, partitioned by date and bucketed or clustered by <code>sku_id</code>, so reading one SKU's full history does not scan everything.</li><li>Forecast output table partitioned by <code>run_date</code>, so each nightly run is one new partition.</li></ul><p><b>(c) Model choice</b></p><ul><li><b>ARIMA:</b> needs stationary data and hand-picked (p, d, q); cannot be manually fitted for thousands of series (P1 slide 15). Rejected.</li><li><b>LSTM:</b> can learn complex patterns, but needs much data per series, GPU training, careful tuning, and is a black box for store managers.</li><li><b>Prophet (chosen):</b> weekly and yearly seasonality, a holiday list for Eid, Puja and Pohela Boishakh, automatic changepoints, tolerates missing days and outliers, and its parts are readable (P1 slide 16; P2 slide 10).</li></ul><p><b>(d) Parallel fitting in Spark</b> (P1 slide 19)</p><pre>def fit(pdf):\n    m = Prophet(yearly_seasonality=True, weekly_seasonality=True, holidays=bd_holidays)\n    m.fit(pdf[[\"ds\", \"y\"]])\n    fc = m.predict(m.make_future_dataframe(periods=90))\n    fc[\"sku_id\"] = pdf[\"sku_id\"].iloc[0]\n    return fc[[\"sku_id\", \"ds\", \"yhat\", \"yhat_lower\", \"yhat_upper\"]]\n\n(daily.groupBy(\"sku_id\")\n      .applyInPandas(fit, schema=\"sku_id string, ds timestamp, yhat double, yhat_lower double, yhat_upper double\")\n      .write.mode(\"overwrite\").parquet(\"s3://retail/forecasts/run_date=...\"))</pre><p>Each <code>sku_id</code> group is sent to one task; Prophet runs inside a Pandas UDF; all 5,000 models fit in parallel. Rough sizing: 8 h / 5,000 = 5.76 s per model; 5,000 / 20 executors = 250 models per executor.</p><p><b>(e) Serving</b></p><ul><li>Write forecasts to Hive/S3 as Parquet (P1 slide 19). Load the latest run into a small serving store (PostgreSQL or a Hive/Presto view) indexed by store and SKU.</li><li>The inventory dashboard (Superset or Grafana) reads it: forecast line with yhat_lower/yhat_upper bands, reorder point alerts when forecast demand exceeds stock.</li></ul><p><b>Primary bottleneck:</b> model fitting (step d). Prophet fitting through Stan is CPU-heavy and is the 8-hour step; ingestion and storage are cheap by comparison. Skew can also hurt: if a few SKUs have very long histories, their tasks finish last and the whole job waits. Fix: more executors/cores, one SKU per task, and limit history to the last 2 to 3 years.</p>"
+    }
+   ]
+  },
+  {
+   "part": "Part 2",
+   "heading": "Discussion Questions",
+   "questions": [
+    {
+     "n": "1",
+     "q": "Kwak et al. found Twitter's average shortest path is 4.12 hops over 41.7M users. If a misinformation tweet is retweeted by a high-PageRank account, estimate how many users it reaches within 3 hops assuming an average out-degree of 45. What graph property makes this estimate an overestimate? [CLO4 — Apply]",
+     "a": "<p><b>Idea:</b> treat spread like a tree. Each account passes the tweet to 45 new followers, and each of them to 45 more.</p><ul><li>Hop 1: 45 users</li><li>Hop 2: 45&sup2; = 2,025 users</li><li>Hop 3: 45&sup3; = 91,125 users</li></ul><p><b>Total within 3 hops</b> = 45 + 2,025 + 91,125 = <b>93,195 users</b> (93,196 counting the high-PageRank account itself). That is about 0.22% of the 41.7M users.</p><p>Context: since the average shortest path is only 4.12 hops (P2 slide 6), one more hop (45&#8308; = 4,100,625) would make the tree estimate reach about 4.19 million, so a tweet can reach a large part of the network in a few hops.</p><p><b>Why it is an overestimate:</b> the tree model assumes every follower at each hop is a new, different person. Real social graphs have <b>clustering and overlapping neighbourhoods</b> (followers of the same account often follow each other and share followers; Twitter communities are dense inside, P1 slide 9). So many hop-2 and hop-3 users are the same people counted again. Other reasons it is high:</p><ul><li>Not everyone who sees a tweet retweets it. Retweet cascades are wide and shallow (P2 slide 7), so most spread stops after hop 1.</li><li>Low reciprocity (22.1%, P2 slide 6) and the power-law degree distribution mean the average of 45 is pulled up by a few celebrities; a typical user has far fewer followers.</li></ul><p><b>Other side:</b> the high-PageRank first hop can be much bigger than 45 (celebrities have over 1 million followers), so hop 1 alone can exceed the estimate. The real number depends on who retweets.</p>"
+    },
+    {
+     "n": "2",
+     "q": "A Prophet model for weekly hospital admissions has strong annual and weekly seasonality but misses a sudden COVID-19 wave onset. Identify which Prophet component should detect this changepoint and explain what prior hyperparameter controls the model's sensitivity to new changepoints. [CLO4 — Analyse]",
+     "a": "<p><b>Component:</b> the <b>trend g(t)</b>. In Prophet the trend is piecewise linear, g(t) = (k + a(t)ᵀ&delta;)t + (m + a(t)ᵀ&gamma;), and &delta; holds slope changes at automatically detected changepoints (structural breaks) (P2 slide 10). A sudden wave is a break in the trend, not a repeating seasonal cycle, so seasonality s(t) cannot capture it and h(t) only covers known dates listed in advance.</p><p><b>Hyperparameter:</b> <code>changepoint_prior_scale</code>. Prophet puts a <i>sparse prior</i> on &delta;: most changepoints get a slope change near 0 and only a few are large (P2 slide 10). The prior scale sets how big those changes may be.</p><ul><li>Small (default 0.05): stiff trend, fewer real shifts allowed. Good against overfitting, but it can smooth over a sudden wave, which is what happened here.</li><li>Larger (e.g. 0.5, as in the Live Exercise): flexible trend that bends quickly at the wave onset, but may chase noise and gives wider forecast uncertainty.</li></ul><p><b>Practical fixes:</b> raise <code>changepoint_prior_scale</code> step by step and check on held-out weeks; let changepoints cover the latest data (<code>changepoint_range</code> near 1.0, since by default Prophet only places changepoints in the first 80% of the history); or add the known wave start as a manual changepoint or an extra regressor (e.g. case counts). Weekly seasonality on weekly data does nothing (all points fall on the same weekday), so it can be turned off.</p>"
+    },
+    {
+     "n": "3",
+     "q": "Design a dengue fever surveillance system for Bangladesh using BioSense-style ED data, Twitter signals, and Prophet forecasting. Specify: data sources, pipeline architecture (Kafka + Spark), model inputs, and how you would validate the system before policy use. [CLO4 — Design]",
+     "a": "<p><b>Model to copy:</b> the post-GFT CDC approach: direct medical data as the main signal, Twitter as a leading extra input, Prophet as the model (P2 slides 14, 19).</p><p><b>Data sources</b></p><ul><li><b>Primary (direct signal):</b> emergency department and outpatient visit records from DGHS-linked hospitals, sent as HL7 FHIR messages like BioSense (P2 slide 13). Extract a \"dengue-like illness\" syndrome from chief complaints (high fever, joint pain, rash, low platelets) with NLP.</li><li><b>Lab data:</b> NS1 antigen test counts and positives.</li><li><b>Leading indicator:</b> Twitter/X and Facebook posts with dengue words in English and Bangla (via REST APIs).</li><li><b>Context:</b> rainfall and temperature (mosquito breeding), paracetamol and saline sales.</li></ul><p><b>Pipeline (Kafka + Spark)</b></p><ol><li>Hospitals and APIs publish to Kafka topics: <code>ed_visits</code>, <code>lab_results</code>, <code>social_posts</code>.</li><li>Spark Structured Streaming de-identifies records, runs NLP, and aggregates counts per district per day/week.</li><li>Aggregates land in HDFS/S3 Parquet partitioned by week and district.</li><li>Nightly Spark job runs one Prophet model per district with <code>groupBy(\"district\").applyInPandas(...)</code>, as CDC ran 60 HHS regions at once (P2 slide 14).</li><li>Alert engine flags districts where actual cases exceed the forecast upper band; Grafana dashboard for DGHS (P1 slide 29).</li></ol><p><b>Model inputs:</b> y = weekly dengue-like ED visits per district; yearly seasonality (dengue peaks in the monsoon); holidays such as Eid (travel and closed clinics change visits); extra regressors: lagged rainfall, Twitter dengue-post count, NS1 positivity; changepoint_prior_scale tuned so a new outbreak shows up as a trend change.</p><p><b>Validation before policy use</b></p><ul><li>Backtest on past seasons (e.g. the 2019 and 2023 Bangladesh dengue outbreaks): forecast each week only from data before it, compare with DGHS confirmed counts (MAE, lead time, false alarms).</li><li>Out-of-sample test on a season not used in training, because GFT had r&sup2; = 0.97 in-sample and still over-predicted by 2&times; (P2 slide 14).</li><li>Ablation: compare with and without Twitter. Twitter adds about 2 weeks of lead time but with 30% higher error (P2 slide 15), so keep it only if it improves early detection.</li><li>Run in shadow mode for one season next to the existing reporting system, and let epidemiologists inspect the g, s, h parts before alerts drive decisions.</li></ul><p><b>Two sides:</b> social signals give speed but are noisy and biased toward urban, young users; clinical data is accurate but slower. The design uses each for what it does best.</p>"
+    }
+   ]
+  },
+  {
+   "part": "Part 2",
+   "heading": "Live Exercise",
+   "questions": [
+    {
+     "n": "Task",
+     "q": "Live Exercise — Prophet Flu Forecasting in Python. Task (25 minutes, pairs): Fit a Prophet model to synthetic weekly flu incidence data and produce a 12-week forecast. Install: pip install prophet matplotlib pandas",
+     "code": "import pandas as pd\nimport numpy as np\nfrom prophet import Prophet\nimport matplotlib.pyplot as plt\n\nrng = np.random.default_rng(42)\ndates = pd.date_range(\"2021-01-04\",\n                      periods=156, freq=\"W\")\n# Annual flu seasonality + noise\nili = (5 + 3*np.sin(\n          2*np.pi*np.arange(156)/52\n          - np.pi/2)\n       + rng.normal(0, 0.5, 156)).clip(0)\ndf = pd.DataFrame({\"ds\": dates, \"y\": ili})\n\n# Optional: add Eid holiday\nholidays = pd.DataFrame({\n   \"holiday\": \"Eid\",\n   \"ds\":       pd.to_datetime([\n                 \"2021-05-13\",\"2022-05-03\",\n                 \"2023-04-22\"]),\n   \"lower_window\": 0,\n   \"upper_window\": 3,\n})\n\nm = Prophet(\n    yearly_seasonality=True,\n    weekly_seasonality=False,\n    changepoint_prior_scale=0.05,\n    holidays=holidays)\nm.fit(df)\nfuture = m.make_future_dataframe(\n    periods=12, freq=\"W\")\nforecast = m.predict(future)\nm.plot(forecast)\nm.plot_components(forecast)\nplt.show()",
+     "a": "<p><b>What the skeleton does:</b> builds 156 weekly points (3 years &times; 52 weeks) of fake influenza-like illness (ILI) data, fits Prophet with an Eid holiday list, forecasts 12 more weeks and plots the forecast and its parts.</p><p><b>Steps</b></p><ol><li><code>pip install prophet matplotlib pandas</code></li><li>Run the skeleton as is and look at the two plots.</li><li>Add <code>interval_width=0.95</code> (Prophet's default band is 80%, so the skeleton alone does not meet Goal 3).</li><li>Do the Eid and changepoint experiments (Goals 4, 5) by refitting with changed settings.</li></ol><p><b>Complete runnable version (covers all five goals):</b></p><pre># pip install prophet matplotlib pandas\nimport pandas as pd\nimport numpy as np\nfrom prophet import Prophet\nimport matplotlib.pyplot as plt\n\n# Goal 1: 3 years (156 weeks) of synthetic weekly ILI data\nrng = np.random.default_rng(42)\ndates = pd.date_range(\"2021-01-04\", periods=156, freq=\"W\")\nili = (5 + 3*np.sin(2*np.pi*np.arange(156)/52 - np.pi/2)\n       + rng.normal(0, 0.5, 156)).clip(0)\ndf = pd.DataFrame({\"ds\": dates, \"y\": ili})\n\nholidays = pd.DataFrame({\n    \"holiday\": \"Eid\",\n    \"ds\": pd.to_datetime([\"2021-05-13\", \"2022-05-03\", \"2023-04-22\"]),\n    \"lower_window\": 0,\n    \"upper_window\": 3,\n})\n\ndef fit_forecast(data, cps=0.05, use_holidays=True):\n    m = Prophet(\n        yearly_seasonality=True,\n        weekly_seasonality=False,      # weekly data: one point per week\n        changepoint_prior_scale=cps,\n        holidays=holidays if use_holidays else None,\n        interval_width=0.95)           # Goal 3: 95% interval (default is 0.80)\n    m.fit(data)\n    future = m.make_future_dataframe(periods=12, freq=\"W\")\n    return m, m.predict(future)\n\n# Goals 2 + 3: fit and plot a 12-week forecast with 95% bands\nm, forecast = fit_forecast(df)\nm.plot(forecast)\nm.plot_components(forecast)\nprint(forecast[[\"ds\", \"yhat\", \"yhat_lower\", \"yhat_upper\"]].tail(12))\n\n# Goal 4: give the holiday something to find - inject an Eid spike\ndf_eid = df.copy()\neid_weeks = pd.to_datetime([\"2021-05-16\", \"2023-04-23\"])  # Sundays inside the Eid windows\ndf_eid.loc[df_eid[\"ds\"].isin(eid_weeks), \"y\"] += 3\nm_no, fc_no = fit_forecast(df_eid, use_holidays=False)\nm_h,  fc_h  = fit_forecast(df_eid, use_holidays=True)\nprint(\"Eid effect (holiday model):\",\n      fc_h.loc[fc_h[\"ds\"].isin(eid_weeks), \"Eid\"].round(2).tolist())\nm_h.plot_components(fc_h)\n\n# Goal 5: compare trend flexibility\n_, fc_stiff = fit_forecast(df, cps=0.05)\n_, fc_flex  = fit_forecast(df, cps=0.5)\nplt.figure()\nplt.plot(df[\"ds\"], df[\"y\"], \".\", color=\"grey\", label=\"data\")\nplt.plot(fc_stiff[\"ds\"], fc_stiff[\"trend\"], label=\"trend cps=0.05\")\nplt.plot(fc_flex[\"ds\"],  fc_flex[\"trend\"],  label=\"trend cps=0.5\")\nplt.legend(); plt.title(\"Trend flexibility\")\nplt.show()</pre><p><b>Facts about the data (checked with Python's datetime and math):</b></p><ul><li><code>freq=\"W\"</code> means weeks ending Sunday. 2021-01-04 is a Monday, so the first date is <b>2021-01-10</b> and the last is <b>2023-12-31</b>.</li><li>The curve 5 + 3&middot;sin(2&pi;i/52 &minus; &pi;/2) runs from 2 (at i = 0, early January) to 8 (at i = 26, around 2021-07-11), mean 5, plus noise with standard deviation 0.5. So this synthetic flu peaks mid-year.</li><li>The 12 forecast weeks run 2024-01-07 to 2024-03-24.</li></ul><p><b>Expected output:</b> the forecast plot shows black dots (data) following a smooth wave and a blue line with a shaded band. For the 12 forecast weeks the line should start near the yearly low (the true curve is 2.0 at the first forecast week) and rise to roughly 4.3 by the last one (true curve value 4.28), with a band about &plusmn;1 wide (noise 0.5 &times; 1.96 &asymp; 0.98, plus trend uncertainty). The components plot shows a nearly flat trend near 5, a yearly wave of about &plusmn;3, and the Eid term.</p>"
+    },
+    {
+     "n": "1",
+     "q": "Generate 3 years of synthetic weekly ILI data with annual seasonality + noise.",
+     "a": "<p>Done by the first block: <code>pd.date_range(\"2021-01-04\", periods=156, freq=\"W\")</code> gives 156 weekly dates (156 / 52 = 3 years). The sine term with period 52 weeks is the annual seasonality; <code>rng.normal(0, 0.5, 156)</code> adds noise; <code>.clip(0)</code> stops negative case counts (the lowest true value is 2, so clipping almost never acts). The seed 42 makes everyone's data identical. Prophet needs the columns named exactly <code>ds</code> (date) and <code>y</code> (value).</p>"
+    },
+    {
+     "n": "2",
+     "q": "Fit Prophet with yearly and weekly seasonality.",
+     "a": "<p><code>yearly_seasonality=True</code> fits the annual wave as a Fourier series with P = 365.25 days (P2 slide 10). The skeleton sets <code>weekly_seasonality=False</code>, and that is correct for this data: weekly seasonality models a pattern <i>within</i> a week (Monday vs Sunday), but here there is one point per week, always a Sunday, so there is nothing to learn. Turning it on would add useless terms. Weekly seasonality only makes sense for daily (or finer) data, like daily hospital admissions.</p><p>Small detail: the synthetic cycle is 52 weeks = 364 days, Prophet's year is 365.25 days, a drift of 1.25 days per year, too small to matter.</p>"
+    },
+    {
+     "n": "3",
+     "q": "Plot the forecast with 95% uncertainty intervals.",
+     "a": "<p><code>m.plot(forecast)</code> draws the data, <code>yhat</code> (the forecast line) and the shaded band from <code>yhat_lower</code> to <code>yhat_upper</code>. Prophet's default band is 80%, so pass <code>interval_width=0.95</code> to <code>Prophet(...)</code> to get 95%. Expected: the 95% band is wider than the 80% one, and it widens further into the future because Prophet simulates possible future trend changes.</p>"
+    },
+    {
+     "n": "4",
+     "q": "Add a holiday for “Eid” (spike in healthcare visits) and observe the effect.",
+     "a": "<p>The <code>holidays</code> table lists three Eid dates; <code>upper_window: 3</code> extends each to the 3 days after (4 days in all). Prophet adds an h(t) term that is active only on those days.</p><p><b>Expected effect with the skeleton data: almost none.</b> Two reasons:</p><ol><li>The synthetic data has no Eid spike built in, so the fitted Eid effect is near 0 (just noise).</li><li>The data only has Sundays. 2021-05-13 (Thu) to 05-16 covers Sunday 2021-05-16; 2023-04-22 (Sat) to 04-25 covers Sunday 2023-04-23; but 2022-05-03 (Tue) to 05-06 contains no Sunday, so that Eid matches no data point at all.</li></ol><p>To see a real effect, add +3 to y on the Eid weeks (as in the full code). Expected: without the holiday the model treats the spikes as noise and its band widens a little; with the holiday the components plot shows an Eid bar near +3 on those weeks and the trend and seasonality stay clean. This is the h(t) idea from P1 slide 16: known one-off events are modelled, not mistaken for trend.</p>"
+    },
+    {
+     "n": "5",
+     "q": "Change changepoint_prior_scale from 0.05 to 0.5 and compare trend flexibility.",
+     "a": "<p><code>changepoint_prior_scale</code> controls how big the slope changes &delta; at changepoints may be (the sparse prior, P2 slide 10).</p><ul><li><b>0.05 (default):</b> stiff trend. The true trend here is flat at 5, so the expected trend line is nearly flat around 5.</li><li><b>0.5:</b> 10&times; looser prior. The trend can bend at many changepoints, so it wiggles and starts to absorb noise and bits of the seasonal wave. The future band also gets wider, because Prophet projects larger possible trend changes forward.</li></ul><p><b>Lesson:</b> higher values react faster to real breaks (like a sudden outbreak, Discussion Q2) but overfit noise on stable data. Pick the value by checking forecast error on held-out weeks.</p>"
+    }
+   ]
+  }
+ ],
+ "maths": {
+  "intro": "This chapter is applied, but several numbers and formulas appear on the slides: speedup from parallel forecasting, the Prophet model and its trend and Fourier parts, network reach in hops, the power law for followers, modularity for Louvain, the Kempe greedy guarantee, spike ratios, STL anomaly thresholds, VADER cut-offs and storage sizes. Every number below was recomputed in Python.",
+  "items": [
+   {
+    "title": "Speedup of parallel batch forecasting",
+    "formula": "Speedup = T_sequential / T_parallel; &nbsp; time per model = T_sequential / number of models; &nbsp; models per executor = models / executors",
+    "symbols": "<ul><li>T_sequential: time to fit all models one after another on one machine</li><li>T_parallel: time on the Spark cluster</li><li>executor: a Spark worker process that runs tasks</li></ul>",
+    "example": "<p>P1 slide 19: 5,000 SKUs, 8 hours sequential, about 12 minutes on 20 executors.</p><ol><li>8 h = 480 min</li><li>Speedup = 480 / 12 = <b>40&times;</b> (matches the slide)</li><li>Time per model = 8 &times; 3600 s / 5,000 = <b>5.76 s</b></li><li>Models per executor = 5,000 / 20 = <b>250</b></li><li>If each executor ran one model at a time, the best case would be 480 / 20 = 24 min. Getting 12 min means about 40 models fit at once, e.g. 2 cores per executor.</li></ol>",
+    "practice": "<p><b>Q:</b> The chain grows to 10,000 SKUs. Each model still takes 5.76 s and the cluster runs 40 models at once. Sequential time and parallel time?</p><p><b>A:</b> Sequential = 10,000 &times; 5.76 = 57,600 s = <b>16 h</b>. Parallel = 57,600 / 40 = 1,440 s = <b>24 min</b>. Speedup stays 960 / 24 = 40&times;.</p>"
+   },
+   {
+    "title": "Prophet additive model",
+    "formula": "y(t) = g(t) + s(t) + h(t) + &epsilon;(t)",
+    "symbols": "<ul><li>y(t): the value at time t (e.g. admissions this week)</li><li>g(t): trend, long-run growth (piecewise linear or logistic)</li><li>s(t): seasonality, repeating cycles (Fourier series)</li><li>h(t): holiday or event effect on listed dates</li><li>&epsilon;(t): noise, what the model cannot explain</li></ul>",
+    "example": "<p>An Eid week: trend g = 100 admissions, seasonal effect s = +15, Eid effect h = +30, noise &epsilon; = &minus;2.</p><p>y = 100 + 15 + 30 &minus; 2 = <b>143</b>.</p>",
+    "practice": "<p><b>Q:</b> A forecast says y = 120 for a non-holiday week, with g = 110 and noise 0. What is s?</p><p><b>A:</b> h = 0 (no holiday), so s = 120 &minus; 110 &minus; 0 &minus; 0 = <b>+10</b>.</p>"
+   },
+   {
+    "title": "Prophet piecewise linear trend with changepoints",
+    "formula": "g(t) = (k + a(t)ᵀ&delta;) t + (m + a(t)ᵀ&gamma;)",
+    "symbols": "<ul><li>k: base growth rate (slope)</li><li>m: offset (starting level)</li><li>&delta;: slope changes, one per changepoint; sparse prior keeps most near 0</li><li>a(t): 0/1 vector, 1 for every changepoint already passed at time t</li><li>&gamma;: offset corrections so the line stays joined at each changepoint (for one changepoint at s: &gamma; = &minus;s&delta;)</li></ul>",
+    "example": "<p>k = 0.5, m = 1, one changepoint at t = 10 with &delta; = 0.3, so &gamma; = &minus;10 &times; 0.3 = &minus;3.</p><ol><li>Before the changepoint, t = 10: g = 0.5 &times; 10 + 1 = <b>6</b></li><li>After, slope = 0.5 + 0.3 = 0.8. At t = 10: 0.8 &times; 10 + 1 &minus; 3 = <b>6</b> (line stays joined)</li><li>At t = 20: 0.8 &times; 20 + 1 &minus; 3 = <b>14</b></li></ol>",
+    "practice": "<p><b>Q:</b> Same model but &delta; = &minus;0.5 (a slowdown). Slope after t = 10 and g(20)?</p><p><b>A:</b> Slope = 0.5 &minus; 0.5 = 0. &gamma; = &minus;10 &times; (&minus;0.5) = +5. g(20) = 0 &times; 20 + 1 + 5 = <b>6</b>: flat after the changepoint, still joined at 6.</p>"
+   },
+   {
+    "title": "Prophet Fourier seasonality",
+    "formula": "s(t) = &Sigma; (n = 1 to N) [ a_n cos(2&pi;nt / P) + b_n sin(2&pi;nt / P) ]",
+    "symbols": "<ul><li>P: period in days: 365.25 for yearly, 7 for weekly (P2 slide 10)</li><li>N: number of terms; larger N gives a wigglier, less smooth pattern</li><li>a_n, b_n: weights the model learns; there are 2N of them</li><li>t: time in days</li></ul>",
+    "example": "<p>Weekly seasonality (P = 7), N = 1, a₁ = 2, b₁ = 0.</p><ul><li>t = 0: s = 2 cos(0) = <b>2</b></li><li>t = 3.5 (half a week): s = 2 cos(&pi;) = <b>&minus;2</b></li><li>t = 1.75: s = 2 cos(&pi;/2) = <b>0</b></li></ul><p>Number of weights: N = 10 gives 2 &times; 10 = 20; N = 3 gives 6.</p>",
+    "practice": "<p><b>Q:</b> Yearly seasonality (P = 365.25), N = 1, a₁ = 0, b₁ = 3. Value at t = 365.25/4 (a quarter year)?</p><p><b>A:</b> s = 3 sin(2&pi; &times; 0.25) = 3 sin(&pi;/2) = <b>3</b>.</p>"
+   },
+   {
+    "title": "Reach within h hops (tree estimate)",
+    "formula": "Reach &le; d + d² + &hellip; + d^h",
+    "symbols": "<ul><li>d: average out-degree (followers each user passes the post to)</li><li>h: number of hops</li><li>&le;: an upper bound, because overlapping friends are counted more than once</li></ul>",
+    "example": "<p>P2 slide 15: d = 45, h = 3.</p><p>45 + 45&sup2; + 45&sup3; = 45 + 2,025 + 91,125 = <b>93,195</b> users, about 0.22% of 41.7M.</p>",
+    "practice": "<p><b>Q:</b> d = 30, h = 3?</p><p><b>A:</b> 30 + 900 + 27,000 = <b>27,930</b> users.</p>"
+   },
+   {
+    "title": "Power-law follower distribution",
+    "formula": "P(k) &prop; k^(&minus;&alpha;), &nbsp; so P(ck) / P(k) = c^(&minus;&alpha;)",
+    "symbols": "<ul><li>k: number of followers</li><li>P(k): share of users with k followers</li><li>&alpha;: exponent, &asymp; 2.276 for Twitter followers (P2 slide 6)</li><li>&prop;: \"proportional to\"</li></ul>",
+    "example": "<p>How common are users with twice as many followers? 2^(&minus;2.276) = <b>0.206</b>, about 1/5 as common.</p>",
+    "practice": "<p><b>Q:</b> Ten times as many followers?</p><p><b>A:</b> 10^(&minus;2.276) = <b>0.0053</b>, about 1 in 189 as common. That is why only the top 0.05% have more than a million followers.</p>"
+   },
+   {
+    "title": "Reciprocity",
+    "formula": "Reciprocity = mutual follow links / all follow links &times; 100%",
+    "symbols": "<ul><li>mutual link: A follows B and B follows A</li></ul>",
+    "example": "<p>Twitter: 22.1% mutual (P2 slide 6), so 100 &minus; 22.1 = <b>77.9%</b> are one-way. Of 1.47 billion edges, 0.221 &times; 1.47B &asymp; <b>324.87 million</b> are mutual.</p>",
+    "practice": "<p><b>Q:</b> A network has 2 million edges, 1.5 million of them mutual. Reciprocity?</p><p><b>A:</b> 1.5 / 2 = <b>75%</b>: much closer to a friendship network like Facebook (&asymp;100%) than to Twitter.</p>"
+   },
+   {
+    "title": "Modularity (what Louvain maximises)",
+    "formula": "Q = &Sigma;_c [ L_c/m &minus; (d_c / 2m)² ]",
+    "symbols": "<ul><li>c: each community</li><li>L_c: edges inside community c</li><li>d_c: sum of degrees of nodes in c</li><li>m: total edges in the graph</li><li>L_c/m is the actual fraction inside; (d_c/2m)&sup2; is the fraction expected by chance (the slide's definition, P1 slide 9). Higher Q = better split.</li></ul>",
+    "example": "<p>Two triangles joined by one edge: 6 nodes, m = 7. Each triangle is a community: L_c = 3, degrees 2 + 2 + 3 = 7.</p><p>Per community: 3/7 &minus; (7/14)&sup2; = 0.4286 &minus; 0.25 = 0.1786. Q = 2 &times; 0.1786 = <b>0.357</b>.</p><p>All nodes in one community: Q = 7/7 &minus; (14/14)&sup2; = <b>0</b>. So the two-triangle split is better, and Louvain would keep it.</p>",
+    "practice": "<p><b>Q:</b> Two 4-node rings (each a 4-cycle) joined by one edge. Q for the two rings as communities?</p><p><b>A:</b> m = 4 + 4 + 1 = 9. Each ring: L_c = 4, d_c = 2+2+2+3 = 9. Per ring: 4/9 &minus; (9/18)&sup2; = 0.4444 &minus; 0.25 = 0.1944. Q = 2 &times; 0.1944 = <b>0.389</b>.</p>"
+   },
+   {
+    "title": "Greedy influence maximisation guarantee",
+    "formula": "Greedy spread &ge; (1 &minus; 1/e) &times; optimal spread &asymp; 0.632 &times; optimal",
+    "symbols": "<ul><li>e &asymp; 2.718, the base of natural logarithms</li><li>optimal spread: the best possible reach with k seeds (NP-hard to find exactly)</li></ul>",
+    "example": "<p>If the best k seeds would reach 10,000 users, Kempe et al.'s greedy method (P1 slide 10) is guaranteed at least 10,000 &times; 0.632 = <b>6,321</b> users.</p>",
+    "practice": "<p><b>Q:</b> Optimal reach 50,000. Guaranteed greedy reach?</p><p><b>A:</b> 50,000 &times; (1 &minus; 1/e) = <b>31,606</b> users.</p>"
+   },
+   {
+    "title": "Spike ratio for trend and anomaly detection",
+    "formula": "Spike ratio = current rate / baseline rate",
+    "symbols": "<ul><li>baseline rate: the normal (historical) frequency</li><li>trend detection compares to the baseline, not absolute volume (P1 slide 12)</li></ul>",
+    "example": "<p>A phrase normally at 10/hour jumps to 10,000/hour: 10,000 / 10 = <b>1,000&times;</b>, so it is trending (P1 slide 12). Same ratio for the bKash agent going from 10 to 10,000 transactions per hour (P1 slide 18).</p>",
+    "practice": "<p><b>Q:</b> #QurbaniEid showed a 1,200&times; spike (P1 slide 12). If its baseline was 50 posts/hour, what was the peak rate?</p><p><b>A:</b> 50 &times; 1,200 = <b>60,000 posts/hour</b>.</p>"
+   },
+   {
+    "title": "STL residual anomaly rule",
+    "formula": "Flag a point if |residual| &gt; k &times; IQR(residuals), IQR = Q3 &minus; Q1",
+    "symbols": "<ul><li>residual: what is left after removing trend and seasonality (STL, P1 slide 18)</li><li>Q1, Q3: first and third quartiles (25th and 75th percentiles)</li><li>IQR: interquartile range, the spread of the middle half</li><li>k: a chosen multiplier (the slide leaves it open; 1.5 or 3 are common)</li></ul>",
+    "example": "<p>Residuals: 0.2, &minus;0.1, 0.3, &minus;0.4, 0.1, 5.0, &minus;0.2, 0.0. Sorted: &minus;0.4, &minus;0.2, &minus;0.1, 0.0, 0.1, 0.2, 0.3, 5.0.</p><ol><li>Q1 = &minus;0.125, Q3 = 0.225 (linear interpolation, Python <code>statistics.quantiles(method=\"inclusive\")</code>)</li><li>IQR = 0.225 &minus; (&minus;0.125) = 0.35</li><li>k = 3: threshold = 3 &times; 0.35 = 1.05</li><li>Only |5.0| &gt; 1.05, so the 6th point is the <b>anomaly</b>.</li></ol>",
+    "practice": "<p><b>Q:</b> Same data, k = 1.5. Which points are flagged?</p><p><b>A:</b> Threshold = 1.5 &times; 0.35 = 0.525. Largest normal value is |&minus;0.4| = 0.4 &lt; 0.525, so still <b>only 5.0</b> is flagged.</p>"
+   },
+   {
+    "title": "VADER sentiment classes",
+    "formula": "compound &gt; 0.05 &rarr; positive; compound &lt; &minus;0.05 &rarr; negative; otherwise neutral; compound &isin; [&minus;1, +1]",
+    "symbols": "<ul><li>compound: VADER's single overall score for a text (P1 slide 11)</li></ul>",
+    "example": "<p>Scores 0.62, 0.03, &minus;0.40 &rarr; <b>positive, neutral, negative</b>.</p>",
+    "practice": "<p><b>Q:</b> Classify 0.05 and &minus;0.06.</p><p><b>A:</b> 0.05 is not greater than 0.05, so <b>neutral</b>; &minus;0.06 &lt; &minus;0.05, so <b>negative</b>.</p>"
+   },
+   {
+    "title": "Storage size for genomics",
+    "formula": "Total = size per genome &times; number of patients (&times; replication factor on HDFS)",
+    "symbols": "<ul><li>size per genome: about 200 GB (P1 slide 21)</li><li>1 PB = 1,000,000 GB (decimal units)</li><li>replication factor: HDFS keeps 3 copies by default</li></ul>",
+    "example": "<p>10,000 patients &times; 200 GB = 2,000,000 GB = <b>2 PB</b> (matches P1 slide 21).</p>",
+    "practice": "<p><b>Q:</b> 2,500 patients stored on HDFS with replication 3. Raw disk needed?</p><p><b>A:</b> 2,500 &times; 200 = 500,000 GB = 500 TB; &times; 3 = <b>1.5 PB</b>.</p>"
+   },
+   {
+    "title": "Correlation from r&sup2; (Google Flu Trends)",
+    "formula": "r = &radic;(r²)",
+    "symbols": "<ul><li>r&sup2;: share of variation explained by the model (0 to 1)</li><li>r: correlation coefficient</li></ul>",
+    "example": "<p>GFT had r&sup2; = 0.97 on 2003-2008 data (P2 slide 14), so r = &radic;0.97 = <b>0.985</b>. Still, it over-predicted by 2&times; in 2012-2013: in-sample fit says nothing about future seasons when behaviour changes.</p>",
+    "practice": "<p><b>Q:</b> True ILI rate is 3% and GFT over-predicts by 2&times;. What did GFT report?</p><p><b>A:</b> 3% &times; 2 = <b>6%</b>.</p>"
+   }
+  ]
+ }
+}

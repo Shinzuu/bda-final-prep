@@ -1,0 +1,267 @@
+{
+ "week": 8,
+ "title": "Data Integration at Scale: Pipelines, Data Lakes & Modern Architectures",
+ "primer": [
+  "<b>Data integration</b> means moving data from the systems where it is born (bank databases, web servers, phone apps) to the systems where it is analysed (Hadoop, dashboards, fraud checkers). The old way was point-to-point ETL (Extract, Transform, Load): one nightly job for every pair of systems. With N systems that grows like N&#178;, so 50 systems can need 2,450 separate jobs (P1 slide 5). Those jobs break on schema changes, cannot replay lost data, and are at least 24 hours late.",
+  "The modern answer is an <b>event-driven pipeline</b>: put one central message bus (usually Apache Kafka) in the middle. Sources publish events to the bus, consumers subscribe. Adding a new consumer needs zero changes to any source (P1 slide 5). Think of a post office: senders drop letters at one place instead of driving to every recipient.",
+  "Four tools to know (P1 slide 7): <b>Sqoop</b> = bulk copy between a relational database and HDFS (nightly batch). <b>Flume</b> = collects log files into HDFS using Source, Channel, Sink. <b>Kafka</b> = real-time event bus, any source to any consumer. <b>NiFi</b> = visual, drag-and-drop data routing. Spark Streaming then processes the streams.",
+  "<b>Kafka</b> stores data as an append-only log: new messages are only added at the end, never changed or removed on read. A <b>topic</b> is a named log (e.g. bkash-transactions). It is split into <b>partitions</b> for parallel work. Each message has an <b>offset</b>, its position number in the partition. <b>Brokers</b> are the Kafka servers; each partition is copied to R brokers (replication factor, default 3). Consumers track their own offset, so a late consumer can go back to offset 0 and replay everything still retained (P1 slides 14-16).",
+  "Kafka is fast because of four tricks: sequential disk writes (about 600 MB/s vs much less for random writes), zero-copy transfer with the sendfile() call, batching many messages per network trip, and partition parallelism (P1 slide 18). In the 2011 paper benchmark Kafka produced 50.5 MB/s vs 4.3 MB/s for ActiveMQ and 14.7 MB/s for RabbitMQ (P2 slide 11).",
+  "<b>Lambda architecture</b> (Nathan Marz, 2011) has three layers: a Batch layer (accurate, hours old), a Speed layer (approximate, seconds old) and a Serving layer that merges both for queries. Its big cost: the same business logic is written twice, once for batch and once for stream, and teams spend 30-40% of effort keeping them in sync (P1 slides 21-23).",
+  "<b>Kappa architecture</b> (Jay Kreps, 2014) drops the batch layer. All history sits in a long-retention log (Kafka, or Iceberg on S3). One stream job handles live data, and to reprocess history you start a new job at offset 0 and let it catch up (P1 slide 25). It only works if the stream engine is fast enough to replay the history.",
+  "A <b>data lake</b> stores raw data of any format with no schema needed up front (ingest, storage, processing, catalogue layers). Without governance it turns into a <b>data swamp</b>: files with no owner, no metadata, stale copies and mixed personal data. Prevent it with a catalogue at ingest, owners, access control, quality checks and table formats like Delta Lake or Iceberg (P1 slides 29-30). Part 2 covers the original Kafka paper (Kreps, Narkhede &amp; Rao 2011) and Netflix's Kafka pipeline (100 billion events per day)."
+ ],
+ "sections": [
+  {
+   "part": "Part 1",
+   "heading": "Student Assessment Pool: MCQ",
+   "questions": [
+    {
+     "n": "Q1",
+     "q": "Which tool is specifically designed to transfer data in bulk between an RDBMS (e.g., MySQL) and HDFS?",
+     "options": [
+      "(a) Apache Flume",
+      "(b) Apache Kafka",
+      "(c) Apache Sqoop",
+      "(d) Apache NiFi"
+     ],
+     "a": "<p><b>(c) Apache Sqoop</b></p><p>Sqoop means \"SQL-to-Hadoop\". It is a command-line tool that copies data in bulk between a relational database (MySQL, Oracle, PostgreSQL, SQL Server) and HDFS, Hive or HBase. It runs a MapReduce job where each map task reads one range of rows in parallel (P1 slide 9).</p><ul><li>(a) Flume is for collecting <i>log</i> data into HDFS, not database tables (P1 slide 11).</li><li>(b) Kafka is a real-time event bus for streams, not a bulk table copier.</li><li>(d) NiFi is a visual, no-code pipeline tool for routing data (P1 slide 7).</li></ul>"
+    },
+    {
+     "n": "Q2",
+     "q": "Apache Kafka's data model is based on which fundamental storage abstraction?",
+     "options": [
+      "(a) B-tree indexes for fast point lookups",
+      "(b) Column-family storage (like HBase)",
+      "(c) Append-only immutable distributed logs (partitioned topics)",
+      "(d) Document storage with secondary indexes"
+     ],
+     "a": "<p><b>(c) Append-only immutable distributed logs (partitioned topics)</b></p><p>Kafka's founding idea: model the data infrastructure as a distributed, replicated, append-only log. That gives durability, replay and decoupling for free (P1 slide 14). A topic is a log, split into partitions; messages are only added at the end and never changed (P2 slide 5: \"a distributed, partitioned, replicated commit log service\").</p><ul><li>(a) B-trees are database indexes for finding single rows; Kafka reads sequentially by offset.</li><li>(b) Column-family storage is HBase's model, not Kafka's.</li><li>(d) Document storage is MongoDB-style; Kafka has no secondary indexes, only an offset index.</li></ul>"
+    },
+    {
+     "n": "Q3",
+     "q": "In the Lambda architecture, which layer handles <b>real-time</b>, <b>low-latency</b> query views?",
+     "options": [
+      "(a) Batch Layer",
+      "(b) Serving Layer",
+      "(c) Speed Layer",
+      "(d) Ingestion Layer"
+     ],
+     "a": "<p><b>(c) Speed Layer</b></p><p>The Speed layer processes data that arrived since the last batch run using a stream processor (Kafka + Spark Streaming / Flink). Its views are approximate but under a few seconds old (P1 slide 21).</p><ul><li>(a) The Batch layer is accurate but 1-24 hours stale (high latency).</li><li>(b) The Serving layer does not process data; it merges batch and real-time views and answers queries (instructor note, P1 slide 33). This is the common trap.</li><li>(d) There is no \"Ingestion Layer\" in Lambda. Ingestion is a data-lake layer (P1 slide 29).</li></ul>"
+    },
+    {
+     "n": "Q4",
+     "q": "The Kappa architecture differs from the Lambda architecture primarily by:",
+     "options": [
+      "(a) Adding a third processing layer for machine learning",
+      "(b) Using only relational databases for both batch and stream storage",
+      "(c) Eliminating the batch layer and using Kafka log replay for all reprocessing",
+      "(d) Replacing Hadoop with Spark in the batch layer while keeping the speed layer"
+     ],
+     "a": "<p><b>(c) Eliminating the batch layer and using Kafka log replay for all reprocessing</b></p><p>Kreps argued the batch layer is unnecessary if the stream engine can reprocess history as fast as live data. Kappa has only log storage + one stream job; to reprocess, start a new job at offset 0 (P1 slide 25).</p><ul><li>(a) Kappa removes a layer; it does not add one.</li><li>(b) Kappa uses a log (Kafka/Iceberg), not relational databases.</li><li>(d) Common misconception (P1 slide 33): Kappa does not just swap Hadoop for Spark. It removes the whole batch layer and keeps one code path.</li></ul>"
+    }
+   ]
+  },
+  {
+   "part": "Part 1",
+   "heading": "Student Assessment Pool: True/False",
+   "questions": [
+    {
+     "n": "1",
+     "q": "Apache Sqoop is designed for real-time streaming ingestion from transactional systems.",
+     "a": "<p><b>False.</b> Sqoop is a <i>batch</i> tool: it runs bulk imports/exports (for example nightly at 01:00 for bKash's 10 M rows) as MapReduce jobs (P1 slides 7, 9).</p><p><b>Corrected:</b> Apache Sqoop is designed for bulk batch transfer between an RDBMS and HDFS; real-time streaming ingestion is done with Kafka.</p>"
+    },
+    {
+     "n": "2",
+     "q": "Kafka retains messages for a configurable period, allowing consumers to replay events from any past offset.",
+     "a": "<p><b>True.</b> Kafka keeps messages for a set time (e.g. 7 days) or up to a storage quota, even after they are read, so a consumer can reset its offset (e.g. to 0) and replay the history (P1 slide 19).</p>"
+    },
+    {
+     "n": "3",
+     "q": "The Lambda architecture requires maintaining two separate code paths implementing the same business logic.",
+     "a": "<p><b>True.</b> The same logic is written once for the batch layer (Spark/Hive) and once for the speed layer (Spark Streaming), and both must be changed together; teams report 30-40% of engineering effort goes into keeping them consistent (P1 slide 23).</p>"
+    },
+    {
+     "n": "4",
+     "q": "Apache Flume is the preferred tool for collecting and aggregating server log data into HDFS.",
+     "a": "<p><b>True.</b> Flume is built to move semi-structured logs (web server, application, IoT) into HDFS through Source, Channel and Sink, with fan-in from many servers (P1 slides 11-12). Note: in modern stacks Kafka producers often replace it (P1 slide 12), but the statement as written is the slide's answer.</p>"
+    }
+   ]
+  },
+  {
+   "part": "Part 1",
+   "heading": "Student Assessment Pool: Descriptive",
+   "questions": [
+    {
+     "n": "D1",
+     "q": "Explain the <b>Lambda architecture</b> with a labelled diagram. What are its three layers? What is its primary engineering disadvantage compared to the Kappa architecture?",
+     "a": "<p><b>Definition.</b> Lambda architecture (Nathan Marz, 2011) serves both accurate historical views and low-latency real-time views from the same data, with fault tolerance and the ability to recompute from scratch (P1 slide 21).</p><p><b>Diagram</b> (P1 slide 22):</p><pre>        Raw Data (immutable event log)\n           |                    |\n     Batch Layer           Speed Layer\n   HDFS + Spark/Hive      Kafka + Flink\n           |                    |\n     Batch Views          Real-time Views\n  (hours old, accurate)  (seconds old, approx.)\n           \\                  /\n        Serving Layer (merge + query)\n                    |\n        Application / Dashboard</pre><p><b>Three layers:</b></p><ol><li><b>Batch layer:</b> keeps the complete, immutable master dataset on HDFS and recomputes batch views every hour or night. Accurate but 1-24 hours stale.</li><li><b>Speed layer:</b> stream processor (Kafka + Spark Streaming/Flink) covers only data since the last batch run. Approximate but under seconds.</li><li><b>Serving layer:</b> merges both. Query result = batch view (up to N hours ago) UNION real-time view (last N hours).</li></ol><p><b>Main disadvantage vs Kappa:</b> dual code paths. The same business logic is written twice (batch job and stream job) and must be kept in sync; 30-40% of engineering effort goes to this. It also needs two clusters and a runtime merge (P1 slide 23). Kappa has one stream code path.</p><p><b>Example:</b> a bKash dashboard shows yesterday's totals from the nightly Hive job plus today's transactions from Spark Streaming. If the fee rule changes, both jobs must be edited.</p>"
+    },
+    {
+     "n": "D2",
+     "q": "Describe how Apache Kafka achieves <b>high throughput and fault tolerance</b>. Explain the roles of topics, partitions, offsets, brokers, and replication factor in the Kafka data model.",
+     "a": "<p><b>Definition.</b> Kafka is a distributed, partitioned, replicated commit log: every message is appended to an ordered, immutable log (P2 slide 5).</p><p><b>Data model</b> (P1 slide 16):</p><ul><li><b>Topic:</b> a named, durable, append-only log for one kind of event (e.g. bkash-transactions).</li><li><b>Partition:</b> a topic is split into P ordered partitions so work runs in parallel. Messages with the same key go to the same partition, so order per key is kept.</li><li><b>Offset:</b> the integer position of a message inside a partition. Each consumer tracks its own offset; replay = move the offset back.</li><li><b>Broker:</b> a Kafka server storing partitions on disk. A cluster has B brokers.</li><li><b>Replication factor (R):</b> each partition has 1 leader and R &#8722; 1 follower copies on other brokers (default R = 3).</li></ul><p><b>High throughput</b> (P1 slide 18):</p><ol><li>Sequential, append-only disk writes: about 600 MB/s vs under 1 MB/s random on HDDs.</li><li>Zero-copy: sendfile() sends data disk to network without a user-space copy (4 copies down to 2, P2 slide 9).</li><li>Batching: many messages per network trip (batch.size, linger.ms).</li><li>Partition parallelism: P partitions allow up to P consumers in a group at once; throughput grows with partition count.</li></ol><p><b>Fault tolerance:</b> replicas on other brokers take over if a leader's broker fails (leader election by ZooKeeper or KRaft); messages are retained on disk for days so a crashed consumer resumes from its saved offset.</p><p><b>Example:</b> topic bkash-txns, 3 partitions, RF = 2: each partition has a leader on one broker and a replica on the other, so losing one broker loses no data (P1 slide 17).</p>"
+    },
+    {
+     "n": "D3",
+     "q": "What is a <b>data lake</b>? How does it differ from a data warehouse in terms of schema enforcement, storage format, and typical use cases? What is a &#8220;data swamp&#8221; and how is it prevented?",
+     "a": "<p><b>Definition.</b> A data lake is a central store for raw data at any scale and in any format (structured, semi-structured, unstructured) with no schema needed up front. Data goes in cheaply; transformation happens when needed (P1 slide 29).</p><p><b>Four layers:</b> Ingestion (Sqoop, Flume, Kafka, NiFi), Storage (HDFS or S3/ADLS in raw, processed, curated zones), Processing (Spark, Hive, Presto), Catalogue/Governance (Atlas, Glue, Hive Metastore).</p><p><b>Lake vs warehouse</b> (warehouse side is general knowledge):</p><table><tr><th>Aspect</th><th>Data lake</th><th>Data warehouse</th></tr><tr><td>Schema</td><td>Schema-on-read: structure applied when you query</td><td>Schema-on-write: data must fit the table design before loading</td></tr><tr><td>Storage format</td><td>Raw files of any type (CSV, JSON, logs, images, Parquet) on cheap object storage</td><td>Cleaned, structured relational tables</td></tr><tr><td>Use cases</td><td>Data science, ML training, exploring new data, keeping full raw history</td><td>Fixed business reports, BI dashboards, SQL by business users</td></tr></table><p><b>Data swamp:</b> a lake with no governance. Symptoms (P1 slide 30): analysts cannot find datasets (no catalogue); nobody knows which files are current; many copies with different transforms and no versioning; personal data (PII) mixed with other data, breaking privacy rules.</p><p><b>Prevention:</b> catalogue every dataset at ingest; give each dataset an owner; access control; automated quality checks; use a table format (Delta Lake, Iceberg) to add ACID guarantees.</p><p><b>Example:</b> a hospital dumps every lab CSV into S3 with no names or owners. A year later nobody knows which file is the latest, and patient IDs leak to analysts. That is a swamp.</p>"
+    }
+   ]
+  },
+  {
+   "part": "Part 1",
+   "heading": "Student Assessment Pool: Analytical",
+   "questions": [
+    {
+     "n": "A1",
+     "q": "<b>Pipeline Design for a Bank:</b> Design a data integration pipeline for a Bangladeshi commercial bank that must:<ul><li>(a) Synchronise 10 million customer records nightly from Oracle to Hadoop for analytics</li><li>(b) Detect fraudulent card-swipe events in real time with a decision within 200 ms</li><li>(c) Power a risk management dashboard with data no older than 5 minutes</li></ul>Specify which tool (Sqoop, Flume, Kafka, Spark Streaming) you would use at each stage. Justify each choice with reference to latency, throughput, and fault-tolerance requirements. Which architecture (Lambda or Kappa) fits best, and why?",
+     "a": "<p><b>Step 1: classify each need by latency.</b> (a) nightly batch, hours are fine. (b) under 200 ms, true real time. (c) under 5 minutes, near real time.</p><p><b>Step 2: (a) Nightly sync: Apache Sqoop.</b></p><ul><li>Latency: nightly is fine, so batch is enough.</li><li>Throughput: Sqoop moves GB-TB/hour (P1 slide 7); it splits the table by primary-key range across parallel map tasks. With the usual 4 mappers, 10,000,000 / 4 = 2,500,000 rows each.</li><li>Use incremental import (--incremental with a last-value on a timestamp column) so only changed rows move.</li><li>Fault tolerance: it runs as a MapReduce job, so a failed map task is retried; output lands in replicated HDFS as Parquet partitioned by date. Same pattern as bKash's 10 M rows at 01:00 (P1 slide 9).</li><li>Flume is not used: it is for logs, not database tables.</li></ul><p><b>Step 3: (b) Fraud detection: Kafka + Spark Streaming.</b></p><ul><li>Card terminals publish each swipe as an event to a Kafka topic (e.g. card-swipes), keyed by card number so one card's swipes stay in order in one partition.</li><li>Spark Streaming reads the topic, scores each event, and writes an approve/block decision. The slide gives bKash's fraud detector at under 200 ms with this exact stack (P1 slide 19).</li><li>Throughput: Kafka handles GB-TB/hour; add partitions to scale consumers.</li><li>Fault tolerance: RF = 3 replicas; events are retained, so if the fraud job crashes it restarts from its last offset and loses nothing.</li></ul><p><b>Step 4: (c) Risk dashboard: Kafka &#8594; Spark Streaming aggregates &#8594; serving store.</b> A second consumer group on the same topic computes rolling risk totals every minute and writes them to a fast store the dashboard reads. 5 minutes is easy for a stream job. Joining in the nightly Sqoop data (customer profiles in HDFS) gives context.</p><p><b>Step 5: architecture: Lambda fits best.</b></p><ul><li>The bank already has a true batch need (nightly Oracle sync of 10 M records for analytics) and regulatory batch reports. The slide lists \"regulatory batch reports\" and \"regulatory requirement mandates a separate batch reconciliation\" as reasons to choose Lambda and avoid Kappa (P1 slide 27).</li><li>Batch layer = Sqoop + HDFS + Hive/Spark; Speed layer = Kafka + Spark Streaming (fraud, dashboard); Serving layer = dashboard merging both.</li><li>Cost: two code paths. Reduce it, like Netflix, by making Kafka the single source both layers read from (P2 slide 18).</li><li>Kappa could work only if the stream engine can replay years of history fast enough and regulators accept no separate batch reconciliation.</li></ul>"
+    },
+    {
+     "n": "A2",
+     "q": "<b>Lambda to Kappa Migration:</b> A team using Lambda architecture complains that maintaining two code paths (batch + stream) doubles development cost. Their CTO suggests migrating to Kappa. Analyse: (a) what must be true about the stream processing engine for Kappa to be viable; (b) what are the risks of migrating; (c) under what conditions is Kappa <b>not suitable</b> (give at least two concrete scenarios from the Bangladesh financial or healthcare sector)?",
+     "a": "<p><b>Background.</b> Lambda's cost is real: 30-40% of effort keeps batch and stream logic in sync (P1 slide 23). Kappa removes the batch layer and keeps one stream code path with log replay (P1 slide 25).</p><p><b>(a) Conditions for Kappa to work</b></p><ol><li>The stream engine (Flink, Spark Structured Streaming) can reprocess historical data about as fast as it handles live data (Kreps' condition, P1 slide 25).</li><li>The full history is kept in a replayable log: Kafka with long retention or Iceberg on S3 (default Kafka retention is only 7 days).</li><li>The business logic can be expressed as a stream job (windows, state, joins).</li><li>The engine supports exactly-once processing and stateful replay so replayed results match (Kafka 0.11+ exactly-once, P2 slide 12).</li></ol><p><b>(b) Risks of migrating</b></p><ul><li>Replay speed: reprocessing TB+ of history through the stream engine may take days (P1 slide 27).</li><li>Batch throughput drops: Kappa is limited by stream-engine throughput vs very high Spark/Hive batch throughput.</li><li>Storage cost: keeping years of history in Kafka/S3 for replay.</li><li>Rewrite effort and bugs: all batch SQL/Hive jobs must be rewritten as stream jobs; results may differ during transition, so both systems run in parallel for a while.</li><li>Team skills: analysts used to batch SQL must learn stream SQL.</li></ul><p><b>(c) When Kappa is NOT suitable</b> (slide's three cases, P1 slide 27, with local scenarios):</p><ol><li><b>Regulatory batch reconciliation:</b> Bangladesh Bank requires a commercial bank to produce a daily end-of-day reconciliation and audit from a separate batch system. bKash already writes an audit log to HDFS for daily reconciliation (P1 slide 19). Kappa cannot drop that batch layer.</li><li><b>TB+ history too slow to replay:</b> a national health-records system (e.g. DGHS data on millions of patients over 10 years) needs to recompute disease statistics after a coding change. Replaying all that through a stream engine is far slower than one Spark batch job.</li><li><b>Batch SQL analytics preferred / complex logic:</b> a bank's yearly credit-risk ML model training and Basel capital reports are written in Hive/Spark SQL over full history; stream SQL fits poorly.</li></ol><p><b>Conclusion:</b> move streaming-friendly workloads (fraud, dashboards) to a single Kappa-style path, but keep a batch path where regulation or huge history demands it. Netflix did this gradually (P2 slide 18).</p>"
+    }
+   ]
+  },
+  {
+   "part": "Part 2",
+   "heading": "Discussion Questions",
+   "questions": [
+    {
+     "n": "L1",
+     "q": "<b>Kafka as the single source of truth</b>: all events written to Kafka first; the speed and batch layers are both consumers of the same topic &#8212; eliminating the data inconsistency problem of classic Lambda (two separate ingestion paths)",
+     "a": "<p><b>Meaning.</b> In classic Lambda, data can enter the batch and speed layers by different routes, so the two layers may see different data. Netflix writes every event to Kafka once; Flink (speed, under 1 minute) and the S3 sink + Spark/Iceberg (batch, about 1 day) both read the same topic (P2 slide 15).</p><p><b>For:</b> one copy of the truth, no mismatch between layers, easy to add consumers. <b>Against:</b> Kafka becomes a critical dependency; if it is down, everything is down, so it needs replication (2,000+ brokers at Netflix, P2 slide 17). The two code paths still exist; only the ingestion is unified.</p>"
+    },
+    {
+     "n": "L2",
+     "q": "<b>Retention enables reprocessing</b>: 7-day retention lets Netflix replay any event window when a Flink job has a bug or a Spark job fails",
+     "a": "<p><b>Meaning.</b> Kafka does not delete a message when it is read. With 7-day retention, a fixed job can reset its offset and recompute the last week (P2 slide 18).</p><p><b>For:</b> bugs can be fixed after the fact without asking devices to resend. <b>Against:</b> only 7 days. A bug found on day 8 cannot be fixed from Kafka; the S3/Iceberg copy is needed. Longer retention costs storage (at 100 billion events/day, 7 days is about 700 billion events). Tiered storage (Kafka 3.6) moves old segments to S3 to cut this cost (P2 slide 12).</p>"
+    },
+    {
+     "n": "L3",
+     "q": "<b>Kappa simplification</b>: Netflix increasingly moved batch jobs to Flink stream processing (processing historical S3 data as a bounded stream), reducing pipeline complexity",
+     "a": "<p><b>Meaning.</b> A \"bounded stream\" is a stream with a start and an end, for example last month's files in S3. Flink can read it with the same code it uses for live data, so one code path covers both (Kappa idea, P1 slide 25).</p><p><b>For:</b> less duplicate code, fewer systems. <b>Against:</b> Netflix still keeps Spark + Iceberg for ML training and billing (P2 slide 15), because some batch work is easier or cheaper in batch. The move is gradual, not all at once.</p>"
+    },
+    {
+     "n": "L4",
+     "q": "<b>Schema Registry is non-negotiable at scale</b>: 4,000 topics &#215; evolving schemas &#8658; consumer breakage without schema governance",
+     "a": "<p><b>Meaning.</b> A schema is the structure of a message (field names and types). If a producer renames a field, every consumer reading it may crash. Schema Registry stores the Avro/Protobuf schema per topic and lets a consumer read messages from any past producer version (P2 slide 12).</p><p><b>For:</b> with 4,000+ topics and 150+ Flink jobs, manual coordination is impossible. <b>Against:</b> one more service to run, and teams must follow compatibility rules. This is the streaming version of the data-swamp lesson: without governance, data becomes unusable (P1 slide 30).</p>"
+    },
+    {
+     "n": "L5",
+     "q": "<b>Backpressure is the real production problem</b>: during Super Bowl commercials, event rates spike 5&#215;; Kafka's durable log absorbs the burst; Flink consumers catch up within minutes",
+     "a": "<p><b>Meaning.</b> Backpressure is when data arrives faster than consumers can process it. A 5&#215; spike on the 1.3 million events/second peak would be 6.5 million/second. Kafka just appends the extra events to disk; Flink reads them a little later and catches up (P2 slides 17-18).</p><p><b>For:</b> no data lost, no need to size consumers for the rare peak. <b>Against:</b> during the spike results are delayed by minutes (the 5-minute A/B result latency may slip); brokers need disk space for the burst. Analogy: a water tank between a burst pipe and a small tap.</p>"
+    }
+   ]
+  },
+  {
+   "part": "Part 2",
+   "heading": "Live Exercise",
+   "questions": [
+    {
+     "n": "Task",
+     "q": "Simulate a Kafka producer/consumer pipeline using the <b>kafka-python</b> library with a local single-broker cluster (Docker Compose provided below).<br>Quick-start: <code>pip install kafka-python</code>",
+     "code": "import json, random, time\nfrom kafka import KafkaProducer, KafkaConsumer\n\nTOPIC   = \"play-events\"\nBROKER  = \"localhost:9092\"\nCONTENT = [f\"show_{i}\" for i in range(20)]\n\n# --- Producer ---\nproducer = KafkaProducer(\n  bootstrap_servers=BROKER,\n  value_serializer=lambda v:\n      json.dumps(v).encode())\n\nfor _ in range(1_000):\n    event = {\n      \"user_id\":    random.randint(1, 500),\n      \"content_id\": random.choice(CONTENT),\n      \"action\":     random.choice(\n                       [\"play\",\"pause\",\"seek\"]),\n      \"ts\":         int(time.time())\n    }\n    producer.send(TOPIC, event)\nproducer.flush()\nprint(\"Produced 1,000 events\")",
+     "a": "<p><b>What the skeleton does.</b> It connects a producer to the broker at localhost:9092, turns each Python dict into JSON bytes (value_serializer), and sends 1,000 random events. Each event has a user (1-500), one of 20 shows (show_0 to show_19), an action (play, pause or seek) and a Unix timestamp. flush() waits until all buffered messages are actually sent, because send() only queues them (batching, P1 slide 18).</p><p><b>Step 1: start a broker.</b> The Docker Compose file is cut off on the slide. A minimal single-broker setup that works the same: <code>docker run -d --name kafka -p 9092:9092 apache/kafka:3.7.0</code> (KRaft mode, no ZooKeeper). The topic play-events is auto-created on first send with the broker's default partition count (1 unless configured).</p><p><b>Step 2:</b> <code>pip install kafka-python</code>, save the skeleton as producer.py, run <code>python3 producer.py</code>. Expected output: <code>Produced 1,000 events</code>.</p><p><b>Step 3: the consumer (the slide gives no consumer code; this completes it):</b></p><pre>from collections import Counter\nfrom kafka import KafkaConsumer, TopicPartition\nimport json\n\nTOPIC  = \"play-events\"\nBROKER = \"localhost:9092\"\n\ndef make_consumer(group):\n    return KafkaConsumer(\n        bootstrap_servers=BROKER,\n        group_id=group,\n        auto_offset_reset=\"earliest\",   # new group starts at offset 0\n        enable_auto_commit=True,\n        consumer_timeout_ms=5000,       # stop after 5 s with no new messages\n        value_deserializer=lambda b: json.loads(b.decode()))\n\ndef count(consumer):\n    total, all_events, plays = 0, Counter(), Counter()\n    for msg in consumer:\n        e = msg.value\n        total += 1\n        all_events[e[\"content_id\"]] += 1\n        if e[\"action\"] == \"play\":\n            plays[e[\"content_id\"]] += 1\n    return total, all_events, plays\n\n# Goal 2: read everything, count per content_id\nc = make_consumer(\"play-counter\")\nc.subscribe([TOPIC])\ntotal1, ev1, plays1 = count(c)\nprint(\"read\", total1, \"events\")\nprint(\"plays per content_id:\", sorted(plays1.items()))\nc.close()\n\n# Goal 3: reset the SAME group to the beginning and re-consume\nc = make_consumer(\"play-counter\")\nparts = [TopicPartition(TOPIC, p) for p in c.partitions_for_topic(TOPIC)]\nc.assign(parts)\nc.seek_to_beginning(*parts)\ntotal2, ev2, plays2 = count(c)\nprint(\"re-read\", total2, \"events; same counts?\", plays1 == plays2)\nc.close()\n\n# Goal 4: a NEW group id has no saved offset, so it starts at offset 0\nc = make_consumer(\"play-counter-v2\")\nc.subscribe([TOPIC])\ntotal3, ev3, plays3 = count(c)\nprint(\"new group read\", total3, \"events\")\nc.close()</pre><p>Save as consumer.py and run after the producer. Expected outputs are explained in Goals 2-4 below.</p>"
+    },
+    {
+     "n": "1",
+     "q": "Run the producer &#8212; send 1,000 synthetic Netflix play events to topic <code>play-events</code>.",
+     "a": "<p>Run <code>python3 producer.py</code>. Expected: it prints <code>Produced 1,000 events</code>. The topic now holds 1,000 messages at offsets 0 to 999 (if one partition). Running the producer a second time appends 1,000 more (offsets 1,000-1,999); nothing is overwritten because the log is append-only (P1 slide 14).</p>"
+    },
+    {
+     "n": "2",
+     "q": "Run the consumer &#8212; read all messages, count plays per <code>content_id</code>.",
+     "a": "<p>Run consumer.py. Expected: <code>read 1000 events</code>, then a count per show.</p><ul><li>Each event picks one of 20 shows at random, so each show gets about 1,000 / 20 = 50 events in total (typical spread about &#177;7).</li><li>Only about 1 in 3 events has action \"play\", so about 1,000 / 3 &#8776; 333 plays in total, about 16.7 plays per show (typical spread about &#177;4).</li><li>Exact numbers change every run because the producer uses random.</li></ul><p>\"Count plays per content_id\" can mean all events per show or only action = play; the code prints the play-only count and also keeps the all-events count.</p>"
+    },
+    {
+     "n": "3",
+     "q": "Reset the consumer offset to the <i>beginning</i> and re-consume &#8212; verify idempotent results.",
+     "a": "<p>The code assigns the partitions and calls <code>seek_to_beginning</code>, so the same group goes back to offset 0. Expected: <code>re-read 1000 events; same counts? True</code>.</p><p><b>Why:</b> reading from Kafka does not delete messages (unlike a traditional queue, P1 slide 15). The log still holds the same 1,000 events, so recounting gives exactly the same result. \"Idempotent\" means doing it again gives the same answer. This is replay, the basis of Kappa reprocessing.</p><p><b>Trap:</b> if the producer was run again in between, the log has 2,000 events and counts will differ. That is new data, not a broken replay.</p>"
+    },
+    {
+     "n": "4",
+     "q": "Change the consumer group ID and observe that a new group starts from offset 0.",
+     "a": "<p>Group \"play-counter-v2\" has no committed offset stored in Kafka (offsets live in the __consumer_offsets topic per group, P2 slide 7). With <code>auto_offset_reset=\"earliest\"</code> it starts at offset 0 and reads all 1,000 events again. Expected: <code>new group read 1000 events</code>. The old group's position is untouched: each group tracks its own offset independently.</p><p><b>Trap:</b> kafka-python's default is <code>auto_offset_reset=\"latest\"</code>. With the default, a new group starts at the end of the log and reads 0 events. So you must set \"earliest\" to see the offset-0 behaviour.</p><p><b>Why it matters:</b> this is how bKash feeds fraud detection, balance update and audit from one topic (P1 slide 19): each is its own group, each reads every event.</p>"
+    }
+   ]
+  }
+ ],
+ "maths": {
+  "intro": "This chapter has no heavy formulas, but the slides use several numbers that can be turned into one-step calculations: point-to-point connection counts, disk speed ratios, zero-copy savings, message throughput, consumer-group sharing, replica counts, event rates and storage, and Sqoop parallel splits. Each is shown with the slide's numbers.",
+  "items": [
+   {
+    "title": "Point-to-point ETL connections vs a message bus",
+    "formula": "Connections (point-to-point) = N &#215; (N &#8722; 1) &#160;&#160;|&#160;&#160; Connections (bus) = N",
+    "symbols": "<ul><li><b>N</b> = number of systems that must exchange data.</li><li>N &#215; (N &#8722; 1) counts every ordered pair (A to B and B to A are separate ETL jobs). If you count each pair once, divide by 2.</li><li>With a bus each system connects only once, to the bus.</li></ul>",
+    "example": "<p>Slide: 50 systems (P1 slide 5).</p><p>50 &#215; (50 &#8722; 1) = 50 &#215; 49 = <b>2,450</b> ETL jobs, matching the slide. Counted once per pair: 2,450 / 2 = 1,225.</p><p>With Kafka as a bus: 50 connections.</p>",
+    "practice": "<p>A company has 10 systems. Point-to-point: 10 &#215; 9 = <b>90</b> jobs (45 if one per pair). With a bus: <b>10</b>. For 20 systems: 20 &#215; 19 = 380.</p>"
+   },
+   {
+    "title": "Sequential vs random disk speed",
+    "formula": "Advantage = sequential speed &#247; random speed",
+    "symbols": "<ul><li><b>Sequential speed</b> = MB/s when writing one block after another (append-only).</li><li><b>Random speed</b> = MB/s when jumping around the disk.</li></ul>",
+    "example": "<p>P2 slide 11: sequential &#8776; 600 MB/s, random &#8776; 100 MB/s. 600 / 100 = <b>6&#215;</b> advantage.</p><p>P1 slide 18 uses a harsher random figure (&lt; 1 MB/s): 600 / 1 = more than <b>600&#215;</b>. Quote whichever slide the question uses.</p>",
+    "practice": "<p>A disk writes 200 MB/s sequentially and 2 MB/s randomly. Advantage = 200 / 2 = <b>100&#215;</b>.</p>"
+   },
+   {
+    "title": "Zero-copy: data copies per transfer",
+    "formula": "Speedup &#8776; copies (traditional) &#247; copies (zero-copy)",
+    "symbols": "<ul><li><b>Traditional path:</b> disk &#8594; kernel buffer &#8594; user space &#8594; socket buffer &#8594; NIC = 4 copies.</li><li><b>sendfile() path:</b> disk &#8594; kernel buffer &#8594; NIC = 2 copies.</li><li><b>NIC</b> = network interface card.</li></ul>",
+    "example": "<p>P2 slide 9: 4 / 2 = <b>2&#215;</b> throughput, with CPU near zero. Copies saved per message = 4 &#8722; 2 = 2.</p>",
+    "practice": "<p>A broker sends 1,000,000 messages. Copies saved = 1,000,000 &#215; 2 = <b>2,000,000</b> memory copies avoided.</p>"
+   },
+   {
+    "title": "Throughput: MB/s to messages per second",
+    "formula": "Messages/sec = throughput (bytes/s) &#247; message size (bytes) &#160;&#160;|&#160;&#160; Speedup = Kafka &#247; other",
+    "symbols": "<ul><li><b>Throughput</b> in MB/s, with 1 MB = 1,000,000 bytes (the slide's table uses this).</li><li><b>Message size</b> = 100 bytes in the paper's benchmark.</li></ul>",
+    "example": "<p>P2 slide 11, producer: 50.5 MB/s &#247; 100 B = 50,500,000 / 100 = <b>505,000 msgs/s</b> (matches the table). ActiveMQ: 4.3 MB/s &#8594; 43,000. Kafka vs ActiveMQ = 50.5 / 4.3 &#8776; <b>11.7&#215;</b>. Kafka vs RabbitMQ = 50.5 / 14.7 &#8776; <b>3.4&#215;</b>.</p>",
+    "practice": "<p>Consumer side: Kafka 22.0 MB/s &#247; 100 B = <b>220,000 msgs/s</b>. Kafka vs ActiveMQ consumer = 22.0 / 4.0 = <b>5.5&#215;</b>; vs RabbitMQ = 22.0 / 8.2 &#8776; <b>2.7&#215;</b>. If messages were 1,000 B at 50.5 MB/s: 50,500 msgs/s.</p>"
+   },
+   {
+    "title": "Partitions and consumer groups",
+    "formula": "Active consumers = min(P, C) &#160;&#160;|&#160;&#160; Idle consumers = C &#8722; P (if C &gt; P) &#160;&#160;|&#160;&#160; Partitions per consumer &#8776; P &#247; C",
+    "symbols": "<ul><li><b>P</b> = partitions in the topic.</li><li><b>C</b> = consumers in one consumer group.</li><li>Rule: each partition goes to exactly one consumer in the group (P1 slide 16), so extra consumers sit idle.</li></ul>",
+    "example": "<p>Pathao driver-location: P = 10 (P1 slide 19). Group of 4: 10 / 4 = 2.5, so two consumers get 3 partitions and two get 2 (3+3+2+2 = 10). Group of 12: min(10, 12) = 10 active, 12 &#8722; 10 = <b>2 idle</b>.</p>",
+    "practice": "<p>page-views has 3 partitions (P2 slide 8). Group of 3: one each. Group of 5: 3 active, 2 idle. Topic with 6 partitions, 4 consumers: 6 / 4 = 1.5, so two get 2, two get 1.</p>"
+   },
+   {
+    "title": "Replication: copies and failures survived",
+    "formula": "Total partition copies = P &#215; R &#160;&#160;|&#160;&#160; Followers per partition = R &#8722; 1 &#160;&#160;|&#160;&#160; Broker failures survived = R &#8722; 1",
+    "symbols": "<ul><li><b>P</b> = partitions, <b>R</b> = replication factor (default 3, P1 slide 16).</li><li>One copy is the leader; the other R &#8722; 1 are followers.</li></ul>",
+    "example": "<p>bkash-txns: P = 3, RF = 2 (P1 slide 17). Copies = 3 &#215; 2 = <b>6</b>. Followers per partition = 1. Survives <b>1</b> broker failure.</p>",
+    "practice": "<p>Pathao driver-location with P = 10 and default R = 3: copies = 10 &#215; 3 = <b>30</b>, followers = 10 &#215; 2 = 20, survives 2 broker failures.</p>"
+   },
+   {
+    "title": "Event rate and retention storage",
+    "formula": "Events/sec = events per day &#247; 86,400 &#160;&#160;|&#160;&#160; Retained events = events per day &#215; retention days &#160;&#160;|&#160;&#160; Storage = retained events &#215; message size &#215; R",
+    "symbols": "<ul><li>86,400 = seconds in a day.</li><li><b>Retention days</b> = how long Kafka keeps messages (7 days at Netflix).</li><li><b>R</b> = replication factor (each copy uses disk).</li></ul>",
+    "example": "<p>Netflix: 100 billion events/day (P2 slide 17). Average = 100,000,000,000 / 86,400 &#8776; <b>1,157,407 events/s</b>. The peak of 1.3 million/s is about 1.12&#215; the average. A Super Bowl 5&#215; spike on the peak = 1.3 M &#215; 5 = <b>6.5 million/s</b>. With 7-day retention Kafka holds 100 B &#215; 7 = <b>700 billion events</b>.</p>",
+    "practice": "<p>Pathao: assume 10,000 active drivers (the slide gives no driver count); one GPS ping every 3 s (P1 slide 19). Rate = 10,000 / 3 &#8776; <b>3,333 msgs/s</b>. Per day = 3,333.3 &#215; 86,400 = <b>288,000,000</b>. Over 7 days = 2,016,000,000. At 200 bytes each and R = 3: 2,016,000,000 &#215; 200 &#215; 3 = 1,209,600,000,000 bytes &#8776; <b>1.21 TB</b>.</p>"
+   },
+   {
+    "title": "Sqoop parallel import split",
+    "formula": "Rows per mapper = total rows &#247; m",
+    "symbols": "<ul><li><b>m</b> = number of parallel map tasks (Sqoop's -m option; 4 by default, general Sqoop knowledge).</li><li>Sqoop splits rows by primary-key range so each mapper reads its own slice (P1 slide 9).</li></ul>",
+    "example": "<p>bKash: 10 M rows nightly (P1 slide 9). With m = 4: 10,000,000 / 4 = <b>2,500,000 rows</b> per mapper.</p>",
+    "practice": "<p>Same table with m = 8: 10,000,000 / 8 = <b>1,250,000 rows</b> per mapper.</p>"
+   },
+   {
+    "title": "Live exercise: expected counts per show",
+    "formula": "Expected events per show = N &#247; S &#160;&#160;|&#160;&#160; Expected plays per show = N &#247; (S &#215; A)",
+    "symbols": "<ul><li><b>N</b> = events produced (1,000).</li><li><b>S</b> = number of shows (20).</li><li><b>A</b> = number of actions (3: play, pause, seek), each equally likely.</li></ul>",
+    "example": "<p>1,000 / 20 = <b>50</b> events per show. Plays: 1,000 / (20 &#215; 3) &#8776; <b>16.7</b> per show; total plays &#8776; 1,000 / 3 &#8776; 333. Random, so real counts vary (about &#177;7 and &#177;4).</p>",
+    "practice": "<p>5,000 events, 50 shows, 3 actions: 5,000 / 50 = <b>100</b> events per show; 5,000 / 150 &#8776; <b>33.3</b> plays per show.</p>"
+   },
+   {
+    "title": "Lambda maintenance overhead",
+    "formula": "Engineers on sync work = team size &#215; overhead share",
+    "symbols": "<ul><li><b>Overhead share</b> = 30% to 40% of effort spent keeping the two Lambda layers consistent (P1 slide 23).</li></ul>",
+    "example": "<p>A 10-engineer team: 10 &#215; 0.30 = <b>3</b> to 10 &#215; 0.40 = <b>4</b> engineers' worth of effort on keeping code paths in sync.</p>",
+    "practice": "<p>A 25-engineer team: 25 &#215; 0.30 = <b>7.5</b> to 25 &#215; 0.40 = <b>10</b> engineers.</p>"
+   }
+  ]
+ }
+}

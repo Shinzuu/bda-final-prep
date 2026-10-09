@@ -1,0 +1,227 @@
+{
+ "week": 6,
+ "title": "Apache Spark: RDDs, DataFrames & In-Memory Computing",
+ "primer": [
+  "<b>The problem Spark solves.</b> MapReduce (Week 4) writes every intermediate result to HDFS (the cluster's shared disk) before the next step can start. That is fine for a job that reads the data once. It is very slow for <i>iterative</i> algorithms, which pass over the same data again and again, such as K-Means clustering, logistic regression or PageRank. Example from the slides: 100 K-Means iterations over 50 GB cost 10 TB of disk I/O in MapReduce, but only 50 GB in Spark (P1 slide 6).",
+  "<b>The big idea: keep the working data in RAM.</b> Spark reads the data from HDFS once, keeps it in the cluster's memory (RAM), and runs every later iteration from memory. Reading RAM is far faster than reading disk. Analogy: MapReduce is a cook who puts every ingredient back in the store room after each step; Spark keeps them on the kitchen counter. Spark came from Matei Zaharia's PhD work at UC Berkeley AMPLab (2009 to 2013) (P1 slide 9).",
+  "<b>Architecture: three parts.</b> The <b>Driver</b> runs your main program, creates the SparkContext/SparkSession and builds the plan (a DAG, a graph of steps). The <b>Cluster Manager</b> (YARN, Kubernetes, Mesos or Spark Standalone) hands out machines and memory. <b>Executors</b> are worker processes (JVMs) on worker nodes that run tasks and hold cached data in memory (P1 slide 11).",
+  "<b>RDD = Resilient Distributed Dataset.</b> The core data object in Spark. It is a read-only, partitioned collection of records. <i>Partitioned</i> means it is split into pieces spread over many Executors so they work in parallel. <i>Immutable</i> (read-only) means you never change it; each operation makes a new RDD. <i>Lineage</i> means each RDD remembers the recipe of steps that built it from its parents (P1 slide 13).",
+  "<b>Resilient = it can rebuild itself.</b> HDFS protects data by keeping 3 copies. Spark instead keeps the recipe (lineage). If an Executor crashes and a partition is lost, Spark re-reads that piece of the input and re-applies the same steps. \"The computation is the backup\" (P1 slide 14).",
+  "<b>Transformations vs. actions, and lazy evaluation.</b> A <i>transformation</i> (map, filter, flatMap, reduceByKey, join...) only records a step in the plan and returns a new RDD; nothing runs yet. An <i>action</i> (count, collect, first, take, reduce, saveAsTextFile) starts the real work and returns a result to the Driver or writes to storage. Waiting until an action is called is <i>lazy evaluation</i>. It lets Spark see the whole plan, run filter and map together in one pass, and stop early (for example <code>first()</code> stops at the first match) (P1 slides 17 to 19).",
+  "<b>Narrow vs. wide dependencies.</b> In a <i>narrow</i> dependency each output partition needs at most one input partition (map, filter): no data moves between machines, and steps are chained in one <i>stage</i>. In a <i>wide</i> dependency an output partition needs data from many input partitions (groupByKey, reduceByKey, join): data must be <i>shuffled</i> (sent across the network), which starts a new stage and is the main cost in Spark. Prefer reduceByKey over groupByKey because it combines locally before the shuffle (P1 slides 21 to 22).",
+  "<b>DataFrames, the ecosystem, and the papers.</b> A DataFrame is a distributed table with named columns and a schema. The Catalyst optimizer rewrites DataFrame/SQL queries before running them, so DataFrames are 10 to 100 times faster than raw RDDs for structured data (P1 slide 26). On top of Spark Core sit Spark SQL, MLlib (machine learning), Structured Streaming and GraphX (P1 slide 29). Part 2 covers the two Zaharia papers (2010 HotCloud, 2012 NSDI best paper) and the Databricks GraySort record: 100 TB sorted in 23 minutes on 206 nodes, against Hadoop's 72 minutes on 2,100 nodes (P2 slides 13 to 14)."
+ ],
+ "sections": [
+  {
+   "part": "Part 1",
+   "heading": "Student Assessment Pool: MCQ",
+   "questions": [
+    {
+     "n": "Q1",
+     "q": "What makes Spark significantly faster than MapReduce for iterative algorithms?",
+     "options": [
+      "(a) Spark uses more CPU cores per node",
+      "(b) Spark writes intermediate results to faster SSDs",
+      "(c) Spark caches intermediate data as RDDs in memory",
+      "(d) Spark skips the shuffle phase entirely"
+     ],
+     "a": "<p><b>Answer: (c) Spark caches intermediate data as RDDs in memory.</b></p><p>Iterative algorithms read the same data many times. MapReduce writes and re-reads every intermediate result on HDFS (disk) each iteration. Spark reads the data once, keeps it in RAM as a cached RDD, and later iterations read from memory. For 100 K-Means iterations on 50 GB this is 10 TB of disk I/O for MapReduce vs. 50 GB for Spark, about 200 times less (P1 slide 6).</p><ul><li>(a) Wrong: Spark runs on the same hardware as MapReduce. The gain comes from memory, not cores (instructor note, P1 slide 34).</li><li>(b) Wrong: writing to disk, even a fast one, is exactly what Spark avoids between iterations.</li><li>(d) Wrong: Spark still shuffles for wide operations like reduceByKey and groupByKey (P1 slide 21).</li></ul>"
+    },
+    {
+     "n": "Q2",
+     "q": "How does Spark achieve fault tolerance in RDDs without full data replication?",
+     "options": [
+      "(a) Checkpointing to HDFS every 60 seconds",
+      "(b) Tracking lineage and recomputing lost partitions from parent RDDs",
+      "(c) Copying each RDD partition twice across two Executors",
+      "(d) Using a write-ahead log on the Driver node"
+     ],
+     "a": "<p><b>Answer: (b) Tracking lineage and recomputing lost partitions from parent RDDs.</b></p><p>Each RDD records its lineage: the list of transformations that built it from its parents. If a partition is lost, Spark re-reads the matching input partition and re-applies those steps. No copies are kept, so \"the computation is the backup\" (P1 slides 14 to 15).</p><ul><li>(a) Wrong: checkpointing exists, but it is an optional extra for long lineage chains, not on a timer, and not the main mechanism (P1 slide 14).</li><li>(c) Wrong: that is replication, the HDFS-style approach Spark avoids (instructor note, P1 slide 34).</li><li>(d) Wrong: RDDs do not use a write-ahead log on the Driver; recovery comes from lineage.</li></ul>"
+    },
+    {
+     "n": "Q3",
+     "q": "Which of the following is <b>NOT</b> a component of the Spark ecosystem?",
+     "options": [
+      "(a) MLlib",
+      "(b) GraphX",
+      "(c) Structured Streaming",
+      "(d) HBase"
+     ],
+     "a": "<p><b>Answer: (d) HBase.</b></p><p>HBase is a separate NoSQL database (Week 4) that runs on HDFS. Spark can read from it as a data source, but it is not part of Spark itself (instructor note, P1 slide 35). The Spark ecosystem diagram shows Spark SQL, MLlib, Structured Streaming and GraphX on top of Spark Core; HBase appears only in the Storage row (P1 slide 29).</p><ul><li>(a) MLlib is Spark's distributed machine-learning library, so it is a component.</li><li>(b) GraphX is Spark's graph library (PageRank, connected components), so it is a component.</li><li>(c) Structured Streaming is Spark's stream-processing engine, so it is a component.</li></ul>"
+    },
+    {
+     "n": "Q4",
+     "q": "In Spark, a “transformation” such as map() or filter() is:",
+     "options": [
+      "(a) Immediately executed when called and materialised to memory",
+      "(b) Lazily evaluated — only executed when a subsequent action is called",
+      "(c) Automatically persisted to HDFS after execution",
+      "(d) Only available in the Scala API, not in PySpark"
+     ],
+     "a": "<p><b>Answer: (b) Lazily evaluated, only executed when a subsequent action is called.</b></p><p>A transformation only adds a step to the plan (the DAG) and returns a new RDD. Nothing runs until an action such as <code>count()</code> or <code>collect()</code> is called (P1 slides 17 to 19). Example: <code>rdd.filter(f)</code> alone does no work; <code>rdd.filter(f).count()</code> runs the filter.</p><ul><li>(a) Wrong: this is the opposite of lazy evaluation; the instructor calls it a critical misconception (P1 slide 35).</li><li>(c) Wrong: results are not written to HDFS automatically; you write them only with an action like <code>saveAsTextFile</code>.</li><li>(d) Wrong: PySpark has map and filter; the slides' examples are written in PySpark (P1 slide 24).</li></ul>"
+    }
+   ]
+  },
+  {
+   "part": "Part 1",
+   "heading": "Student Assessment Pool: True/False",
+   "questions": [
+    {
+     "n": "1",
+     "q": "Spark can only run on top of Hadoop YARN and has no other deployment option.",
+     "a": "<p><b>False.</b></p><p>The Cluster Manager can be YARN, Kubernetes, Mesos or Spark Standalone (P1 slide 11).</p><p><b>Corrected:</b> Spark can run on YARN, Kubernetes, Mesos or its own Standalone cluster manager.</p>"
+    },
+    {
+     "n": "2",
+     "q": "RDDs are mutable — individual elements can be modified in place after creation.",
+     "a": "<p><b>False.</b></p><p>RDDs are immutable (read-only): they are never modified in place, and every transformation creates a new RDD (P1 slide 13).</p><p><b>Corrected:</b> RDDs are immutable; to change data you apply a transformation that produces a new RDD.</p>"
+    },
+    {
+     "n": "3",
+     "q": "Spark's DataFrame API provides schema-aware, named-column operations similar to SQL tables.",
+     "a": "<p><b>True.</b></p><p>A DataFrame is a distributed collection organised into named columns with a schema, like a table in a relational database, and it supports SQL syntax (P1 slide 26).</p>"
+    },
+    {
+     "n": "4",
+     "q": "MapReduce is generally better than Spark for machine learning workloads that require many iterations over the same dataset.",
+     "a": "<p><b>False.</b></p><p>MapReduce writes to disk on every iteration, so it is slow for iterative work. Spark caches the data in memory and is 10 to 100 times faster for iterative algorithms (P1 slides 6, 31). The slides say to use Spark for any workload with more than 2 iterations over the same data (P1 slide 32).</p><p><b>Corrected:</b> Spark is generally better than MapReduce for iterative machine learning workloads.</p>"
+    }
+   ]
+  },
+  {
+   "part": "Part 1",
+   "heading": "Student Assessment Pool: Descriptive",
+   "questions": [
+    {
+     "n": "D1",
+     "q": "Explain the concept of a <b>Resilient Distributed Dataset (RDD)</b>. What does <i>“resilient”</i> mean in this context? How does Spark recover a lost RDD partition without replication?",
+     "a": "<p><b>Definition.</b> An RDD is a read-only, partitioned collection of records. It can only be created in two ways: by loading data from stable storage (HDFS, S3) or by transforming an existing RDD (map, filter) (P1 slide 13).</p><p><b>Five properties (P1 slide 13):</b></p><ul><li><b>Immutable:</b> never changed in place; each transformation makes a new RDD.</li><li><b>Partitioned:</b> split into pieces spread across Executors, so the pieces are processed in parallel.</li><li><b>Lazy:</b> transformations run only when an action is called.</li><li><b>Lineage:</b> each RDD knows exactly how it was derived from its parents.</li><li><b>Resilient:</b> lost partitions are recomputed from lineage, not replicated.</li></ul><p><b>What \"resilient\" means.</b> The RDD can survive a machine failure. HDFS does this by storing 3 copies. An RDD does it by remembering the steps (its lineage) and re-running them. \"The computation is the backup\" (P1 slide 14).</p><p><b>Recovery steps (P1 slides 14 to 15):</b></p><ol><li>Spark detects that a partition (say Part 2 of mappedRDD) is lost because its Executor crashed.</li><li>It traces the lineage: mappedRDD came from filteredRDD, which came from inputRDD.</li><li>It re-reads only Part 2 of the input from HDFS.</li><li>It re-applies filter, then map, to that one partition.</li><li>Part 2 is restored without restarting the whole job.</li></ol><p><b>Trade-off:</b> this is cheap for narrow dependencies but expensive for wide ones, so long lineage chains should be checkpointed to HDFS (P1 slide 14).</p><p><b>Diagram (text form):</b><br>inputRDD (HDFS) &rarr; filter &rarr; filteredRDD &rarr; map &rarr; mappedRDD [Part 2 lost] &rArr; re-read input Part 2 &rarr; filter &rarr; map &rarr; Part 2 restored.</p><p><b>Analogy:</b> instead of photocopying a finished cake three times, you keep the recipe. If the cake is dropped, you bake that one cake again.</p>"
+    },
+    {
+     "n": "D2",
+     "q": "Differentiate between <b>Spark transformations</b> and <b>actions</b>. Give two concrete examples of each. Why does Spark not execute transformations immediately?",
+     "a": "<p><b>Transformation:</b> an operation that builds the computation DAG and returns a new RDD, but does not run straight away (lazy) (P1 slide 17).</p><p><b>Action:</b> an operation that triggers execution of the DAG and returns a value to the Driver or writes to storage (eager) (P1 slide 18).</p><table><tr><th>Point</th><th>Transformation</th><th>Action</th></tr><tr><td>When it runs</td><td>Lazily, only recorded</td><td>Immediately starts the job</td></tr><tr><td>Returns</td><td>A new RDD</td><td>A value (list, number) or output written to HDFS/disk</td></tr><tr><td>Examples</td><td><code>map(f)</code> applies f to each element; <code>filter(f)</code> keeps elements where f is True (also flatMap, reduceByKey, join)</td><td><code>count()</code> returns the number of elements; <code>collect()</code> returns all elements as a list (also first, take(n), saveAsTextFile)</td></tr></table><p><b>Small example (P1 slide 24, word count):</b> <code>lines.flatMap(...)</code>, <code>.map(lambda w: (w, 1))</code> and <code>.reduceByKey(...)</code> do no work. Only <code>counts.saveAsTextFile(...)</code> (an action) runs the whole chain.</p><p><b>Why not execute immediately?</b> Rule: no transformation executes until an action is called (P1 slide 18). Waiting lets Spark:</p><ul><li>see the whole DAG first and optimise it (DAG scheduler, or Catalyst for DataFrames);</li><li>pipeline steps, for example run filter and map in one pass over each partition, without writing intermediate results to disk;</li><li>execute only the partitions that are needed, for example <code>first()</code> stops after the first match (P1 slide 19).</li></ul>"
+    },
+    {
+     "n": "D3",
+     "q": "Describe Spark's <b>lazy evaluation model</b>. What is the advantage of deferring computation until an action is called? Use the example <code>rdd.filter(x &gt; 1000).first()</code> to illustrate.",
+     "a": "<p><b>Definition.</b> Lazy evaluation means Spark does not run a transformation when you write it. It only records it in a computation graph (the DAG). The work starts only when an action is called (P1 slide 19).</p><p><b>What happens when the action is called (P1 slide 19):</b></p><ol><li>Spark analyses the full DAG.</li><li>It applies the Catalyst optimizer (for DataFrames) or Spark's DAG scheduler.</li><li>It pipelines compatible transformations, e.g. filter and map in one pass over each partition, never writing intermediate results to disk.</li><li>It executes only the partitions needed.</li></ol><p><b>Advantages:</b></p><ul><li>Less work: Spark can stop early and skip partitions it does not need.</li><li>Fewer passes and no intermediate disk writes, thanks to pipelining.</li><li>Whole-plan optimisation, since Spark sees all steps before running any.</li><li>Lineage stays as a plan, which is what fault recovery replays.</li></ul><p><b>Example: <code>rdd.filter(x &gt; 1000).first()</code></b></p><ol><li><code>filter(x &gt; 1000)</code> is a transformation: Spark only notes \"keep values above 1000\". No data is read.</li><li><code>first()</code> is an action: now Spark starts reading the first partition and tests values one by one.</li><li>As soon as it finds one value above 1000, it returns it and stops.</li><li>Without lazy evaluation, Spark would first filter the <i>entire</i> dataset, then take one element, wasting almost all the work (P1 slide 19).</li></ol><p><b>Analogy:</b> you write a shopping list (transformations) but only go to the shop when you need dinner (action). If you only need one item, you grab it and leave instead of buying the whole list.</p>"
+    }
+   ]
+  },
+  {
+   "part": "Part 1",
+   "heading": "Student Assessment Pool: Analytical",
+   "questions": [
+    {
+     "n": "A1",
+     "q": "<b>Iterative I/O Cost Analysis:</b> You need to train a K-Means clustering model over <b>50 GB</b> of bKash transaction data with <b>100 iterations</b>. Assume HDFS read speed = 500 MB/s and RAM cache read speed = 5,000 MB/s.<ul><li>Calculate the total HDFS I/O for MapReduce (all 100 iterations)</li><li>Calculate the total I/O for Spark (50 GB fits in cluster RAM)</li><li>Estimate the wall-clock time for each approach</li><li>Under what conditions would Spark NOT outperform MapReduce?</li></ul>",
+     "a": "<p><b>Assumptions.</b> 1 GB = 1,000 MB, so 50 GB = 50,000 MB. HDFS write speed is not given, so assume it equals the read speed, 500 MB/s. Speeds are for the whole cluster. CPU time is ignored; we count I/O only.</p><p><b>Step 1: MapReduce HDFS I/O.</b> Each iteration reads the 50 GB and writes 50 GB of results back to HDFS (P1 slide 6).</p><ul><li>Per iteration: 50 GB read + 50 GB write = 100 GB</li><li>Total: 100 iterations &times; 100 GB = 10,000 GB = <b>10 TB</b></li></ul><p><b>Step 2: Spark I/O.</b> Iteration 1 reads 50 GB from HDFS and caches it in RAM; iterations 2 to 100 read from memory (P1 slide 6).</p><ul><li>HDFS I/O: <b>50 GB</b> (initial read only)</li><li>RAM reads: 99 iterations &times; 50 GB = 4,950 GB from cache</li><li>HDFS I/O ratio: 10,000 GB / 50 GB = <b>200&times; less disk I/O</b> (matches \"&asymp; 200&times;\" on P1 slide 6)</li></ul><p><b>Step 3: wall-clock time.</b></p><p><i>MapReduce:</i></p><ul><li>Read 50,000 MB at 500 MB/s = 100 s; write 50,000 MB at 500 MB/s = 100 s</li><li>Per iteration = 200 s</li><li>Total = 100 &times; 200 s = 20,000 s &asymp; <b>5.56 hours</b></li></ul><p><i>Spark:</i></p><ul><li>Iteration 1 from HDFS: 50,000 / 500 = 100 s</li><li>Each later iteration from RAM: 50,000 / 5,000 = 10 s; 99 &times; 10 s = 990 s</li><li>Total = 100 + 990 = 1,090 s &asymp; <b>18.2 minutes</b></li></ul><p><b>Speedup:</b> 20,000 / 1,090 &asymp; <b>18.3&times;</b> faster in time. It is lower than the 200&times; I/O ratio because RAM, at 5,000 MB/s, is only 10&times; faster than HDFS in this question, and Spark still reads 50 GB per iteration (from memory). With realistic gains from skipping the HDFS writes and pipelining, the slides quote 10 to 100&times; for iterative work (P1 slide 31).</p><p><b>Step 4: when Spark would NOT outperform MapReduce.</b></p><ul><li><b>Single-pass jobs:</b> one read, one write. There is no reuse, so caching gives nothing. For single-pass ETL over data larger than RAM, gains are only 2 to 5&times; (P2 slide 16).</li><li><b>Data does not fit in cluster RAM:</b> partitions spill to disk or are evicted (LRU) and recomputed, so Spark loses its edge (P2 slide 10).</li><li><b>Memory overhead too high:</b> Spark needs about 8 GB per Executor minimum; on very large clusters with little RAM per node this can be prohibitive (P1 slide 32).</li><li><b>Stable existing MapReduce code</b> that is already fast enough (P1 slide 32).</li><li>Workloads that hurt the JVM memory model, such as many small files or high-cardinality groupBy (P2 slide 16).</li></ul>"
+    },
+    {
+     "n": "A2",
+     "q": "<b>RDD Failure Recovery Trace:</b> A Spark job computes <code>input</code> &rarr; <code>filteredRDD</code> &rarr; <code>mappedRDD</code> &rarr; <code>reducedRDD</code> over 10 partitions. Mid-execution, the Executor holding partitions 3 and 7 of <code>reducedRDD</code> crashes. Trace the complete recovery sequence: what does the Driver detect, which partitions of which RDDs need to be recomputed, and what is the worst-case recovery cost if <code>reducedRDD</code> involves a <b>wide</b> dependency (<code>groupByKey</code>)?",
+     "a": "<p><b>Step 1: the stages.</b> filter and map are narrow, so input &rarr; filteredRDD &rarr; mappedRDD is pipelined in <b>Stage 1</b> (10 tasks, one per partition). groupByKey is wide, so it needs a shuffle and starts <b>Stage 2</b>, which builds reducedRDD (10 tasks) (P1 slides 20 to 21). Stage 1 tasks write shuffle output files on the local disk of the Executor that ran them.</p><p><b>Step 2: what the Driver detects.</b> The Driver coordinates execution (P1 slide 11). It sees that the Executor is lost (it stops responding) and that the tasks for reducedRDD partitions 3 and 7 failed. It marks those two partitions as missing. Partitions 0 to 2, 4 to 6, 8 and 9 are unaffected.</p><p><b>Step 3: trace the lineage.</b> reducedRDD came from mappedRDD by groupByKey; mappedRDD came from filteredRDD by map; filteredRDD came from input by filter (P1 slide 15).</p><p><b>Step 4: what must be recomputed.</b></p><ul><li><b>If it were narrow all the way (for comparison):</b> rebuild only partitions 3 and 7 at each level: re-read input partitions 3 and 7, re-apply filter and map, then the last step. That is 2 of 10 partitions = <b>20%</b> of the work (P1 slide 21, \"recompute only that partition from its single parent partition\").</li><li><b>With groupByKey (wide):</b> reducedRDD partition 3 holds every value for the keys that hash to 3, and these values came from <i>all 10</i> mappedRDD partitions. The same holds for partition 7. So each lost partition depends on all 10 parent partitions (P1 slide 21).</li></ul><p><b>Step 5: best case vs. worst case.</b></p><ul><li><b>Best case:</b> the Stage 1 shuffle files are still on surviving nodes. The Driver re-runs only 2 Stage 2 tasks (partitions 3 and 7), which fetch their data again from all 10 map outputs. No filter or map work is repeated.</li><li><b>Worst case:</b> the crashed Executor also stored Stage 1 shuffle output (it likely ran map tasks too), or none of mappedRDD is cached. Then the fetch fails and the Driver must re-run Stage 1: re-read <b>all 10</b> input partitions from HDFS, re-apply filter and map to all 10 (filteredRDD and mappedRDD partitions 0 to 9), redo the full shuffle, then rebuild reducedRDD partitions 3 and 7. That is <b>10 + 10 + 10 = 30</b> partition computations in Stage 1 plus 2 in Stage 2, i.e. close to rerunning the whole job, against 2 &times; 4 = 8 partition computations in the narrow case.</li></ul><p><b>Step 6: how to limit the cost.</b> Use reduceByKey instead of groupByKey so less data is shuffled (P1 slide 22); cache mappedRDD; checkpoint long lineage chains to HDFS (P1 slide 14). This is why wide dependencies make lineage recovery \"expensive\" (P1 slide 21).</p>"
+    }
+   ]
+  },
+  {
+   "part": "Part 2",
+   "heading": "Discussion Questions",
+   "questions": [
+    {
+     "n": "1",
+     "q": "<b>In-memory is a multiplier, not a panacea</b>: Spark is 10&ndash;100&times; faster on iterative workloads; for single-pass ETL over data larger than RAM, gains are smaller (2&ndash;5&times;)",
+     "a": "<p><i>Note: P2 slide 16 is titled \"Lessons Learned &amp; Discussion Questions\", but the rendered slide shows only the five \"Key Lessons from Spark's Rise\". No separate question list is printed on it (it seems to have been cut off). Each lesson is copied below exactly and answered as a discussion point.</i></p><p><b>Meaning.</b> A multiplier makes an existing advantage bigger; a panacea fixes everything. Memory helps most when the same data is read many times.</p><p><b>For (where Spark wins big):</b> iterative jobs reuse the working set. RDD paper: logistic regression 127 s/iteration on Hadoop vs. 0.96 s on Spark, 132&times;; K-means 150 s vs. 5 s, 30&times; (P2 slide 10). Databricks: logistic regression on 1 TB took 2 min on Spark vs. 10+ hours on Mahout (P2 slide 15).</p><p><b>Against (where gains are small):</b> single-pass ETL (extract, transform, load) reads each byte once, so there is nothing to cache; if the data is larger than RAM, Spark spills to disk like MapReduce. Gains drop to 2 to 5&times;.</p><p><b>Conclusion:</b> choose Spark by workload shape: more than 2 iterations over the same data favours Spark (P1 slide 32).</p>"
+    },
+    {
+     "n": "2",
+     "q": "<b>The lineage model scales elegantly</b>: re-computing a lost partition from lineage is cheaper than maintaining 3&times; replicated in-memory state",
+     "a": "<p><b>For:</b> replicating in-memory data 3 times would triple RAM use and send every write over the network. Lineage stores only the small list of steps, and failures are rare, so you pay only when something breaks. Only the lost partitions are rebuilt (P1 slide 14).</p><p><b>Against:</b> recovery is cheap only for narrow dependencies. With wide dependencies (groupByKey, join) a lost partition may need all parent partitions recomputed, and long chains get slow to replay. The fix is to checkpoint long lineage chains to HDFS (P1 slides 14, 21).</p><p><b>Conclusion:</b> lineage is the better default for iterative in-memory work, with checkpoints as a safety net (P2 slide 20).</p>"
+    },
+    {
+     "n": "3",
+     "q": "<b>Shuffle is the bottleneck</b>: both at GraySort and in production; minimising wide dependencies (shuffle) is the primary Spark tuning skill",
+     "a": "<p><b>Why shuffle costs so much:</b> a wide dependency moves data across the network, writes it to disk, and creates a stage boundary (a barrier where all tasks must finish) (P2 slide 9).</p><p><b>Evidence from GraySort:</b> Spark won mainly by making the shuffle cheaper: sort-based shuffle that writes sorted runs once (saving about 120 TB of extra I/O at 100 TB), all 8 SSDs used as shuffle directories, off-heap sort buffers, and a single wide transformation (sortByKey) (P2 slide 15).</p><p><b>Tuning moves:</b> prefer reduceByKey over groupByKey (local combine first, P1 slide 22); co-partition two RDDs on the same key so a join needs no shuffle (P2 slide 10); avoid unneeded repartition/distinct.</p><p><b>Other side:</b> some shuffles cannot be avoided (a global sort or join needs them), so the goal is to minimise them, not remove them.</p>"
+    },
+    {
+     "n": "4",
+     "q": "<b>Benchmark marketing is real</b>: GraySort made Spark famous; it also hid cases where Spark's JVM memory overhead hurt performance (many small files, high-cardinality <code>groupBy</code>)",
+     "a": "<p><b>Positive side:</b> the record (100 TB in 23 min on 206 nodes vs. Hadoop's 72 min on 2,100 nodes) drew huge press. Spark went from 200 GitHub stars in 2013 to more than 36,000 by 2020, and Databricks raised a $150M Series B within 6 months (P2 slides 14 to 15).</p><p><b>Negative side:</b> a benchmark tests one workload on tuned hardware (206 large EC2 nodes with 244 GB RAM and 8 SSDs each). It hides weak spots: many small files (overhead per file and task) and high-cardinality groupBy (a huge number of distinct keys, which fills JVM memory and causes garbage-collection pauses).</p><p><b>Lesson:</b> test a system on your own workload before trusting a headline number.</p>"
+    },
+    {
+     "n": "5",
+     "q": "<b>Open-source velocity</b>: the Apache Spark community grew to 1,000+ contributors in 5 years; Databricks&rsquo; business model (cloud + support) aligned commercial incentives with open-source development",
+     "a": "<p><b>For:</b> Spark was donated to Apache in 2013 and Databricks was founded the same year (P1 slide 9). Because Databricks earns from cloud service and support, not from licences, improving the free engine also helps its business. The result was fast growth: 1,000+ contributors in 5 years, and libraries such as Spark SQL, MLlib, Structured Streaming, GraphX and Delta Lake (P2 slide 11).</p><p><b>Risk (other side):</b> when one company leads a project, its priorities can shape the roadmap, and some features may appear first in the paid product. Users should watch for vendor lock-in.</p><p><b>Conclusion:</b> an open engine plus a paid service gave Spark both community trust and steady funding, which helped it become the default engine at Netflix, LinkedIn, Alibaba and Uber (P1 slide 9).</p>"
+    }
+   ]
+  },
+  {
+   "part": "Part 2",
+   "heading": "Live Exercise",
+   "questions": [
+    {
+     "n": "Task",
+     "q": "<b>Task (25 minutes, pairs)</b><br>Run the following PySpark script locally (Spark local mode).<br><b>Goal</b>: build and inspect an RDD lineage; observe lazy evaluation; compare cached vs. uncached timing.",
+     "code": "from pyspark import SparkContext\nimport time\nsc = SparkContext(\"local[4]\", \"RDDDemo\")\nsc.setLogLevel(\"WARN\")\n# Build lineage (lazy - no compute yet)\nlines = sc.textFile(\"README.md\")\nwords = lines.flatMap(lambda l: l.split())\npairs = words.map(lambda w: (w.lower(), 1))\ncounts = pairs.reduceByKey(lambda a, b: a+b)\n# Inspect lineage BEFORE action\nprint(counts.toDebugString().decode())\n# First action - triggers full DAG\nt0 = time.time()\nn = counts.count()\nprint(f\"count={n}  time={time.time()-t0:.2f}s\")\n# Cache and re-run\ncounts.cache()\ncounts.count()          # warm up cache\nt1 = time.time()\nn = counts.count()      # served from cache\nprint(f\"cached count={n} \"\n      f\"time={time.time()-t1:.4f}s\")\nsc.stop()",
+     "a": "<p><b>What the skeleton does, line by line (P2 slide 18):</b></p><ol><li><code>SparkContext(\"local[4]\", ...)</code>: starts Spark in local mode with 4 worker threads on your laptop (no cluster needed).</li><li><code>textFile</code>, <code>flatMap</code>, <code>map</code>, <code>reduceByKey</code>: four transformations. They only build the lineage; nothing is read yet (lazy).</li><li><code>toDebugString()</code>: prints the lineage graph. In PySpark it returns bytes, hence <code>.decode()</code>.</li><li>First <code>count()</code>: the first action. It runs the full DAG: read file, split, map, shuffle, reduce.</li><li><code>cache()</code>: marks <code>counts</code> to be kept in memory. It is lazy too, so the next <code>count()</code> fills the cache.</li><li>Last <code>count()</code>: served from the cached partitions, so it should be much faster.</li></ol><p><b>Steps to run:</b></p><ol><li>Install PySpark (<code>pip install pyspark</code>; needs Java 8/11/17).</li><li>Put any text file named <code>README.md</code> in the folder (the Spark download includes one).</li><li>Save the script as <code>rdd_demo.py</code> and run <code>python rdd_demo.py</code>.</li></ol><p><b>Complete version that answers all three questions</b> (adds a second uncached run, prints the lineage after <code>cache()</code>, and keeps the Spark UI open):</p><pre><code>from pyspark import SparkContext\nimport time\n\nsc = SparkContext(\"local[4]\", \"RDDDemo\")\nsc.setLogLevel(\"WARN\")\n\n# Build lineage (lazy - no compute yet)\nlines  = sc.textFile(\"README.md\")\nwords  = lines.flatMap(lambda l: l.split())\npairs  = words.map(lambda w: (w.lower(), 1))\ncounts = pairs.reduceByKey(lambda a, b: a + b)\n# Q3 variant: comment the line above and use this instead\n# counts = pairs.groupByKey().mapValues(lambda vs: sum(vs))\n\n# Q1: lineage BEFORE cache()\nprint(\"--- lineage before cache ---\")\nprint(counts.toDebugString().decode())\n\n# Q2: two uncached runs\nfor i in (1, 2):\n    t0 = time.time()\n    n = counts.count()\n    print(f\"uncached run {i}: count={n}  time={time.time()-t0:.2f}s\")\n\n# Mark for caching (still lazy) and show lineage again\ncounts.cache()\nprint(\"--- lineage after cache() ---\")\nprint(counts.toDebugString().decode())\n\ncounts.count()          # warm up cache (fills it)\nprint(\"--- lineage after cache is filled ---\")\nprint(counts.toDebugString().decode())\n\nt1 = time.time()\nn = counts.count()      # served from cache\nprint(f\"cached count={n}  time={time.time()-t1:.4f}s\")\n\ninput(\"Open http://localhost:4040 now, then press Enter to stop...\")\nsc.stop()</code></pre><p><b>Expected output shape</b> (numbers depend on your file and machine; not run here):</p><pre><code>--- lineage before cache ---\n(2) PythonRDD[..] at RDD at PythonRDD.scala:..\n |  MapPartitionsRDD[..] at mapPartitions at PythonRDD.scala:..\n |  ShuffledRDD[..] at partitionBy at ...\n +-(2) PairwiseRDD[..] at reduceByKey at rdd_demo.py:..\n    |  PythonRDD[..] at reduceByKey at rdd_demo.py:..\n    |  README.md MapPartitionsRDD[..] at textFile at ...\n    |  README.md HadoopRDD[..] at textFile at ...\nuncached run 1: count=&lt;N&gt;  time=~1-3s\nuncached run 2: count=&lt;N&gt;  time=smaller\ncached count=&lt;N&gt;  time=~0.0x s</code></pre><p>The <code>(2)</code> is the number of partitions: for a small local file <code>textFile</code> normally makes 2 partitions. The <code>+-</code> indent marks the shuffle (stage boundary) caused by reduceByKey. <code>count</code> = the number of distinct lower-cased words.</p>"
+    },
+    {
+     "n": "1",
+     "q": "Call <code>rdd.toDebugString()</code> before and after <code>cache()</code> &mdash; what changes?",
+     "a": "<p><b>Expected answer:</b></p><ul><li><b>Before cache():</b> the lineage lists the chain of RDDs (HadoopRDD from textFile, then the Python RDDs for flatMap/map, the shuffle for reduceByKey) with no storage information.</li><li><b>Right after cache():</b> the lineage itself (the list of parents) does <i>not</i> change, because cache() is lazy. The top RDD line now shows a storage level tag, e.g. <code>[Memory Serialized 1x Replicated]</code> (PySpark stores cached data serialised; the level is MEMORY_ONLY, P2 slide 10).</li><li><b>After an action has filled the cache:</b> the line also shows <code>CachedPartitions: 2; MemorySize: ...; DiskSize: 0.0 B</code>. Later jobs read these partitions from memory and skip the parent steps.</li></ul><p><b>Why:</b> cache() is a transformation-like marker; Spark keeps the lineage anyway so it can rebuild a cached partition if it is evicted or lost (P1 slides 14, 17).</p>"
+    },
+    {
+     "n": "2",
+     "q": "Time <code>rdd.count()</code> twice without <code>cache()</code>. Then add <code>.cache()</code> and time again. Report the speedup.",
+     "a": "<p><b>How:</b> run the timed <code>count()</code> twice before <code>cache()</code>, then warm the cache and time once more (code above). Speedup = uncached time / cached time.</p><p><b>What to expect:</b></p><ul><li><b>Uncached run 1</b> is slowest: it starts Python workers, reads the file, runs both stages and the shuffle.</li><li><b>Uncached run 2</b> is usually already faster: Spark reuses the shuffle files from run 1 and shows Stage 1 as \"skipped\" in the UI, and the workers are warm. It still recomputes the reduce stage.</li><li><b>Cached run</b> is fastest: partitions come straight from memory.</li></ul><p><b>Example of reporting</b> (illustrative numbers, not measured): uncached 1.50 s, cached 0.05 s, speedup = 1.50 / 0.05 = 30&times;. On a tiny README the absolute times are small and job start-up overhead dominates, so the speedup can be modest. On large data the slides' figures apply: 127 s vs. 0.96 s per iteration = 132&times; (P2 slide 10).</p><p><b>Lesson:</b> cache only RDDs reused in more than one action; caching single-use RDDs wastes RAM and evicts other data (LRU) (P2 slide 10).</p>"
+    },
+    {
+     "n": "3",
+     "q": "Change <code>reduceByKey</code> to <code>groupByKey</code>. Use the Spark UI (localhost:4040) to compare shuffle read/write bytes between the two.",
+     "a": "<p><b>How:</b> replace the reduceByKey line with <code>counts = pairs.groupByKey().mapValues(lambda vs: sum(vs))</code> (groupByKey alone gives lists, so sum them to get the same counts). Run both versions and, while the script waits at the <code>input()</code> prompt, open <code>http://localhost:4040</code> &rarr; <b>Stages</b> tab. Read <b>Shuffle Write</b> on the map stage and <b>Shuffle Read</b> on the reduce stage.</p><p><b>Expected result:</b> the word counts are identical, but groupByKey shows <b>larger</b> shuffle read/write bytes.</p><p><b>Why:</b> reduceByKey applies a local combine before shuffling, like a Combiner in MapReduce (P1 slide 22). Each partition first adds up its own <code>(word, 1)</code> pairs, so it sends at most one record per distinct word. groupByKey sends every single <code>(word, 1)</code> pair across the network.</p><p><b>Small worked example:</b> 4 partitions each with 1,000 pairs and 50 distinct words. groupByKey shuffles 4 &times; 1,000 = 4,000 records; reduceByKey shuffles at most 4 &times; 50 = 200 records, which is 95% less.</p><p>On a small README the byte difference is a few KB, but the ratio shows the point. Lesson: shuffle is the bottleneck, so prefer reduceByKey (P2 slide 16).</p>"
+    }
+   ]
+  }
+ ],
+ "maths": {
+  "intro": "This chapter has several calculations: disk I/O for iterative jobs, I/O time, speedup ratios, GraySort throughput and cluster totals, and hash partitioning. All use simple multiplication and division. Convention: 1 GB = 1,000 MB, 1 TB = 1,000 GB, 1 PB = 1,000 TB.",
+  "items": [
+   {
+    "title": "Iterative disk I/O: MapReduce vs. Spark",
+    "formula": "MR_IO = k &times; (D_read + D_write)<br>Spark_HDFS_IO = D (read once)<br>Reduction = MR_IO / Spark_HDFS_IO",
+    "symbols": "<ul><li><b>k</b>: number of iterations</li><li><b>D</b>: dataset size</li><li><b>D_read, D_write</b>: data read and written to HDFS per iteration (both = D in the slide example)</li><li><b>Reduction</b>: how many times less disk I/O Spark does</li></ul>",
+    "example": "<p>K-Means, D = 50 GB, k = 100 (P1 slide 6).</p><ul><li>MR_IO = 100 &times; (50 + 50) = 10,000 GB = 10 TB</li><li>Spark_HDFS_IO = 50 GB</li><li>Reduction = 10,000 / 50 = 200&times;</li></ul>",
+    "practice": "<p>D = 20 GB, k = 30.</p><ul><li>MR_IO = 30 &times; (20 + 20) = 1,200 GB = 1.2 TB</li><li>Spark = 20 GB</li><li>Reduction = 1,200 / 20 = 60&times;</li></ul>"
+   },
+   {
+    "title": "I/O time and wall-clock speedup",
+    "formula": "t = size / speed<br>T_MR = k &times; (D/R_hdfs + D/W_hdfs)<br>T_Spark = D/R_hdfs + (k &minus; 1) &times; D/R_ram<br>Speedup = T_MR / T_Spark",
+    "symbols": "<ul><li><b>R_hdfs</b>: HDFS read speed (MB/s); <b>W_hdfs</b>: HDFS write speed (assumed equal to R_hdfs when not given)</li><li><b>R_ram</b>: RAM cache read speed (MB/s)</li><li><b>k, D</b>: iterations and data size in MB</li></ul>",
+    "example": "<p>P1 slide 38 A1: D = 50,000 MB, k = 100, R_hdfs = W_hdfs = 500 MB/s, R_ram = 5,000 MB/s.</p><ul><li>One HDFS pass: 50,000 / 500 = 100 s</li><li>T_MR = 100 &times; (100 + 100) = 20,000 s &asymp; 5.56 h</li><li>One RAM pass: 50,000 / 5,000 = 10 s</li><li>T_Spark = 100 + 99 &times; 10 = 1,090 s &asymp; 18.2 min</li><li>Speedup = 20,000 / 1,090 &asymp; 18.3&times;</li></ul><p>Second slide example (P2 slide 4): 10 iterations over 100 GB at 100 MB/s. Reads alone: 10 &times; 100,000 MB / 100 MB/s = 10,000 s &asymp; 2.8 h, which is the slide's \"&asymp; 3 hours of I/O\". Counting writes too doubles it to 20,000 s &asymp; 5.6 h.</p>",
+    "practice": "<p>D = 20 GB (20,000 MB), k = 30, HDFS 400 MB/s read and write, RAM 4,000 MB/s.</p><ul><li>HDFS pass = 20,000 / 400 = 50 s; T_MR = 30 &times; (50 + 50) = 3,000 s = 50 min</li><li>RAM pass = 20,000 / 4,000 = 5 s; T_Spark = 50 + 29 &times; 5 = 195 s</li><li>Speedup = 3,000 / 195 &asymp; 15.4&times;</li></ul>"
+   },
+   {
+    "title": "Benchmark speedup per iteration",
+    "formula": "Speedup = t_old / t_new",
+    "symbols": "<ul><li><b>t_old</b>: time per iteration on Hadoop MapReduce</li><li><b>t_new</b>: time per iteration on Spark</li></ul>",
+    "example": "<p>RDD paper (P2 slide 10): logistic regression 127 s vs. 0.96 s: 127 / 0.96 &asymp; 132&times;. K-means 150 s vs. 5 s: 150 / 5 = 30&times;. Over 10 iterations of logistic regression: Hadoop 1,270 s vs. Spark 9.6 s.</p>",
+    "practice": "<p>Hadoop 120 s/iteration, Spark 1.5 s/iteration: speedup = 120 / 1.5 = 80&times;.</p>"
+   },
+   {
+    "title": "GraySort throughput, cluster totals and efficiency per node",
+    "formula": "Throughput = data / time<br>Total resource = nodes &times; per-node amount<br>Time ratio = T_old / T_new; Node ratio = N_old / N_new<br>Efficiency per node = (T_old &times; N_old) / (T_new &times; N_new)",
+    "symbols": "<ul><li><b>T</b>: sort time in minutes; <b>N</b>: number of nodes</li><li><b>T &times; N</b>: node-minutes, the total machine time used</li><li><b>Efficiency per node</b>: how many times fewer node-minutes the new system needs</li></ul>",
+    "example": "<p>Databricks (P2 slides 13 to 14, 20): Spark 100 TB in 23 min on 206 nodes; Hadoop 72 min on 2,100 nodes.</p><ul><li>Throughput = 100 / 23 &asymp; 4.35 TB/min (the slide's 4.27 TB/min matches the more exact 23.4 min: 100 / 23.4 &asymp; 4.27)</li><li>Total RAM = 206 &times; 244 GB = 50,264 GB &asymp; 50.3 TB</li><li>SSD per node = 8 &times; 800 GB = 6,400 GB = 6.4 TB; total = 206 &times; 6.4 = 1,318.4 TB &asymp; 1.3 PB</li><li>Time ratio = 72 / 23 &asymp; 3.1&times;; node ratio = 2,100 / 206 &asymp; 10.2&times;</li><li>Efficiency per node = (72 &times; 2,100) / (23 &times; 206) = 151,200 / 4,738 &asymp; 32&times;</li><li>Records = 100 TB / 100 bytes = 10<sup>14</sup> / 10<sup>2</sup> = 10<sup>12</sup> records; HDFS storage with 3&times; replication = 300 TB</li></ul><p>Note: P2 slide 2 says \"3.5&times; fewer machines\", but 2,100 / 206 gives 10.2&times;, as slide 14 states.</p>",
+    "practice": "<p>System A sorts 50 TB in 60 min on 1,000 nodes; system B in 20 min on 250 nodes.</p><ul><li>B throughput = 50 / 20 = 2.5 TB/min</li><li>Time ratio = 60 / 20 = 3&times;; node ratio = 1,000 / 250 = 4&times;</li><li>Efficiency per node = (60 &times; 1,000) / (20 &times; 250) = 60,000 / 5,000 = 12&times;</li></ul>"
+   },
+   {
+    "title": "Hash partitioning and shuffle volume",
+    "formula": "partition = key.hashCode() % numPartitions<br>groupByKey records shuffled = total pairs<br>reduceByKey records shuffled &le; partitions &times; distinct keys per partition",
+    "symbols": "<ul><li><b>hashCode()</b>: a number computed from the key</li><li><b>%</b>: remainder after division</li><li><b>numPartitions</b>: number of output partitions</li></ul>",
+    "example": "<p>Default hash partitioner (P2 slide 10), 4 partitions: a key with hash 17 goes to 17 % 4 = 1; hash 42 goes to 42 % 4 = 2. Shuffle: 4 partitions &times; 1,000 pairs, 50 distinct words each. groupByKey shuffles 4,000 records; reduceByKey at most 4 &times; 50 = 200, i.e. 1 &minus; 200/4,000 = 95% less (P1 slide 22).</p>",
+    "practice": "<p>Hashes 10, 23, 31 with numPartitions = 4: 10 % 4 = 2, 23 % 4 = 3, 31 % 4 = 3. Recovery share: if 2 of 10 partitions are lost with only narrow dependencies, 2 / 10 = 20% of the work is redone.</p>"
+   }
+  ]
+ }
+}
