@@ -1,0 +1,1220 @@
+{
+ "emphasis": [
+  {
+   "week": 5,
+   "topic": "YARN three components (RM, NM, AM) and the Hadoop 1 to YARN split [card yarn-arch]",
+   "score": 9,
+   "evidence": "In both parts: P1 slides 7-12 (6 slides), P2 slides 6-9 and 12. Teacher-drawn figures: Hadoop 1 vs YARN split (P1 s9), job execution flow (P1 s12), three-layer diagram (P2 s8). Pool MCQ Q1, Q4, TF2, D1. P2 Key Takeaways lead with it. Instructor note: students confuse AM (per job) with RM (global)."
+  },
+  {
+   "week": 5,
+   "topic": "Row vs columnar storage, Parquet layout, predicate pushdown [card columnar]",
+   "score": 8,
+   "evidence": "P1 s6, 16, 18, 22-23, with worked numbers (10 TB, 100 cols, 3 read -> 300 GB, 33x; pushdown 10 TB -> 50 GB). Drawn figures: row vs column table (s16), Parquet internals (s22). Pool TF1, D2, A1 (A1 asks for an I/O-reduction calculation)."
+  },
+  {
+   "week": 5,
+   "topic": "Compression codecs and splittability (the gzip trap) [card compression]",
+   "score": 7,
+   "evidence": "P1 s20-21: codec table, a 'Very Common Mistake' box, and a drawn figure (3 mappers vs 1 mapper). Pool MCQ Q3, TF3, A1(i)."
+  },
+  {
+   "week": 5,
+   "topic": "File formats Avro / Parquet / ORC and the selection matrix [card formats]",
+   "score": 7,
+   "evidence": "P1 s17-18 (format table, 'Why Avro' / 'Why Parquet' boxes), s25-26 selection matrix and bKash lake strategy (Avro -> Parquet+Snappy -> ORC+Zstd, 60% smaller). Pool MCQ Q2, TF4, D3."
+  },
+  {
+   "week": 5,
+   "topic": "Schedulers (FIFO, Capacity, Fair), DRF, capacity planning [card yarn-sched]",
+   "score": 7,
+   "evidence": "P1 s13-14 (a2i 60/30/10 queues, DRF box), P2 s10, s17-18 (LinkedIn 6 queues with a drawn figure), P2 live exercise s23-25 (containers per queue, bottleneck). Lessons Learned 2 and 3. Main source of a W5 calculation."
+  },
+  {
+   "week": 5,
+   "topic": "YARN fault tolerance (NM, AM, RM failure) [card yarn-fault]",
+   "score": 6,
+   "evidence": "P1 s12 fault-tolerance box, P2 s11 three-layer recovery (heartbeat >10 min, AM max attempts default 2, RM HA via ZooKeeper <60 s). Pool A2 (NM2 failure trace)."
+  },
+  {
+   "week": 5,
+   "topic": "LinkedIn YARN case numbers (45% -> 78% utilisation, PYMK 18 h -> 4 h) [card yarn-sched]",
+   "score": 4,
+   "evidence": "P2 s15-21 case study. Lesson 1 and Key Takeaways repeat 45% -> 78%, so it is a ready one-step calculation (73% more work). No pool MCQ/TF on it."
+  },
+  {
+   "week": 6,
+   "topic": "RDD definition and lineage-based fault tolerance [card rdd]",
+   "score": 10,
+   "evidence": "In both parts: P1 s13-15 (drawn lineage recovery figure, s15), P2 s7-8 (drawn lineage DAG). P2 Key Takeaways open with it; quote slides cite it. Pool MCQ Q2, TF2, D1, A2; live exercise on toDebugString/cache."
+  },
+  {
+   "week": 6,
+   "topic": "Narrow vs wide dependencies, stages, shuffle, reduceByKey vs groupByKey [card narrow-wide]",
+   "score": 9,
+   "evidence": "P1 s21-22 (drawn narrow/wide figure, performance tip), P2 s9 (second drawn figure). Key Takeaways call it 'the single most important Spark performance tuning heuristic'; Lesson 3 'shuffle is the bottleneck'. Pool A2 (wide-dependency recovery cost), live Q3."
+  },
+  {
+   "week": 6,
+   "topic": "Transformations vs actions and lazy evaluation [card lazy-eval]",
+   "score": 9,
+   "evidence": "P1 s17-20 (4 slides: two tables, the filter(x>1000).first() example, drawn DAG with stage boundary), P2 s8. Pool MCQ Q4, D2, D3. Instructor note flags it as a 'critical misconception'."
+  },
+  {
+   "week": 6,
+   "topic": "Why Spark beats MapReduce on iterative work (I/O cost) [card mr-vs-spark]",
+   "score": 8,
+   "evidence": "P1 s6-7 worked example (50 GB x 100 iterations = 10 TB vs 50 GB, drawn figure), P1 s31-32 comparison table, P2 s4 (10 iterations over 100 GB = about 3 h), P2 s10 benchmark (127 s vs 0.96 s = 132x). Pool MCQ Q1, TF4, A1 (calculation)."
+  },
+  {
+   "week": 6,
+   "topic": "Spark architecture: Driver, Cluster Manager, Executors [card spark-arch]",
+   "score": 6,
+   "evidence": "P1 s11-12 with a drawn figure; SparkContext vs SparkSession box. Pool TF1 (Spark is not tied to YARN)."
+  },
+  {
+   "week": 6,
+   "topic": "DataFrames, Catalyst, ecosystem (MLlib, Streaming, GraphX) [card dataframes]",
+   "score": 5,
+   "evidence": "P1 s26-29 (drawn ecosystem stack). Pool MCQ Q3 (HBase is not part of Spark), TF3."
+  },
+  {
+   "week": 6,
+   "topic": "Persistence levels, partitioners, GraySort case (32x per node) [cards rdd, narrow-wide]",
+   "score": 4,
+   "evidence": "P2 s10 (storage levels, hash partitioner key.hashCode() % numPartitions), P2 s13-15 GraySort (72 -> 23 min, 2,100 -> 206 nodes). Key Takeaways quote the 32x figure. Calculation-ready but no pool MCQ/TF."
+  },
+  {
+   "week": 7,
+   "topic": "Partitioning and partition pruning [card partitioning]",
+   "score": 9,
+   "evidence": "P1 s19-22 (4 slides: drawn directory tree, DDL, dynamic partition rule box, explosion-risk box), P2 s11 pruning walk-through, P2 s10 'most used feature: Partitioning', Spotify lesson 3 (8 h -> 2 h). Pool MCQ Q3, TF2, A1; live tasks. Key Takeaways: 'schema design is a first-class skill'."
+  },
+  {
+   "week": 7,
+   "topic": "Hive architecture, Metastore, HiveQL compilation [card hive-arch]",
+   "score": 9,
+   "evidence": "In both parts: P1 s8-11 (drawn component diagram, two Metastore slides), P2 s6-7 (four-component design, SerDe table), P2 s11 lifecycle figure. Closing quote and Key Takeaways name the Metastore as Hive's key contribution. Pool MCQ Q1, TF3, D1, A2."
+  },
+  {
+   "week": 7,
+   "topic": "Bucketing and bucket map join [card bucketing]",
+   "score": 7,
+   "evidence": "P1 s23-24 with a drawn figure (hash(user_id) % 4, bucket i x bucket i). Pool TF4, D2, A1 (design DDL with bucket count)."
+  },
+  {
+   "week": 7,
+   "topic": "Schema-on-read vs schema-on-write; HiveQL vs SQL [card schema-on-read]",
+   "score": 7,
+   "evidence": "P1 s13-14 (9-row comparison table plus advantage/risk boxes), s16-17 ('The Most Common Misconception' box). Pool MCQ Q2, TF1, D3."
+  },
+  {
+   "week": 7,
+   "topic": "Presto and the SQL-on-Hadoop engines [card presto]",
+   "score": 6,
+   "evidence": "P1 s6 engine table, P1 s26 (4 design decisions, drawn Hive+MR vs Presto pipeline). Pool MCQ Q4 (no intermediate disk writes)."
+  },
+  {
+   "week": 7,
+   "topic": "Map-side aggregation (50 M rows, 200 countries -> 250,000x) [card hive-arch]",
+   "score": 5,
+   "evidence": "P2 s10 'Key Optimization' box with numbers: a ready one-step calculation. Links back to the W4 Combiner and to reduceByKey."
+  },
+  {
+   "week": 7,
+   "topic": "Spotify Discover Weekly case [card spotify]",
+   "score": 3,
+   "evidence": "P2 s14-18; Discussion questions only (ALS size, co-occurrence). Low exam weight except lesson 3."
+  },
+  {
+   "week": 8,
+   "topic": "Kafka data model: topic, partition, offset, broker, replication, consumer group [card kafka-log]",
+   "score": 10,
+   "evidence": "In both parts: P1 s14-19, P2 s5-10. Drawn figures: queue vs log (P1 s15), topic/brokers with RF=2 (P1 s17), consumer group (P2 s8), segmented log (P2 s10). Pool MCQ Q2, TF2, D2; P2 Key Takeaways; five live tasks."
+  },
+  {
+   "week": 8,
+   "topic": "Lambda vs Kappa architectures [card lambda-kappa]",
+   "score": 10,
+   "evidence": "P1 s21-27 (7 slides: two drawn architecture figures, strengths/weakness slide, full comparison table), P2 s15-16 Netflix Lambda+Kappa figure, Lessons 1 and 3. Pool MCQ Q3, Q4, TF3, D1, A2. The most pooled topic in W8."
+  },
+  {
+   "week": 8,
+   "topic": "Why Kafka is fast: sequential I/O, zero-copy, batching, pull [card kafka-speed]",
+   "score": 7,
+   "evidence": "P1 s18, P2 s9-11 (zero-copy 4 -> 2 copies, benchmark tables 50.5 vs 4.3 vs 14.7 MB/s). P2 Key Takeaways: 'zero-copy + sequential I/O explain Kafka's throughput'. Pool D2 asks for it."
+  },
+  {
+   "week": 8,
+   "topic": "Sqoop and Flume (batch ingestion) [card sqoop-flume]",
+   "score": 7,
+   "evidence": "P1 s7-12: tool landscape table, Sqoop slide + drawn figure (MapReduce job, incremental last-value), Flume source/channel/sink + drawn figure. Pool MCQ Q1, TF1, TF4, A1."
+  },
+  {
+   "week": 8,
+   "topic": "Point-to-point ETL vs event pipeline (N^2 problem) [card pipelines]",
+   "score": 6,
+   "evidence": "P1 s5-6 with drawn figure; 50 systems -> 2,450 jobs is a slide number. Pool A1 (bank pipeline design)."
+  },
+  {
+   "week": 8,
+   "topic": "Data lake, zones and the data swamp [card data-lake]",
+   "score": 6,
+   "evidence": "P1 s29-30 (four-layer architecture, swamp symptoms and prevention). Pool D3 (lake vs warehouse)."
+  },
+  {
+   "week": 9,
+   "topic": "Tufte: data-ink ratio, chartjunk, small multiples, sparklines, lie factor [card tufte]",
+   "score": 9,
+   "evidence": "In both parts: P1 s8-9 (drawn before/after chart, small-multiple and sparkline figures), P2 s6-7 (data-ink, chartjunk list, lie factor with the y-axis-at-50 example). Key Takeaways and quote slides. Pool MCQ Q1, D1; live exercise is a Tufte-styled chart."
+  },
+  {
+   "week": 9,
+   "topic": "Shneiderman mantra, seven data types, choosing the right chart [card shneiderman]",
+   "score": 8,
+   "evidence": "P1 s11-12, s14-15 (chart-selection table, 'most abused chart' box on pies), P2 s9-10 (treemap figure, dynamic queries). Key Takeaways. Pool MCQ Q2, Q3, TF1, TF4, A1."
+  },
+  {
+   "week": 9,
+   "topic": "Overplotting: alpha, hexbin, KDE [card overplotting]",
+   "score": 6,
+   "evidence": "P1 s17-18 with a drawn three-panel figure (10 M points -> about 10,000 hexes). Pool TF2, D2."
+  },
+  {
+   "week": 9,
+   "topic": "Latency: data cube pre-aggregation and approximate query processing [card latency]",
+   "score": 6,
+   "evidence": "P1 s19 with drawn pipeline (100 B rows -> cube of millions, staleness trade-off). Pool D3."
+  },
+  {
+   "week": 9,
+   "topic": "Streaming visualisation and the tools landscape (Grafana, D3, Tableau...) [card streaming-tools]",
+   "score": 6,
+   "evidence": "P1 s20 (drawn Kafka -> Spark -> TSDB -> Grafana pipeline, WebSocket vs poll box), s22-23 tools table + decision heuristic. Pool MCQ Q4, TF3, A2."
+  },
+  {
+   "week": 9,
+   "topic": "Anscombe's quartet and the NYT COVID tracker case [cards shneiderman, nyt-case]",
+   "score": 4,
+   "evidence": "P1 s5 (identical statistics table), P2 s13-15 NYT case: lessons only, no pool MCQ/TF. Good scenario openers."
+  },
+  {
+   "week": 10,
+   "topic": "Time series, ARIMA vs Prophet, Spark parallel forecasting [card forecasting]",
+   "score": 9,
+   "evidence": "In both parts: P1 s14-17 (properties, ARIMA, Prophet y = g + s + h + e with drawn decomposition), s19 (5,000 SKUs, 8 h -> 12 min); P2 s9-10 (changepoints, Fourier seasonality). Key Takeaways. Pool MCQ Q1, TF2, D2, A2, Disc 2; five live tasks."
+  },
+  {
+   "week": 10,
+   "topic": "Syndromic surveillance and the Google Flu Trends failure [card flu-surveillance]",
+   "score": 7,
+   "evidence": "P1 s28-29 (drawn pipeline, 'supplement, not replace' box), P2 s13-15 (ILINet/BioSense, GFT 2x over-prediction, lessons). Key Takeaways and closing quote. Pool TF1, A1."
+  },
+  {
+   "week": 10,
+   "topic": "Social graphs: Louvain, influence maximisation, Kwak et al. Twitter findings [card social-graph]",
+   "score": 7,
+   "evidence": "P1 s9-10 (Louvain steps, drawn community figure, Kempe greedy 1-1/e), P2 s4-7 (77.9% asymmetric, 22.1% reciprocity, 4.12 hops, power law). Pool MCQ Q2, TF3, Disc 1 (3-hop reach calculation)."
+  },
+  {
+   "week": 10,
+   "topic": "Healthcare data, privacy (HIPAA/GDPR/PDPA, DP, federated learning), AlphaFold [card health-data]",
+   "score": 6,
+   "evidence": "P1 s21-26 (four modalities with drawn data-lake figure, privacy table, two AlphaFold slides). Pool MCQ Q3, Q4, TF4, D3."
+  },
+  {
+   "week": 10,
+   "topic": "Sentiment (VADER) and trend detection [card sentiment-trend]",
+   "score": 5,
+   "evidence": "P1 s11-12 (VADER rules, compound thresholds, 10/h -> 10,000/h spike, ethics box). Pool D1."
+  },
+  {
+   "week": 10,
+   "topic": "Anomaly detection: STL residual rule and Isolation Forest [card anomaly]",
+   "score": 4,
+   "evidence": "P1 s18 only; no pool question. Worth one sub-part at most."
+  }
+ ],
+ "papers": [
+  {
+   "name": "Predicted Paper A (most likely chapters as main questions: W6, W8, W5, W7; W9 and W10 as ORs)",
+   "questions": [
+    {
+     "q": "Q1",
+     "week": 6,
+     "why": "Spark has the most pooled topics and teacher-drawn figures of any chapter (RDD lineage, narrow/wide, lazy evaluation all in both parts). Uses the slide examples: RDD-paper benchmark (127 s vs 0.96 s) and the bKash fraud pipeline (P1 s24).",
+     "parts": [
+      {
+       "label": "a",
+       "marks": 4,
+       "scenario": "bKash's fraud team trains a logistic-regression model for 10 iterations over the same transaction data. On MapReduce each iteration takes 127 s; on Spark with the data cached in memory it takes 0.96 s (the RDD paper's benchmark).",
+       "subs": [
+        {
+         "q": "i) Why is MapReduce slow for this kind of algorithm? (1)",
+         "a": "MapReduce writes every intermediate result to HDFS and reads it back at the next step, so each of the 10 iterations pays a full disk read and write of the data."
+        },
+        {
+         "q": "ii) What does Spark do differently? (1)",
+         "a": "Spark reads the data from HDFS once, caches it as an RDD in executor memory, and runs iterations 2 onward from RAM. Intermediate results stay in memory."
+        },
+        {
+         "q": "iii) Calculate the per-iteration speedup and the total time of each system for 10 iterations. (1)",
+         "a": "Speedup = 127 / 0.96 = 132x. Totals: MapReduce 10 x 127 = 1,270 s; Spark 10 x 0.96 = 9.6 s."
+        },
+        {
+         "q": "iv) When should the team call cache(), and when is caching a mistake? (1)",
+         "a": "Cache an RDD that is reused by more than one action (iterative ML, interactive queries). Caching a single-use RDD wastes RAM and pushes other cached data out (LRU eviction)."
+        }
+       ]
+      },
+      {
+       "label": "b",
+       "marks": 6,
+       "scenario": "The fraud pipeline on the slide is: txns = textFile -> map(parse) -> filter(amount > 50000) -> map((sender, 1)) -> reduceByKey(+) -> filter(count > 3) -> count(). It runs on 8 partitions.",
+       "subs": [
+        {
+         "q": "i) Which of these calls are transformations and which is the action? When does Spark actually start work? (1.5)",
+         "a": "Transformations: map, filter, map, reduceByKey, filter (textFile is lazy too). Action: count(). Nothing runs until count() is called; until then Spark only records the DAG (lazy evaluation)."
+        },
+        {
+         "q": "ii) Is reduceByKey a narrow or wide dependency? How many stages does the job have, and where is the boundary? (1.5)",
+         "a": "Wide: an output partition needs records for its keys from every input partition, so data is shuffled. 2 stages: stage 1 = textFile, map, filter, map (pipelined); the boundary is the shuffle at reduceByKey; stage 2 = reduce, filter, count."
+        },
+        {
+         "q": "iii) reduceByKey uses the default hash partitioner. A sender key has hashCode 1,234,567. Which partition gets it? (1)",
+         "a": "Partition = key.hashCode() % numPartitions = 1,234,567 % 8. 8 x 154,320 = 1,234,560, remainder 7, so partition 7."
+        },
+        {
+         "q": "iv) The executor holding one partition of the parsed RDD crashes. How does Spark rebuild it without replicas, and why would losing a partition after reduceByKey cost more? (2)",
+         "a": "Spark follows the lineage: it re-reads that partition's HDFS block and re-applies map(parse) for that one partition only (narrow dependency, one parent). After reduceByKey each output partition depends on all 8 parent partitions, so if the shuffle output is lost, Spark must recompute the parents of all 8 partitions. Long lineages should be checkpointed to HDFS."
+        }
+       ]
+      }
+     ],
+     "or": []
+    },
+    {
+     "q": "Q2",
+     "week": 8,
+     "why": "Kafka and Lambda/Kappa are the two highest-scoring W8 topics (both in P1 and P2, 5 pool items for Lambda/Kappa alone). Slide numbers: 50 systems -> 2,450 jobs; bKash wallet topics with 3 consumers; Lambda serving-layer merge rule.",
+     "parts": [
+      {
+       "label": "a",
+       "marks": 5,
+       "scenario": "A bank connects 50 internal systems with nightly point-to-point ETL jobs. It moves to Kafka: every wallet transaction goes to topics wallet-credit and wallet-debit, read by fraud detection, the balance updater and an audit writer.",
+       "subs": [
+        {
+         "q": "i) Give two problems of point-to-point ETL. (1)",
+         "a": "Any two: brittle (a schema change breaks the jobs), no replay (an offline consumer loses data), no real time (nightly, latency of 24 h or more), tight coupling between source and consumer."
+        },
+        {
+         "q": "ii) How many point-to-point jobs can 50 systems need, and how many connections with a central bus? (1)",
+         "a": "N(N-1) = 50 x 49 = 2,450 jobs. With a bus each system connects once: 50 connections."
+        },
+        {
+         "q": "iii) A traditional queue and a Kafka partition both receive the same message. What happens to it after it is read, and why does that matter for a consumer that joins late? (1.5)",
+         "a": "A queue deletes a message once it is consumed, so a late consumer misses it. Kafka appends it to an immutable log and keeps it for the retention period (e.g. 7 days); a late consumer starts at offset 0 and replays the history."
+        },
+        {
+         "q": "iv) How do fraud detection, the balance updater and the audit writer each receive every event? (1.5)",
+         "a": "Each service is its own consumer group. Every group reads all partitions of the topic and tracks its own offset, so the three read the same log independently; inside one group each partition goes to exactly one consumer."
+        }
+       ]
+      },
+      {
+       "label": "b",
+       "marks": 5,
+       "scenario": "An e-commerce firm wants accurate nightly revenue reports and a live sales dashboard that is less than a minute old. The team builds a Lambda architecture: nightly Spark jobs on HDFS plus a Flink job reading Kafka.",
+       "subs": [
+        {
+         "q": "i) Name the three Lambda layers and say what each produces. (1.5)",
+         "a": "Batch layer: keeps the immutable master dataset on HDFS and recomputes accurate batch views (hours old). Speed layer: stream processor over recent data, low-latency approximate real-time views. Serving layer: merges batch and real-time views to answer queries."
+        },
+        {
+         "q": "ii) The last batch view counted 1,200,000 orders up to 02:00; the speed layer has counted 85,000 orders since then. What does the serving layer return? (1)",
+         "a": "Result = batch view UNION real-time view = 1,200,000 + 85,000 = 1,285,000 orders."
+        },
+        {
+         "q": "iii) What is Lambda's main engineering weakness? (1)",
+         "a": "Dual code paths: the same business logic is written twice (batch and stream) and must be kept in sync; teams report 30-40% of effort goes into that, plus two clusters and a merge step."
+        },
+        {
+         "q": "iv) The CTO proposes Kappa. How would Kappa reprocess history after a bug fix? (1.5)",
+         "a": "Kappa keeps one stream code path over a durable log (Kafka with long retention, or Iceberg on S3). Deploy the fixed job version, start it at offset 0, let it replay all history and catch up to live events, then swap it into production and retire the old job."
+        }
+       ]
+      }
+     ],
+     "or": [
+      {
+       "label": "a (OR)",
+       "marks": 5,
+       "scenario": "DGHS publishes a monthly dengue bar chart for 8 divisions with 3-D bars, a gradient fill, heavy gridlines and a legend for its single series. Of 800 units of ink, 200 draw the bars.",
+       "subs": [
+        {
+         "q": "i) Define Tufte's data-ink ratio. (1)",
+         "a": "Data-ink ratio = ink used to display data / total ink in the graphic. The goal is to maximise it: every non-data mark must justify itself."
+        },
+        {
+         "q": "ii) Name three chartjunk elements in this chart. (1)",
+         "a": "3-D effect, gradient fill, heavy gridlines (also the redundant one-series legend)."
+        },
+        {
+         "q": "iii) Find the ratio now, and after 400 units of junk are erased. (1.5)",
+         "a": "Now: 200 / 800 = 0.25. After erasing 400 units: total ink 400, data ink 200, ratio 200 / 400 = 0.5."
+        },
+        {
+         "q": "iv) The director wants to compare the 8 divisions' 24-month trends. What does Tufte recommend, and what must the panels share? (1.5)",
+         "a": "Small multiples: the same line chart repeated once per division in a grid. All panels must use the same axis scale, so magnitudes can be compared across divisions."
+        }
+       ],
+       "week": 9
+      },
+      {
+       "label": "b (OR)",
+       "marks": 5,
+       "scenario": "The same dashboard must show (1) confirmed cases by district over 24 months, (2) the hospitalisation rate updated every 5 minutes. The fact table in Hive has 100 billion rows and filters take minutes.",
+       "subs": [
+        {
+         "q": "i) Which chart suits requirement (1), and which Shneiderman data type is it? (1)",
+         "a": "Temporal data, so a line chart (or district small multiples of line charts). Avoid a pie chart for time series."
+        },
+        {
+         "q": "ii) How should the dashboard follow Shneiderman's mantra? (1.5)",
+         "a": "Overview first: national total chart on top. Zoom and filter: district dropdown and date-range slider (dynamic queries). Details on demand: hover or click shows the exact date and count."
+        },
+        {
+         "q": "iii) The team pre-aggregates the 100-billion-row table into a 2-million-row data cube. How many times fewer rows does a filter read? (1)",
+         "a": "100,000,000,000 / 2,000,000 = 50,000x fewer rows."
+        },
+        {
+         "q": "iv) Give the cube's trade-off, and name the tool for requirement (2). (1.5)",
+         "a": "Trade-off: staleness. The cube is rebuilt by a nightly job, so it can be up to 24 h old (and only answers the pre-chosen dimensions). For the 5-minute rate use Grafana, which polls a time-series DB (InfluxDB/Prometheus) on a short refresh."
+        }
+       ],
+       "week": 9
+      }
+     ]
+    },
+    {
+     "q": "Q3",
+     "week": 5,
+     "why": "YARN is in both parts with three drawn figures and leads the pool; format/compression carries the chapter's main worked numbers. Uses the a2i queue example, the LinkedIn capacity exercise, and pool A1 (telecom CDR) almost verbatim.",
+     "parts": [
+      {
+       "label": "a",
+       "marks": 4,
+       "scenario": "The a2i programme shares one 200-node YARN cluster (each node 64 GB RAM, 16 vCPU) between queue A 60% (nightly MapReduce on health records), queue B 30% (Spark streaming), queue C 10% (ad-hoc Hive).",
+       "subs": [
+        {
+         "q": "i) Which scheduler gives each queue a guaranteed share, and what happens to a queue's idle capacity? (1)",
+         "a": "Capacity Scheduler: each queue is guaranteed its percentage, and unused capacity is lent elastically to other queues (reclaimed when needed, by pre-emption)."
+        },
+        {
+         "q": "ii) Why would FIFO be a poor choice here? (1)",
+         "a": "FIFO runs jobs in submission order, so one long nightly batch job starves the streaming and ad-hoc work. It does not suit a multi-tenant cluster."
+        },
+        {
+         "q": "iii) Queue B runs Spark executors of {8 GB, 4 vCPU}. How many can run at once, and which resource is the bottleneck? (1)",
+         "a": "Queue B = 0.30 x 200 = 60 nodes: RAM 3,840 GB / 8 = 480; vCPU 960 / 4 = 240. Max = min = 240 executors; CPU is the bottleneck."
+        },
+        {
+         "q": "iv) What is DRF and why does this cluster need it? (1)",
+         "a": "Dominant Resource Fairness (Ghodsi 2011) defines fairness across several resources (CPU and RAM), not memory alone. Here some jobs are CPU-heavy and some RAM-heavy, so sharing by one resource would be unfair."
+        }
+       ]
+      },
+      {
+       "label": "b",
+       "marks": 6,
+       "scenario": "A Dhaka telecom stores 10 TB of daily call-detail records on HDFS as gzip-compressed CSV. A Hive query that selects 4 of the 80 columns takes 6 hours.",
+       "subs": [
+        {
+         "q": "i) Give two specific reasons this is slow. (2)",
+         "a": "1) Gzip is not splittable: each file is read by exactly one Mapper, so there is no parallelism within a file. 2) CSV is a row store: the query reads all 80 columns from disk to use 4."
+        },
+        {
+         "q": "ii) Propose a new format, codec and partitioning scheme. (1.5)",
+         "a": "Parquet + Snappy (or ORC + Zlib if the workload is Hive only), partitioned by date, e.g. dt=YYYY-MM-DD/ (optionally region=). Columnar, splittable at row-group boundaries, and date filters prune whole directories."
+        },
+        {
+         "q": "iii) Estimate the I/O reduction from going columnar. (1)",
+         "a": "Read = 10 TB x 4/80 = 0.5 TB = 500 GB. Reduction = 1 - 4/80 = 95%, about 20x less data. (Ignores compression differences.)"
+        },
+        {
+         "q": "iv) How can Parquet skip whole groups of rows for WHERE duration > 600? (1.5)",
+         "a": "Predicate pushdown: the reader first reads only the file footer, which holds min/max statistics per column chunk per row group. Any row group whose max duration is 600 or less is skipped with no I/O; in the rest only the needed column chunks are read."
+        }
+       ]
+      }
+     ],
+     "or": []
+    },
+    {
+     "q": "Q4",
+     "week": 7,
+     "why": "Partitioning and Hive architecture both score 9 (partitioning is 'the most used feature' on P2 s10). Uses the slide's sales table (year/month, 36 months) and the 32-bucket DDL on P1 s24.",
+     "parts": [
+      {
+       "label": "a",
+       "marks": 5,
+       "scenario": "An online retailer's Hive table sales holds 36 months of data, PARTITIONED BY (year INT, month INT). The finance report runs SELECT SUM(amount) FROM sales WHERE year=2024 AND month=1.",
+       "subs": [
+        {
+         "q": "i) What is partitioning, and how does it speed up this query? (1)",
+         "a": "Partitioning stores each value of the partition columns in its own HDFS sub-directory (year=2024/month=01/). When the WHERE clause filters on those columns, Hive reads only the matching directories and skips the rest (partition pruning)."
+        },
+        {
+         "q": "ii) What fraction of the table does the report read? (1)",
+         "a": "1 partition of 36 = 1/36 = about 2.78%; the other 35 are skipped."
+        },
+        {
+         "q": "iii) A developer suggests partitioning by user_id instead. What goes wrong? (1.5)",
+         "a": "user_id has very high cardinality: 100 M users would create 100 M HDFS directories, overloading the NameNode with metadata (partition explosion). Partition on low-cardinality columns used in WHERE, such as date or country."
+        },
+        {
+         "q": "iv) Where does Hive learn which partitions exist and their HDFS paths? What else does that component store? (1.5)",
+         "a": "The Metastore, a relational DB (MySQL/PostgreSQL). It also stores table schemas and column types, SerDe/format information, table statistics for the optimiser, and privileges. If it is lost, no table can be queried even though the data on HDFS is intact."
+        }
+       ]
+      },
+      {
+       "label": "b",
+       "marks": 5,
+       "scenario": "Analysts join sales with a 10 M-row users table on user_id. Both tables are declared CLUSTERED BY (user_id) INTO 32 BUCKETS STORED AS ORC. One analyst also loaded a CSV where the amount column contains the text 'abc'.",
+       "subs": [
+        {
+         "q": "i) What is bucketing, and how is it different from partitioning? (1.5)",
+         "a": "Bucketing splits each partition into a fixed number N of files by hash(column) % N. Partitioning creates directories by column value and skips data; bucketing does not skip directories, it co-locates rows with the same key to make joins and sampling cheaper."
+        },
+        {
+         "q": "ii) Which bucket file holds user_id 1,000,007? (1)",
+         "a": "1,000,007 % 32: 32 x 31,250 = 1,000,000, remainder 7, so bucket 7 (in both tables)."
+        },
+        {
+         "q": "iii) Why can Hive join these tables without a full shuffle? State the condition. (1.5)",
+         "a": "Bucket map join: bucket i of sales can only match bucket i of users, so Hive joins bucket 0 with 0, 1 with 1, and so on, with no sort-merge shuffle. Condition: both tables bucketed on the join key with the same number of buckets (general knowledge: Hive also accepts one count being a multiple of the other)."
+        },
+        {
+         "q": "iv) What does a query return for the 'abc' amount, and what would MySQL have done? (1)",
+         "a": "Hive is schema-on-read: the file is stored as-is and the bad value comes back as NULL at query time. MySQL is schema-on-write: the INSERT is rejected immediately."
+        }
+       ]
+      }
+     ],
+     "or": [
+      {
+       "label": "a (OR)",
+       "marks": 5,
+       "scenario": "A Bangladeshi supermarket chain needs 90-day demand forecasts for 5,000 store-product SKUs. Sales jump in Eid weeks and follow weekly and yearly cycles.",
+       "subs": [
+        {
+         "q": "i) Why can't time series be treated like ordinary i.i.d. rows? (1)",
+         "a": "Order matters (shuffling destroys the signal) and values are autocorrelated (today depends on yesterday), with trend and seasonality. Regression that assumes independent rows is invalid."
+        },
+        {
+         "q": "ii) Why choose Prophet over ARIMA here? (1.5)",
+         "a": "ARIMA needs a stationary series, struggles with multiple seasonalities, and needs expert choice of (p, d, q) per series, which cannot be done by hand for 5,000 series. Prophet handles trend changepoints, several seasonalities and a holiday list (Eid) with interpretable parameters."
+        },
+        {
+         "q": "iii) For one SKU in an Eid week the fitted components are g = 500, s = +40, h = +150, e = 0. What is the forecast? (1)",
+         "a": "y = g + s + h + e = 500 + 40 + 150 + 0 = 690 units."
+        },
+        {
+         "q": "iv) How does Spark fit all 5,000 models in parallel? (1.5)",
+         "a": "Load all series into one DataFrame, groupBy(sku_id), and call applyInPandas with a function that fits Prophet and forecasts. Each SKU's group goes to one task as a Pandas DataFrame, so the independent fits run in parallel across executors; results are written as Parquet. The slide reports 8 h -> about 12 min on 20 executors."
+        }
+       ],
+       "week": 10
+      },
+      {
+       "label": "b (OR)",
+       "marks": 5,
+       "scenario": "The health ministry builds a flu early-warning system from tweets, pharmacy paracetamol sales and ER triage notes. Overnight the phrase 'fever' rises from 40 to 12,000 posts an hour.",
+       "subs": [
+        {
+         "q": "i) Name two syndromic signals and how far ahead of confirmation each peaks. (1)",
+         "a": "Social media posts: 7-10 days before ER visits. Pharmacy OTC antipyretic sales: 3-5 days before clinical confirmation. (ER chief complaints via NLP and search volume are also on the slide.)"
+        },
+        {
+         "q": "ii) Why did Google Flu Trends fail, and what lesson does that give this system? (1.5)",
+         "a": "GFT over-predicted flu by about 2x in 2012-13. Lazer et al. gave three causes: big data hubris (r = 0.97 on the training years did not generalise), algorithm confounding (Google's autocomplete changes shifted the search features), and media amplification (flu news drove searches even when incidence was low). Searches are a proxy for health anxiety, not incidence. Lesson: syndromic data gives early signals that supplement, not replace, clinical surveillance."
+        },
+        {
+         "q": "iii) Compute the spike ratio. Is the phrase trending? (1)",
+         "a": "Spike ratio = current / baseline = 12,000 / 40 = 300x. Yes: trending is judged against the phrase's own baseline, not absolute volume."
+        },
+        {
+         "q": "iv) Give two privacy safeguards for linking pharmacy and ER records. (1.5)",
+         "a": "Any two: de-identification (safe harbour: remove the 18 HIPAA identifiers such as name, NID, phone); differential privacy (calibrated noise on aggregate counts); federated learning (train at each hospital without moving raw records); explicit consent for NID-linked data under PDPA."
+        }
+       ],
+       "week": 10
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Predicted Paper B (hedge: W10 promoted to a main question; W7 and W9 as ORs)",
+   "questions": [
+    {
+     "q": "Q1",
+     "week": 5,
+     "why": "Covers the W5 material Paper A skips: the Hadoop 1 limits, LinkedIn's case numbers (45% -> 78%) and the bKash format strategy (Avro -> Parquet+Snappy -> ORC+Zstd, 60% smaller).",
+     "parts": [
+      {
+       "label": "a",
+       "marks": 5,
+       "scenario": "Before YARN, LinkedIn ran three separate clusters: MapReduce for Hive ETL, an experimental Spark cluster and Samza stream nodes. In 2013 it merged them into one 5,000-node YARN cluster with the Capacity Scheduler.",
+       "subs": [
+        {
+         "q": "i) Why couldn't the Hadoop 1.x cluster simply run Spark and Samza too? (1)",
+         "a": "The JobTracker bundled resource management with MapReduce-specific scheduling, so only MapReduce jobs could get cluster resources; it was also a single bottleneck with a ceiling of about 4,000 nodes."
+        },
+        {
+         "q": "ii) Give the role of each YARN component in one line. (1.5)",
+         "a": "ResourceManager: one per cluster, schedules containers globally (Scheduler + ApplicationsManager). NodeManager: one per node, launches and monitors containers and heartbeats to the RM. ApplicationMaster: one per application, requests containers from the RM and tells NMs which tasks to run."
+        },
+        {
+         "q": "iii) Average utilisation rose from 45% to 78%. How much more workload does the same hardware now serve? (1)",
+         "a": "78 / 45 = 1.733, so about 73% more workload on the same capacity."
+        },
+        {
+         "q": "iv) LinkedIn turned on pre-emption. What does it do, and what went wrong at first? (1.5)",
+         "a": "Pre-emption lets a queue borrow idle capacity from other queues and takes it back when the owner needs it. Aggressive pre-emption killed long-running Spark jobs, so LinkedIn added a 30-second grace period and checkpoint-on-preempt hooks."
+        }
+       ]
+      },
+      {
+       "label": "b",
+       "marks": 5,
+       "scenario": "bKash's data lake ingests Kafka events as Avro, converts them nightly to Parquet+Snappy partitioned by dt= and region=, and moves data older than 2 years to ORC+Zstd. The old system kept everything as gzip CSV.",
+       "subs": [
+        {
+         "q": "i) Why Avro at the ingest layer? (1.5)",
+         "a": "Avro is a self-describing row format with schema evolution: the reader-schema / writer-schema protocol gives backward and forward compatibility, so when the API adds a field old readers do not break (missing fields take defaults, extra fields are ignored). Row format also suits appending events."
+        },
+        {
+         "q": "ii) What do Parquet+Snappy and the dt=/region= layout give the analytics layer? (1)",
+         "a": "Columnar reads of only the needed columns, predicate pushdown from row-group statistics, splittable files (Snappy inside row groups), and partition pruning on date and region."
+        },
+        {
+         "q": "iii) 50 TB of cold CSV moves to ORC+Zstd, which the slide says is 60% smaller. How much storage remains? (1)",
+         "a": "50 TB x (1 - 0.60) = 20 TB."
+        },
+        {
+         "q": "iv) Why was the old gzip CSV a problem for MapReduce/Hive jobs? (1.5)",
+         "a": "Gzip is not splittable: MapReduce cannot start reading in the middle of a gzip stream, so each file, however large, goes to exactly one Mapper (a 10 GB file = 1 Mapper). Use Parquet+Snappy or bzip2 instead."
+        }
+       ]
+      }
+     ],
+     "or": []
+    },
+    {
+     "q": "Q2",
+     "week": 6,
+     "why": "Covers the remaining slide examples: filter(x>1000).first() (pool D3), the 10 iterations over 100 GB 'about 3 hours' number (P2 s4), and GraySort (P2 s14-15, 32x per node in Key Takeaways).",
+     "parts": [
+      {
+       "label": "a",
+       "marks": 4,
+       "scenario": "An analyst runs rdd.filter(lambda x: x > 1000).first() on a 1 TB dataset and is surprised it returns in seconds. A colleague says the same 10-iteration job over 100 GB on MapReduce spent about 3 hours on disk I/O.",
+       "subs": [
+        {
+         "q": "i) What is lazy evaluation? (1)",
+         "a": "Transformations such as filter and map only record a step in the DAG and return a new RDD; nothing executes until an action (count, collect, first, saveAsTextFile) is called."
+        },
+        {
+         "q": "ii) Why does first() return so quickly here? (1)",
+         "a": "When first() triggers the DAG, Spark pipelines the filter and stops as soon as it finds the first matching element; it never filters the whole 1 TB. Without lazy evaluation the full filter would run first."
+        },
+        {
+         "q": "iii) Check the colleague's figure: 10 iterations over 100 GB at 100 MB/s. (1)",
+         "a": "Reads only: 10 x 100 GB = 1,000 GB = 1,000,000 MB / 100 MB/s = 10,000 s = about 2.8 h, the slide's 'about 3 hours'. Counting the writes too doubles it to 20,000 s = about 5.6 h."
+        },
+        {
+         "q": "iv) Name two transformations and two actions. (1)",
+         "a": "Transformations: map, filter (also flatMap, reduceByKey, join, groupByKey, distinct). Actions: count, collect (also first, take(n), reduce, saveAsTextFile, foreach)."
+        }
+       ]
+      },
+      {
+       "label": "b",
+       "marks": 6,
+       "scenario": "In November 2013 Databricks sorted 100 TB in 23 minutes on 206 EC2 nodes. The previous Hadoop record was 72 minutes on 2,100 nodes. The sort is a single sortByKey.",
+       "subs": [
+        {
+         "q": "i) Why is the shuffle the bottleneck of a distributed sort, and what did Spark change in it? (1.5)",
+         "a": "Every record crosses the network between map and reduce sides, and MapReduce's shuffle spills, merges and re-reads intermediate data on disk many times (about 200 TB of extra I/O at 100 TB). Spark used a sort-based shuffle that writes sorted runs once and then merges, spread over 8 SSDs per node, with off-heap sort buffers that avoid GC pauses."
+        },
+        {
+         "q": "ii) Spark was 3.1x faster on 10.2x fewer nodes. What is its efficiency per node relative to Hadoop? (1.5)",
+         "a": "Per-node efficiency = 3.1 x 10.2 = about 31.6, about 32x (72/23 = 3.13 and 2,100/206 = 10.19 give 31.9)."
+        },
+        {
+         "q": "iii) Define narrow and wide dependencies with one example each, and say how each affects stages. (1.5)",
+         "a": "Narrow: each output partition depends on at most one input partition (map, filter, union); no shuffle, pipelined in one stage. Wide: an output partition depends on many input partitions (groupByKey, reduceByKey, join, sortByKey); needs a shuffle and starts a new stage."
+        },
+        {
+         "q": "iv) Why should a word count use reduceByKey rather than groupByKey? (1.5)",
+         "a": "reduceByKey combines values locally on each partition before the shuffle (like a MapReduce Combiner), so only one partial sum per key per partition crosses the network. groupByKey ships every (word, 1) pair, so it moves far more data."
+        }
+       ]
+      }
+     ],
+     "or": [
+      {
+       "label": "a (OR)",
+       "marks": 4,
+       "scenario": "By 2008 Facebook had hundreds of analysts who knew SQL but not Java. Today a ministry wants district-wise counts from a 30-million-row health table: SELECT district, COUNT(*) FROM visits GROUP BY district (64 districts).",
+       "subs": [
+        {
+         "q": "i) What problem did Hive solve? (1)",
+         "a": "Every query used to be a Java MapReduce program (100+ lines for a GROUP BY, days to insight). Hive lets analysts write declarative SQL-like HiveQL, which Hive compiles into MapReduce, Tez or Spark jobs."
+        },
+        {
+         "q": "ii) What do HiveServer2 and the Driver do? (1)",
+         "a": "HiveServer2 is the JDBC/ODBC server that authenticates users and accepts queries from Beeline and BI tools. The Driver runs the pipeline: parser -> semantic analyser -> logical planner -> optimiser -> physical plan, and submits the jobs."
+        },
+        {
+         "q": "iii) With map-side aggregation each mapper emits partial counts per district instead of one row per record. By what factor does the shuffle shrink (treat it as one mapper)? (1)",
+         "a": "30,000,000 rows / 64 partial counts = 468,750x less shuffle data."
+        },
+        {
+         "q": "iv) Why do production teams run the Metastore as a highly available service? (1)",
+         "a": "Without it Hive cannot find where any table lives or how to parse it, so Metastore corruption means no table can be queried even though the HDFS data is intact."
+        }
+       ],
+       "week": 7
+      },
+      {
+       "label": "b (OR)",
+       "marks": 6,
+       "scenario": "Table play_events is partitioned by dt (30 days kept) and country (50 countries). A dashboard asks for plays on dt='2024-10-01' in BD and IN. It takes 6 minutes on Hive+MapReduce; Presto does it in seconds.",
+       "subs": [
+        {
+         "q": "i) List the compiler steps Hive goes through for this query. (1.5)",
+         "a": "Parse HiveQL into an AST -> semantic analysis (resolve columns and types against the Metastore, note dt and country are partition columns) -> logical plan (filter, aggregate) -> physical plan of MR/Tez jobs with partition pruning -> submit to YARN."
+        },
+        {
+         "q": "ii) What fraction of partitions does the query read? (1)",
+         "a": "Total = 30 x 50 = 1,500 partitions; it reads 2, so 2 / 1,500 = about 0.13%; 1,498 are skipped."
+        },
+        {
+         "q": "iii) Give the design decisions that make Presto faster for this dashboard. (2)",
+         "a": "No intermediate disk writes: data flows as an in-memory pipeline (Hive+MR writes to HDFS between stages). Vectorised execution over batches of 1,024 rows. Cost-based optimiser using table statistics for join order and strategy. Connector architecture: one SQL engine over HDFS/Hive, Cassandra, MySQL, Kafka, S3."
+        },
+        {
+         "q": "iv) Give one advantage and one risk of Hive's schema-on-read. (1.5)",
+         "a": "Advantage: raw files load fast with no ETL at ingest, and several tables (schemas) can be defined over the same files as needs change. Risk: data-quality problems stay silent until query time; a corrupt value comes back as NULL instead of an error, so pipelines need separate validation."
+        }
+       ],
+       "week": 7
+      }
+     ]
+    },
+    {
+     "q": "Q3",
+     "week": 10,
+     "why": "W10 is CLO4 (problem solving), is the last chapter taught, and has two papers plus a case study. Promoted to a main question here as the hedge against Paper A's ranking. Uses VADER thresholds, Louvain steps, Prophet terms and the STL k x IQR rule.",
+     "parts": [
+      {
+       "label": "a",
+       "marks": 4,
+       "scenario": "A research group tracks Bangla and English posts on X during an election week. They score posts with VADER and look for groups of accounts that retweet each other heavily.",
+       "subs": [
+        {
+         "q": "i) Why use VADER rather than a generic sentiment model? Give two features it handles. (1)",
+         "a": "VADER is a lexicon-and-rule analyser tuned for social media. Any two: capitalisation (GREAT > great), punctuation (great!!!), degree modifiers (very good), negation (not good), emojis."
+        },
+        {
+         "q": "ii) Three posts score compound 0.31, -0.02 and -0.47. Classify each. (1)",
+         "a": "Positive if > 0.05, negative if < -0.05, else neutral: 0.31 positive, -0.02 neutral, -0.47 negative."
+        },
+        {
+         "q": "iii) Give the steps of the Louvain algorithm. (1)",
+         "a": "Start with each node as its own community; greedily move each node into the neighbouring community that most increases modularity; aggregate communities into super-nodes and repeat; stop when modularity no longer increases. About O(n log n)."
+        },
+        {
+         "q": "iv) Give one ethical risk of this analysis. (1)",
+         "a": "Sentiment scoring of political speech can be used to suppress dissent (flag negative posts about the government) or to micro-target vulnerable users; needs transparency and purpose limitation."
+        }
+       ]
+      },
+      {
+       "label": "b",
+       "marks": 6,
+       "scenario": "A hospital group forecasts weekly admissions with Prophet and also flags unusual weeks. Its model has strong yearly and weekly seasonality but missed the sudden onset of a COVID-19 wave. The residuals after STL decomposition have IQR = 4.",
+       "subs": [
+        {
+         "q": "i) Write Prophet's model and name each term. (1.5)",
+         "a": "y(t) = g(t) + s(t) + h(t) + e(t): g = trend (piecewise linear or logistic, with changepoints), s = seasonality (Fourier series, yearly/weekly), h = holidays and events (e.g. Eid), e = residual noise."
+        },
+        {
+         "q": "ii) What do p, d and q mean in ARIMA, and why is ARIMA a weak fit here? (1.5)",
+         "a": "AR(p): depends on the past p values; I(d): difference d times to make the series stationary; MA(q): depends on the past q forecast errors. ARIMA assumes stationarity, handles multiple seasonalities poorly and needs manual (p, d, q) choice per series."
+        },
+        {
+         "q": "iii) Flag residuals beyond k x IQR with k = 3. Weeks have residuals 15 and -9. Which is an anomaly? (1)",
+         "a": "Threshold = 3 x 4 = 12. |15| > 12, so that week is an anomaly; |-9| = 9 < 12, so it is not."
+        },
+        {
+         "q": "iv) Which Prophet component should catch the COVID wave, which hyperparameter controls it, and how does Isolation Forest find anomalies? (2)",
+         "a": "The trend g(t) through its changepoints. changepoint_prior_scale sets the sparse prior on the slope changes: raising it (e.g. 0.05 -> 0.5) makes the trend more flexible. Isolation Forest builds random trees that partition the data; anomalies need fewer splits to isolate, so they have shorter average path lengths."
+        }
+       ]
+      }
+     ],
+     "or": []
+    },
+    {
+     "q": "Q4",
+     "week": 8,
+     "why": "Pool A1 (bank pipeline) is the W8 design question; the Kafka paper's benchmark table gives a ready calculation (50.5 MB/s at 100 B = 505,000 msg/s).",
+     "parts": [
+      {
+       "label": "a",
+       "marks": 5,
+       "scenario": "A commercial bank must (1) copy 10 million customer records from Oracle to Hadoop every night, (2) decide on card-swipe fraud within 200 ms, and (3) keep a risk dashboard no more than 5 minutes old.",
+       "subs": [
+        {
+         "q": "i) Which tool handles (1), and how does it work inside? (1.5)",
+         "a": "Apache Sqoop. sqoop import launches a MapReduce job whose map tasks each read a primary-key range of the table in parallel over JDBC and write to HDFS (Parquet/Avro/CSV) or Hive. Incremental import with check-column and last-value copies only new rows."
+        },
+        {
+         "q": "ii) Which tools handle (2)? (1)",
+         "a": "Kafka carries the swipe events; Spark Streaming (or Flink) consumes them and scores each event within the 200 ms budget. Sqoop is batch and Flume is for logs, so neither fits."
+        },
+        {
+         "q": "iii) The nightly import runs with 4 map tasks splitting on customer_id. How many rows does each read if keys are evenly spread? (1)",
+         "a": "10,000,000 / 4 = 2,500,000 rows per map task."
+        },
+        {
+         "q": "iv) Lambda or Kappa for the whole system? Justify. (1.5)",
+         "a": "Lambda fits: there is a genuine nightly batch (Sqoop + Hive/Spark for accurate risk reports, regulatory reconciliation) beside a low-latency stream for fraud and the dashboard. Kappa would suit if a single stream engine could also replay the full history fast enough, but a regulator-mandated batch reconciliation is one of the slide's 'Kappa not suitable' cases."
+        }
+       ]
+      },
+      {
+       "label": "b",
+       "marks": 5,
+       "scenario": "In 2010 LinkedIn found ActiveMQ and RabbitMQ could not carry billions of activity events a day. In the Kafka paper's benchmark (one broker, 100-byte messages) the producer throughputs were ActiveMQ 4.3 MB/s, RabbitMQ 14.7 MB/s, Kafka 50.5 MB/s.",
+       "subs": [
+        {
+         "q": "i) Explain the two storage decisions behind Kafka's speed. (2)",
+         "a": "Sequential writes: Kafka only appends to segment files, so disks run at sequential speed (about 600 MB/s vs about 100 MB/s random), helped by the OS page cache. Zero-copy: sendfile() sends data from the kernel page cache straight to the NIC, cutting 4 copies to 2 and skipping user space, so CPU stays near zero."
+        },
+        {
+         "q": "ii) How many messages per second is Kafka's 50.5 MB/s, and how many times ActiveMQ's throughput? (1)",
+         "a": "50.5 MB/s / 100 B = 50,500,000 / 100 = 505,000 messages/s. 50.5 / 4.3 = about 11.7x ActiveMQ."
+        },
+        {
+         "q": "iii) What does 'consumer pull' mean, and why does it help the broker? (1)",
+         "a": "Consumers fetch data and track their own offsets (stored in __consumer_offsets); the broker keeps no per-consumer queues or per-message ACKs, so one log serves any number of consumers cheaply."
+        },
+        {
+         "q": "iv) The bank later dumps every raw file into S3 with no catalogue or owners. What does the lake become, and give one prevention step. (1)",
+         "a": "A data swamp: nobody can find datasets or tell current from stale copies, and PII is mixed in. Prevention: enforce a data catalogue at ingest (Hive Metastore/Glue/Atlas), with owners, access control, quality checks or a table format like Delta/Iceberg."
+        }
+       ]
+      }
+     ],
+     "or": [
+      {
+       "label": "a (OR)",
+       "marks": 5,
+       "scenario": "An analyst reports that four regional sales datasets have the same mean, variance and correlation (r = 0.816), so 'they behave the same'. Another report shows revenue up 5%, but the bar is drawn 40% taller because the y-axis does not start at 0.",
+       "subs": [
+        {
+         "q": "i) What does Anscombe's quartet say about the analyst's conclusion? (1)",
+         "a": "Four datasets with identical summary statistics look completely different when plotted (linear, curved, one outlier, a vertical cluster). Plot the data before trusting the statistics."
+        },
+        {
+         "q": "ii) A manager wants the share of revenue from 9 product lines. Is a pie chart right? What should be used? (1)",
+         "a": "No. Pies only suit 4 or fewer categories and a 'fraction of the whole' question; people judge angles poorly. Use a horizontal bar chart."
+        },
+        {
+         "q": "iii) Compute the lie factor of the revenue chart and say what it means. (1)",
+         "a": "Lie factor = effect shown / effect in data = 40% / 5% = 8. Above 1, so the chart overstates the change eightfold."
+        },
+        {
+         "q": "iv) Define small multiples and sparklines, with one use each. (2)",
+         "a": "Small multiples: the same chart structure repeated for each subset (district, year) on the same scale, for side-by-side comparison, e.g. a 50-state grid of case curves. Sparklines: word-sized line charts embedded in text or table cells, adding trend context, e.g. a tiny 7-day trend beside each district's case count."
+        }
+       ],
+       "week": 9
+      },
+      {
+       "label": "b (OR)",
+       "marks": 5,
+       "scenario": "bKash fraud operations want a live chart of transaction volume. Events arrive in Kafka at 3,000 transactions per second, are aggregated by Spark Structured Streaming in 1-minute tumbling windows, stored in a time-series DB and shown in Grafana with a 5-second refresh. A second screen plots millions of transactions as a scatter.",
+       "subs": [
+        {
+         "q": "i) Describe the four-step streaming visualisation architecture. (1.5)",
+         "a": "1) Events arrive in a Kafka topic. 2) Spark Structured Streaming or Flink aggregates them over a window. 3) Results are written to a time-series DB (InfluxDB, Prometheus, Elasticsearch). 4) Grafana or Kibana polls the DB every few seconds and redraws."
+        },
+        {
+         "q": "ii) How many transactions does each 1-minute window summarise? (1)",
+         "a": "3,000 x 60 = 180,000 transactions per window."
+        },
+        {
+         "q": "iii) When would you push updates over WebSocket instead of Grafana's polling? (1)",
+         "a": "When sub-second updates are needed (stock tickers, live election counts): the server pushes each update and a D3.js chart re-renders on every push. Polling every 5 s is enough for ops dashboards."
+        },
+        {
+         "q": "iv) The scatter is a solid blob. Give three fixes in increasing sophistication. (1.5)",
+         "a": "Alpha transparency (e.g. 0.02, denser areas darker, fails at extreme density); hexbin aggregation (count per hexagon, about 10 M points -> about 10,000 cells); KDE / 2-D density contours (shows shape, modes and tails)."
+        }
+       ],
+       "week": 9
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "plan": [
+  {
+   "block": "Day 1. W6 Spark core (highest marks per minute)",
+   "minutes": 35,
+   "task": "Read cards rdd, lazy-eval and narrow-wide (facts, mechanism, traps only). Then answer pool D1, D2, D3 out loud in 3 sentences each. Redraw the lineage recovery figure (P1 s15) and the narrow/wide figure from memory.",
+   "links": [
+    "card:w06/rdd",
+    "card:w06/lazy-eval",
+    "card:w06/narrow-wide",
+    "pool:W6 D1",
+    "pool:W6 D2",
+    "pool:W6 D3",
+    "pool:W6 MCQ Q2",
+    "pool:W6 MCQ Q4",
+    "cmp:transformations vs actions (W6)",
+    "cmp:narrow vs wide dependencies (W6)",
+    "prob:W6 RDD failure recovery trace (pool A2)"
+   ]
+  },
+  {
+   "block": "Day 2. W6 calculations",
+   "minutes": 30,
+   "task": "Work the slide numbers by hand, without looking: 50 GB x 100 iterations (10 TB vs 50 GB; wall-clock at 500 vs 5,000 MB/s), 127 s vs 0.96 s = 132x, 10 iterations over 100 GB = about 3 h (reads only), GraySort 3.1 x 10.2 = about 32x, hash partitioner key % n. Then pool A1, A2.",
+   "links": [
+    "card:w06/mr-vs-spark",
+    "card:w06/spark-arch",
+    "pool:W6 A1",
+    "pool:W6 A2",
+    "pool:W6 MCQ Q1",
+    "pool:W6 TF1-TF4",
+    "cmp:MapReduce vs Spark (W6)",
+    "prob:W6 iterative I/O cost (50 GB x 100)",
+    "prob:W6 GraySort per-node efficiency",
+    "prob:W6 hash partitioner"
+   ]
+  },
+  {
+   "block": "Day 3. W8 Kafka",
+   "minutes": 35,
+   "task": "Cards kafka-log and kafka-speed. Drill: topic/partition/offset/broker/RF/consumer group in one line each; queue vs log; RF = 3 survives 2 broker failures; 10 partitions, 4 consumers -> 3, 3, 2, 2; 50.5 MB/s at 100 B = 505,000 msg/s; zero-copy 4 -> 2 copies. Answer pool D2.",
+   "links": [
+    "card:w08/kafka-log",
+    "card:w08/kafka-speed",
+    "pool:W8 D2",
+    "pool:W8 MCQ Q2",
+    "pool:W8 TF2",
+    "cmp:traditional queue vs Kafka log (W8)",
+    "prob:W8 partitions x RF and broker failures",
+    "prob:W8 consumer-group assignment",
+    "prob:W8 Kafka benchmark msgs/s"
+   ]
+  },
+  {
+   "block": "Day 4. W8 Lambda/Kappa, Sqoop/Flume, data lake",
+   "minutes": 30,
+   "task": "Card lambda-kappa: draw both architectures, learn the comparison table and the three 'Kappa not suitable' cases. Cards sqoop-flume, pipelines, data-lake. Answer pool D1, D3, A1 (bank pipeline), A2 (Lambda -> Kappa) as bullet outlines.",
+   "links": [
+    "card:w08/lambda-kappa",
+    "card:w08/sqoop-flume",
+    "card:w08/pipelines",
+    "card:w08/data-lake",
+    "pool:W8 D1",
+    "pool:W8 D3",
+    "pool:W8 A1",
+    "pool:W8 A2",
+    "pool:W8 MCQ Q1, Q3, Q4",
+    "pool:W8 TF1, TF3, TF4",
+    "cmp:Lambda vs Kappa (W8)",
+    "cmp:Sqoop vs Flume vs Kafka (W8)",
+    "cmp:data lake vs data warehouse (W8)",
+    "prob:W8 point-to-point jobs N(N-1)"
+   ]
+  },
+  {
+   "block": "Day 5. W5 YARN",
+   "minutes": 35,
+   "task": "Cards yarn-arch, yarn-fault, yarn-sched. Redraw the 6-step job execution flow (P1 s12). Learn the NM / AM / RM failure handling. Do the capacity-planning live exercise for production and spark queues (containers, bottleneck, nodes for 10,000 mappers). Answer pool D1, A2.",
+   "links": [
+    "card:w05/yarn-arch",
+    "card:w05/yarn-fault",
+    "card:w05/yarn-sched",
+    "pool:W5 D1",
+    "pool:W5 A2",
+    "pool:W5 MCQ Q1, Q4",
+    "pool:W5 TF2",
+    "cmp:Hadoop 1 JobTracker vs YARN (W5)",
+    "cmp:FIFO vs Capacity vs Fair scheduler (W5)",
+    "prob:W5 LinkedIn capacity planning (containers per queue)",
+    "prob:W5 utilisation 45% -> 78%"
+   ]
+  },
+  {
+   "block": "Day 6. W5 formats and compression",
+   "minutes": 30,
+   "task": "Cards columnar, formats, compression. Calculations: 10 TB / 100 cols / 3 read = 300 GB, 97%, 33x; pushdown 10 TB -> 50 GB; splits = file / 128 MB vs 1 for gzip. Learn the selection matrix (Avro ingest, Parquet analytics, ORC Hive, Zstd archive). Answer pool D2, D3, A1.",
+   "links": [
+    "card:w05/columnar",
+    "card:w05/formats",
+    "card:w05/compression",
+    "pool:W5 D2",
+    "pool:W5 D3",
+    "pool:W5 A1",
+    "pool:W5 MCQ Q2, Q3",
+    "pool:W5 TF1, TF3, TF4",
+    "cmp:row vs columnar storage (W5)",
+    "cmp:Avro vs Parquet vs ORC (W5)",
+    "cmp:Snappy vs Gzip vs LZO vs Bzip2 vs Zstd (W5)",
+    "prob:W5 columnar I/O reduction",
+    "prob:W5 splits per file"
+   ]
+  },
+  {
+   "block": "Day 7. W7 Hive architecture and schema-on-read",
+   "minutes": 35,
+   "task": "Cards hive-arch, schema-on-read, presto. Redraw the Hive component diagram (P1 s9) and the query lifecycle (P2 s11). Map-side aggregation calculation (50 M / 200 = 250,000x). Answer pool D1, D3, A2.",
+   "links": [
+    "card:w07/hive-arch",
+    "card:w07/schema-on-read",
+    "card:w07/presto",
+    "pool:W7 D1",
+    "pool:W7 D3",
+    "pool:W7 A2",
+    "pool:W7 MCQ Q1, Q2, Q4",
+    "pool:W7 TF1, TF3",
+    "cmp:schema-on-read vs schema-on-write (W7)",
+    "cmp:HiveQL vs SQL (W7)",
+    "cmp:Hive vs Presto (W7)",
+    "prob:W7 map-side aggregation"
+   ]
+  },
+  {
+   "block": "Day 8. W7 partitioning and bucketing",
+   "minutes": 30,
+   "task": "Cards partitioning, bucketing. Calculations: 1/36 months; 365 x 200 = 73,000 partitions, read 3; bucket = hash % N; bucket file size. Write the CREATE TABLE with PARTITIONED BY and CLUSTERED BY ... INTO 32 BUCKETS once. Answer pool D2, A1.",
+   "links": [
+    "card:w07/partitioning",
+    "card:w07/bucketing",
+    "pool:W7 D2",
+    "pool:W7 A1",
+    "pool:W7 MCQ Q3",
+    "pool:W7 TF2, TF4",
+    "cmp:partitioning vs bucketing (W7)",
+    "prob:W7 partition pruning fraction",
+    "prob:W7 bucket number and file size"
+   ]
+  },
+  {
+   "block": "Day 9. Paper A, Q1-Q2 under exam conditions",
+   "minutes": 35,
+   "task": "Close the cards. Write answers to Paper A Q1 (a, b) and Q2 (a, b) in 20 minutes, then mark against the model answers in 15. Note every miss on a single 'misses' sheet.",
+   "links": [
+    "paper:A Q1",
+    "paper:A Q2"
+   ]
+  },
+  {
+   "block": "Day 10. W9 visualisation (cover lightly but fully)",
+   "minutes": 30,
+   "task": "Cards tufte, shneiderman, overplotting, latency, streaming-tools. Calculations: lie factor (shown / data), data-ink ratio, hexbin 10 M -> 10,000, cube 100 B rows -> millions, events per window. Answer pool D1, D2, D3 as 3-line outlines; skim A1.",
+   "links": [
+    "card:w09/tufte",
+    "card:w09/shneiderman",
+    "card:w09/overplotting",
+    "card:w09/latency",
+    "card:w09/streaming-tools",
+    "pool:W9 D1",
+    "pool:W9 D2",
+    "pool:W9 D3",
+    "pool:W9 A1",
+    "pool:W9 MCQ Q1-Q4",
+    "pool:W9 TF1-TF4",
+    "cmp:Tableau vs Power BI vs D3 vs Grafana vs Superset vs Kibana (W9)",
+    "cmp:alpha vs hexbin vs KDE (W9)",
+    "prob:W9 lie factor",
+    "prob:W9 data-ink ratio",
+    "prob:W9 data cube row reduction"
+   ]
+  },
+  {
+   "block": "Day 11. W10 forecasting, anomaly, social graphs",
+   "minutes": 30,
+   "task": "Cards forecasting, anomaly, social-graph. Learn y = g + s + h + e and ARIMA(p, d, q) in one line each; Prophet vs ARIMA; applyInPandas pattern (8 h -> 12 min = 40x); Louvain 4 steps; reach 45 + 45^2 + 45^3 = 93,195 and why it overestimates; Kwak's 22.1% / 4.12 hops. Answer pool D2, A2.",
+   "links": [
+    "card:w10/forecasting",
+    "card:w10/anomaly",
+    "card:w10/social-graph",
+    "pool:W10 D2",
+    "pool:W10 A2",
+    "pool:W10 Disc 1",
+    "pool:W10 Disc 2",
+    "pool:W10 MCQ Q1, Q2",
+    "pool:W10 TF2, TF3",
+    "cmp:ARIMA vs Prophet (W10)",
+    "cmp:STL vs Isolation Forest (W10)",
+    "prob:W10 Prophet component sum",
+    "prob:W10 3-hop reach",
+    "prob:W10 Spark batch forecasting speedup"
+   ]
+  },
+  {
+   "block": "Day 12. W10 sentiment, health data, flu surveillance",
+   "minutes": 25,
+   "task": "Cards sentiment-trend, health-data, flu-surveillance. VADER thresholds (+/-0.05), spike ratio, 10,000 x 200 GB = 2 PB, four healthcare modalities, HIPAA/GDPR/PDPA, DP and federated learning, the three reasons GFT failed. Answer pool D1, D3, A1.",
+   "links": [
+    "card:w10/sentiment-trend",
+    "card:w10/health-data",
+    "card:w10/flu-surveillance",
+    "pool:W10 D1",
+    "pool:W10 D3",
+    "pool:W10 A1",
+    "pool:W10 MCQ Q3, Q4",
+    "pool:W10 TF1, TF4",
+    "cmp:HIPAA vs GDPR vs PDPA (W10)",
+    "prob:W10 VADER classification",
+    "prob:W10 spike ratio",
+    "prob:W10 genomics storage"
+   ]
+  },
+  {
+   "block": "Day 13. Paper A, Q3-Q4 and both ORs",
+   "minutes": 35,
+   "task": "Write Q3 and Q4 (a, b) in 15 minutes, then the two OR questions' calculation parts only (5 minutes), and mark everything (15). Add misses to the sheet.",
+   "links": [
+    "paper:A Q3",
+    "paper:A Q4",
+    "paper:A Q2 OR (W9)",
+    "paper:A Q4 OR (W10)"
+   ]
+  },
+  {
+   "block": "Day 14. Paper B, calculations and 'explain why' parts",
+   "minutes": 30,
+   "task": "Do every calculation sub-part of Paper B (one per part, 12 in total) in 10 minutes, then answer every 'why' sub-part out loud in 1-2 sentences. Check against the model answers.",
+   "links": [
+    "paper:B Q1-Q4",
+    "paper:B ORs (W7, W9)"
+   ]
+  },
+  {
+   "block": "Day 15. Pool MCQ and True/False sweep, all six weeks",
+   "minutes": 25,
+   "task": "Rapid fire over the 48 MCQ/TF items in the pool (8 per week). For every True/False say the one-sentence justification, which the paper gives marks for. Re-read the instructor notes on distractors (AM vs RM, NameNode vs Metastore, Serving vs Speed layer, HBase not in Spark).",
+   "links": [
+    "pool:W5-W10 MCQ Q1-Q4",
+    "pool:W5-W10 TF1-TF4"
+   ]
+  },
+  {
+   "block": "Day 16. Misses sheet, traps, formula sheet",
+   "minutes": 20,
+   "task": "Re-do every item on the misses sheet. Read every card's traps list and the formulas sheet once. Recite the must-know list.",
+   "links": [
+    "card:all traps",
+    "formulas:w05-w10",
+    "must_know"
+   ]
+  },
+  {
+   "block": "Exam morning 1 (13 Oct)",
+   "minutes": 20,
+   "task": "Must-know list plus the formula sheet, recalled from memory first and then checked.",
+   "links": [
+    "must_know",
+    "formulas:w05-w10"
+   ]
+  },
+  {
+   "block": "Exam morning 2",
+   "minutes": 15,
+   "task": "Redraw the six key figures, one per chapter: YARN job flow, RDD lineage recovery, Hive component diagram, Lambda and Kappa, Kafka topic/partitions/consumer group, Prophet decomposition (or Lambda's serving merge).",
+   "links": [
+    "card:w05/yarn-arch",
+    "card:w06/rdd",
+    "card:w07/hive-arch",
+    "card:w08/lambda-kappa",
+    "card:w08/kafka-log",
+    "card:w10/forecasting"
+   ]
+  },
+  {
+   "block": "Exam morning 3",
+   "minutes": 10,
+   "task": "Read the misses sheet once. In the exam: read every question's wording for traps (singular vs plural, 'per node' vs total) and show the formula before the number.",
+   "links": [
+    "misses sheet"
+   ]
+  }
+ ],
+ "must_know": [
+  "YARN: RM = one per cluster (Scheduler + ApplicationsManager); NM = one per node (containers, heartbeat); AM = one per application (requests containers). Hadoop 2.0 (2013) replaced the JobTracker (MR only, ~4,000 nodes).",
+  "Container = {vCPU, RAM} slice on one node; NM kills a container that exceeds its memory limit.",
+  "YARN failures: NM -> missed heartbeat, containers marked failed, AM re-requests; AM -> RM restarts it (max attempts, default 2); RM -> HA with ZooKeeper (active + standby).",
+  "Schedulers: FIFO (starves), Capacity (guaranteed queue %, borrows idle capacity), Fair (equal shares, short jobs finish fast). DRF = fairness over CPU and RAM.",
+  "Containers per queue = min(queue RAM / container RAM, queue vCPU / container vCPU); the smaller one is the bottleneck.",
+  "Columnar: read = D x k/N; 10 TB, 3 of 100 columns -> 300 GB, 97% less, ~33x.",
+  "Parquet: row groups (~128 MB) -> column chunks -> pages; footer min/max stats -> predicate pushdown skips row groups.",
+  "Avro = row, schema evolution (reader/writer schema), Kafka ingest. Parquet = columnar, Spark analytics. ORC = columnar, Hive, highest compression.",
+  "Gzip is NOT splittable (1 Mapper per file). Bzip2 splittable; LZO splittable with index; Snappy fast (splittable inside Parquet row groups).",
+  "Spark beats MR on iteration: MR = k x (read + write) on HDFS; Spark reads once and caches. 50 GB x 100 iterations: 10 TB vs 50 GB.",
+  "Spark architecture: Driver (SparkContext/SparkSession, builds DAG) -> Cluster Manager (YARN/K8s/Mesos/Standalone) -> Executors (tasks + cache).",
+  "RDD = read-only, partitioned collection created from stable storage or other RDDs; immutable, partitioned, lazy, lineage, resilient (recompute, not replicate).",
+  "Transformations (lazy): map, filter, flatMap, reduceByKey, groupByKey, join, distinct. Actions: count, collect, first, take, reduce, saveAsTextFile, foreach.",
+  "Lazy evaluation lets Spark pipeline narrow steps and stop early: filter(x > 1000).first().",
+  "Narrow (1 parent partition, same stage): map, filter, union, coalesce. Wide (shuffle, new stage): groupByKey, reduceByKey, join, repartition, distinct, sortByKey.",
+  "reduceByKey > groupByKey: it combines locally before the shuffle. Hash partitioner = key.hashCode() % numPartitions.",
+  "DataFrame = named columns + schema, Catalyst optimiser. HBase is NOT part of the Spark ecosystem.",
+  "Hive: HiveServer2 (JDBC/ODBC) -> Driver (parse -> semantic -> logical -> optimise -> physical) -> engine MR/Tez/Spark; Metastore (MySQL/PostgreSQL) holds schemas, partitions + HDFS paths, SerDe, stats.",
+  "Schema-on-read (Hive): schema applied at query, bad value -> NULL, fast load. Schema-on-write (RDBMS): rejected at INSERT. HiveQL: limited ACID (ORC transactional only), minutes of latency.",
+  "Partitioning = HDFS sub-directory per value, prunes scans; low-cardinality columns only (user_id -> partition explosion). Dynamic insert: partition columns last in SELECT.",
+  "Bucketing = hash(col) % N files; bucket map join (same key, same N) avoids a shuffle. Fraction read = partitions read / total.",
+  "Map-side aggregation: 50 M rows, 200 countries -> 250,000x less shuffle.",
+  "Presto: in-memory pipeline (no intermediate disk), vectorised 1,024-row batches, cost-based optimiser, connectors.",
+  "Point-to-point ETL = N(N-1) jobs (50 -> 2,450); bus = N connections.",
+  "Sqoop = bulk RDBMS <-> HDFS via a MapReduce job whose map tasks each read a primary-key range, incremental last-value. Flume = Source -> Channel (memory/file) -> Sink, logs to HDFS.",
+  "Kafka = distributed, partitioned, replicated commit log. Topic -> partitions (ordered, same key -> same partition) -> offsets; consumer tracks its own offset; retention (e.g. 7 days) -> replay from offset 0.",
+  "RF = R survives R - 1 broker failures; one leader + R - 1 followers. In a consumer group, each partition goes to exactly one consumer (extra consumers idle).",
+  "Kafka speed: sequential appends (~600 vs ~100 MB/s), zero-copy sendfile (4 -> 2 copies), batching, consumer pull. 50.5 MB/s / 100 B = 505,000 msg/s.",
+  "Lambda (Marz): Batch (HDFS, accurate, hours) + Speed (stream, seconds, approximate) + Serving (merge). Weakness: two code paths (30-40% effort).",
+  "Kappa (Kreps): one stream code path over a durable log; reprocess = new job from offset 0, catch up, swap. Not for very slow TB-scale replay, batch-SQL preference, or mandated batch reconciliation.",
+  "Data lake = raw data, any format, schema-on-read; layers: ingestion, storage, processing, catalogue/governance. No governance -> data swamp.",
+  "Tufte: data-ink ratio = data ink / total ink (maximise); chartjunk (3-D, gradients, heavy grids, ducks); small multiples; sparklines; lie factor = effect shown / effect in data (1 = truthful).",
+  "Shneiderman: 'Overview first, zoom and filter, then details on demand'; 7 data types: 1-D, 2-D, 3-D, temporal, multi-dimensional, tree, network.",
+  "Chart choice: temporal -> line; categories -> bar (pie only if 4 or fewer and part-of-whole); geography -> choropleth; distribution -> histogram/box; correlation -> scatter.",
+  "Big-data viz challenges: overplotting (alpha -> hexbin -> KDE), latency (data cube / AQP, trade-off staleness), streaming (Kafka -> Spark window -> TSDB -> Grafana poll / WebSocket push).",
+  "Tools: Grafana = real-time ops; Tableau/Power BI = business BI; D3.js = custom web SVG; Superset = open-source BI on lakes; Kibana = Elasticsearch logs.",
+  "Time series: order matters, autocorrelation, trend, seasonality, non-stationarity. ARIMA(p, d, q) = AR lags, differencing, MA errors; needs stationarity and manual tuning.",
+  "Prophet: y = g(t) + s(t) + h(t) + e(t); changepoints in g (changepoint_prior_scale); Fourier seasonality; holidays; scale with groupBy + applyInPandas.",
+  "Social: Louvain maximises modularity (merge, aggregate, repeat); influence maximisation NP-hard, greedy (1 - 1/e); Kwak: 22.1% reciprocity, 4.12 hops, power law -> Twitter is a news medium. VADER: > 0.05 positive, < -0.05 negative.",
+  "Health: EHR, genomics (~200 GB/genome), wearables, DICOM (unstructured); HIPAA 18 identifiers, GDPR, PDPA; DP and federated learning. GFT over-predicted 2x: syndromic data supplements, never replaces."
+ ],
+ "skip": [
+  "Paper citations, author lists, venues, citation counts and timelines (Vavilapalli, Zaharia, Thusoo, Kreps, Tufte, Shneiderman, Kwak, Taylor & Letham): know the idea each paper introduced, not the bibliography.",
+  "Company scale trivia not used by any pool question: Spotify 1 M tables / 600 B events, Netflix 4,000 topics / 2,000 brokers, Facebook 7,500 queries/day, LinkedIn 30,000 jobs/day, NYT 6 M readers.",
+  "Python/D3/PySpark live-exercise skeleton code line by line (know what each exercise demonstrates, not the syntax).",
+  "Spotify Discover Weekly details (Word2Vec, Annoy, CNN audio embeddings, Luigi) and the ALS model-size discussion.",
+  "W6 P2 persistence levels beyond MEMORY_ONLY vs MEMORY_AND_DISK; GraySort hardware specs (i2.8xlarge, SSD totals).",
+  "Hive 2010 paper extras: compact/bitmap indexes, LLAP, Iceberg REST catalog, AWS Glue; Kafka extras: ksqlDB, tiered storage, Schema Registry details.",
+  "Netflix A/B-testing pipeline step list; Timeline Server REST details; DRF maths.",
+  "AlphaFold architecture details (Evoformer, GDT score, TPU counts): know only 'protein 3D structure from sequence, trained on PDB, MSA over 250 M sequences'.",
+  "Prophet trend and Fourier formulas written out symbol by symbol (know g/s/h/e meanings and changepoint_prior_scale).",
+  "University-curricula slides (Harvard CS171, Stanford CS246, CMU 15-721, MIT 6.830) and quote-of-the-week slides."
+ ]
+}

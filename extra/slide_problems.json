@@ -1,0 +1,2078 @@
+[
+ {
+  "id": "w05-a1-telecom",
+  "week": 5,
+  "slides": "W05 P1 s32 (Analytical A1)",
+  "card": "w05/columnar",
+  "title": "Analytical A1: telecom CDR, 10 TB gzip CSV, 4 of 80 columns, 6 hours",
+  "given": "10 TB daily CDR on HDFS as gzip CSV. A Hive query selects 4 of 80 columns and takes 6 hours. Several teams share the cluster.",
+  "solution_steps": [
+   "Reason 1: CSV is a row store, so all 80 columns are read for a 4-column query.",
+   "Reason 2: gzip is not splittable, so each file is read by one Mapper (little parallelism).",
+   "Migration: Parquet (or ORC for Hive) + Snappy, partitioned by call date (and region).",
+   "Column pruning alone: read 4/80 = 5% of the data = 10 TB x 4/80 = 500 GB.",
+   "I/O reduction = 1 - 4/80 = 95%, speedup about 80/4 = 20x.",
+   "If the job is I/O-bound: 6 h / 20 = 18 min, before any gain from partition pruning or splittable parallelism.",
+   "Scheduler: Capacity (guaranteed queue per team, elastic borrowing) or Fair."
+  ],
+  "answer": "Read 500 GB instead of 10 TB (95% less, 20x); about 18 min if I/O bound; Capacity Scheduler for multi-team sharing.",
+  "variants": [
+   {
+    "q": "Same company, new query reads 8 of 80 columns. Given: Parquet reads D x k/N. How much of the 10 TB does it read?",
+    "a": "10 TB x 8/80 = 1 TB."
+   },
+   {
+    "q": "After the move to Parquet, the 4-column query reads 500 GB. The table is also partitioned by day and the query asks for 1 of 30 days. How much is read now?",
+    "a": "500 GB / 30 = 16.7 GB."
+   }
+  ],
+  "why": {
+   "q": "Why are both format and codec to blame, not just one?",
+   "a": "The format (row CSV) makes every query read all 80 columns. The codec (gzip) blocks splitting, so even that oversized read happens in very few Mappers. Fixing only one leaves the other cost: Parquet + gzip stays splittable at row groups, but CSV + Snappy still reads every column."
+  },
+  "rank": "very likely"
+ },
+ {
+  "id": "w05-a2-nm-failure",
+  "week": 5,
+  "slides": "W05 P1 s12, s32 (Analytical A2); W05 P2 s11",
+  "card": "w05/yarn-fault",
+  "title": "Analytical A2: NodeManager NM2 with 5 containers fails",
+  "given": "NM2 hosts 5 running containers of a MapReduce job and fails mid-run. RM marks a node lost after missed heartbeats (paper: >10 min). AM max attempts default 2. RM HA failover < 60 s.",
+  "solution_steps": [
+   "NM2 stops sending heartbeats to the RM.",
+   "After the expiry interval (>10 min) the RM marks NM2 lost and all 5 of its containers FAILED; it removes NM2's capacity from the scheduler.",
+   "The RM tells the job's AM that those 5 containers are gone.",
+   "The AM re-requests 5 replacement containers from the RM.",
+   "The RM grants containers on healthy nodes; the AM tells those NMs to launch the 5 tasks again (general knowledge: completed map output on NM2 is also re-run if reducers still need it).",
+   "If the AM itself had been on NM2, the RM would restart the AM (up to 2 attempts) and MapReduce recovers job state from HDFS."
+  ],
+  "answer": "Detection by RM heartbeat timeout; RM marks 5 containers failed; AM re-requests 5 containers; tasks rerun on other NMs.",
+  "variants": [
+   {
+    "q": "An AM restart limit is 2 attempts. The AM crashes once, restarts, then crashes again. Given: the RM restarts the AM up to max-attempts. Does the job survive?",
+    "a": "No. Two attempts are used (original + 1 restart = 2), so on the second failure the job fails."
+   },
+   {
+    "q": "A node hosting 8 containers, each {4 GB, 2 vCPU}, is lost. How much capacity does the AM need to re-request?",
+    "a": "8 x 4 = 32 GB and 8 x 2 = 16 vCPU."
+   }
+  ],
+  "why": {
+   "q": "Why does the AM, not the RM, restart the failed tasks?",
+   "a": "The RM only knows containers, not what ran inside them. Task-level recovery (which tasks, which input split, whether output must be redone) is framework logic, which YARN delegates to each job's AM."
+  },
+  "rank": "very likely"
+ },
+ {
+  "id": "w05-am-containers",
+  "week": 5,
+  "slides": "W05 P1 s11",
+  "card": "w05/yarn-arch",
+  "title": "ApplicationMaster asks for 100 containers, RM grants 80",
+  "given": "A Spark AM requests 100 containers, each 4 cores and 8 GB RAM. The cluster is busy; the RM grants 80.",
+  "solution_steps": [
+   "Requested: 100 x 4 = 400 cores, 100 x 8 = 800 GB.",
+   "Granted: 80 x 4 = 320 cores, 80 x 8 = 640 GB.",
+   "Shortfall: 20 containers = 20% of the request (80 cores, 160 GB).",
+   "The AM assigns tasks to the 80 executors it has and keeps asking for more as resources free up."
+  ],
+  "answer": "80 executors with 320 cores and 640 GB; the job runs at 80% of the parallelism it asked for.",
+  "variants": [
+   {
+    "q": "A MapReduce AM asks for 50 containers of {2 vCPU, 4 GB}. The RM grants 35. Given: granted resources = containers x size. How much RAM does the job hold?",
+    "a": "35 x 4 GB = 140 GB (and 35 x 2 = 70 vCPU)."
+   },
+   {
+    "q": "Granted 35 of 50 containers. Each task takes 10 min and there are 350 tasks. How many waves of tasks run, and how long does it take?",
+    "a": "350 / 35 = 10 waves x 10 min = 100 min (with all 50 it would be 7 waves = 70 min)."
+   }
+  ],
+  "why": {
+   "q": "Why does the AM, not the ResourceManager, decide which task runs in which container?",
+   "a": "The RM is a global, framework-agnostic scheduler: it only hands out resource slices. Task placement, retries and progress are framework-specific, so they live in the per-job AM. This split is what lets Spark, MapReduce and Tez share one YARN cluster."
+  },
+  "rank": "very likely"
+ },
+ {
+  "id": "w05-bkash-archive",
+  "week": 5,
+  "slides": "W05 P1 s26",
+  "card": "w05/formats",
+  "title": "bKash archive: ORC + Zstd gives 60% size reduction vs CSV",
+  "given": "Cold data older than 2 years moves to ORC + Zstd, about 60% smaller than CSV.",
+  "solution_steps": [
+   "New size = old size x (1 - 0.60) = 0.40 x CSV size.",
+   "Example: 100 TB of CSV becomes 100 x 0.40 = 40 TB.",
+   "Saving = 60 TB of storage (before HDFS 3x replication; with it, 180 TB of raw disk)."
+  ],
+  "answer": "Archived size = 40% of the CSV size (100 TB to 40 TB).",
+  "variants": [
+   {
+    "q": "bKash has 250 TB of CSV older than 2 years. Given: ORC + Zstd is 60% smaller. What is the archived size?",
+    "a": "250 x 0.40 = 100 TB."
+   },
+   {
+    "q": "The archive (ORC + Zstd) is 36 TB. How big was the CSV?",
+    "a": "36 / 0.40 = 90 TB."
+   }
+  ],
+  "why": {
+   "q": "Why use Zstd for the archive but Snappy for the analytics layer?",
+   "a": "Snappy is fast with medium ratio: right for data queried every day. Zstd gives high compression at good speed, so it cuts long-term storage cost for cold data that is rarely read."
+  },
+  "rank": "likely"
+ },
+ {
+  "id": "w05-columnar-33x",
+  "week": 5,
+  "slides": "W05 P1 s6, s16",
+  "card": "w05/columnar",
+  "title": "Columnar storage: 3 of 100 columns from 10 TB (97% less I/O, 33x)",
+  "given": "A 100-column table holds 10 TB. A query selects 3 columns. CSV (row store) vs Parquet (column store).",
+  "solution_steps": [
+   "Row store (CSV) must read every column of every row: 10 TB.",
+   "Column store reads only the 3 needed columns: 10 TB x 3/100 = 0.3 TB = 300 GB (assumes columns of equal size).",
+   "I/O reduction = 1 - 3/100 = 97%.",
+   "Speedup from format alone = 100/3 = 33.33x, which the slide rounds to 33x."
+  ],
+  "answer": "Parquet reads about 300 GB instead of 10 TB: 97% less I/O, about 33x faster.",
+  "variants": [
+   {
+    "q": "A telecom keeps a 200-column, 20 TB call-record table. An analyst's query uses 5 columns. Given: a column store reads D x k/N. How much data does Parquet read?",
+    "a": "20 TB x 5/200 = 0.5 TB = 500 GB."
+   },
+   {
+    "q": "Same 200-column table, 5 columns read. Parquet reads 500 GB of the 20 TB. State the I/O reduction and the speedup.",
+    "a": "Reduction = 1 - 5/200 = 97.5%; speedup = 200/5 = 40x."
+   }
+  ],
+  "why": {
+   "q": "Why does a columnar file read less data for SELECT score FROM users, and when would it not help?",
+   "a": "Each column is stored contiguously, so the reader seeks to the score column chunk and physically skips id, name and age on disk. A row store interleaves all columns, so every byte must be read. It does not help when the query needs all or most columns (SELECT *), or for row-at-a-time writes."
+  },
+  "rank": "very likely"
+ },
+ {
+  "id": "w05-gzip-mappers",
+  "week": 5,
+  "slides": "W05 P1 s20-s21, s25",
+  "card": "w05/compression",
+  "title": "The gzip trap: a 10 GB gzip CSV gets exactly 1 Mapper",
+  "given": "A 10 GB gzip-compressed CSV on HDFS. Gzip is not splittable. Parquet row groups are about 128 MB and are splittable.",
+  "solution_steps": [
+   "Gzip has no internal block boundaries; a reader must decompress from the start.",
+   "So MapReduce cannot start a second Mapper mid-file: 1 Mapper reads all 10 GB, no parallelism.",
+   "Same data as Parquet + Snappy, row groups about 128 MB: 10 x 1,024 MB / 128 MB = 80 row groups.",
+   "Each row group is one split, so up to 80 Mappers can run in parallel."
+  ],
+  "answer": "Gzip: 1 Mapper. Parquet with 128 MB row groups: about 80 parallel Mappers.",
+  "variants": [
+   {
+    "q": "A 2 GB bzip2 file on HDFS with 128 MB blocks. Bzip2 is splittable. How many Mappers?",
+    "a": "2 x 1,024 / 128 = 16 Mappers."
+   },
+   {
+    "q": "A 6.4 GB file: one copy is gzip, one is LZO with an index. Block 128 MB. Mappers for each?",
+    "a": "Gzip: 1 (not splittable). LZO with index: 6.4 x 1,024 / 128 = 51.2, so about 52 Mappers."
+   }
+  ],
+  "why": {
+   "q": "HDFS already stores the gzip file in blocks. Why can't each block get its own Mapper?",
+   "a": "Blocks split the bytes, not the compressed stream. A gzip stream can only be decoded from its beginning, so a Mapper given block 5 cannot decompress it without first decoding blocks 1-4. The fix is Parquet + Snappy (splittable at row groups) or bzip2 (natively splittable). The matrix marks CSV + Gzip as AVOID."
+  },
+  "rank": "very likely"
+ },
+ {
+  "id": "w05-live-capacity",
+  "week": 5,
+  "slides": "W05 P2 s23-s25 (Live Exercise)",
+  "card": "w05/yarn-sched",
+  "title": "Live Exercise: YARN capacity planning on LinkedIn's 5,000-node cluster",
+  "given": "5,000 nodes, each 64 GB RAM and 16 vCPU. Capacity Scheduler: production 40%, spark 25%, samza 15%, adhoc 10%, reserve 10%. Containers: Hive mapper {4 GB, 2 vCPU} (production and adhoc), Spark executor {8 GB, 4 vCPU}, Samza task {2 GB, 1 vCPU}.",
+  "solution_steps": [
+   "production: nodes 2,000, RAM 128,000 GB, vCPU 32,000; by RAM 32,000, by CPU 16,000; max 16,000 (CPU bound).",
+   "spark: nodes 1,250, RAM 80,000 GB, vCPU 20,000; by RAM 10,000, by CPU 5,000; max 5,000 (CPU bound).",
+   "samza: nodes 750, RAM 48,000 GB, vCPU 12,000; by RAM 24,000, by CPU 12,000; max 12,000 (CPU bound).",
+   "adhoc: nodes 500, RAM 32,000 GB, vCPU 8,000; by RAM 8,000, by CPU 4,000; max 4,000 (CPU bound).",
+   "Q2: every container asks 2 GB per vCPU but a node has 64/16 = 4 GB per vCPU, so CPU runs out first everywhere; half the RAM sits idle.",
+   "Q3: per node min(64/4, 16/2) = 8 Hive mappers; 10,000 / 8 = 1,250 nodes (production owns 2,000, so it fits)."
+  ],
+  "answer": "Max containers: production 16,000, spark 5,000, samza 12,000, adhoc 4,000. Bottleneck: CPU. 10,000 Hive mappers need 1,250 nodes.",
+  "variants": [
+   {
+    "q": "Spark queue: 1,250 nodes, so 80,000 GB and 20,000 vCPU (given). Executors are {8 GB, 4 vCPU}. Find the max executors and the bottleneck.",
+    "a": "By RAM 80,000/8 = 10,000; by CPU 20,000/4 = 5,000; max 5,000, CPU is the bottleneck."
+   },
+   {
+    "q": "The admin changes Samza tasks to {4 GB, 1 vCPU}. Samza queue: 750 nodes = 48,000 GB, 12,000 vCPU (given). New max and bottleneck?",
+    "a": "By RAM 48,000/4 = 12,000; by CPU 12,000/1 = 12,000; equal at 12,000, so RAM and CPU run out together (balanced)."
+   }
+  ],
+  "why": {
+   "q": "Why must you take the minimum of the RAM limit and the CPU limit?",
+   "a": "A container needs both its RAM and its vCPUs on the same node. Whichever resource runs out first stops new containers, so the smaller count is the real ceiling and that resource is the bottleneck. YARN's DRF (Dominant Resource Fairness) exists for exactly this multi-resource case."
+  },
+  "rank": "very likely"
+ },
+ {
+  "id": "w05-pushdown",
+  "week": 5,
+  "slides": "W05 P1 s22-s23",
+  "card": "w05/columnar",
+  "title": "Parquet predicate pushdown: WHERE score > 90 on 10 TB reads 50 GB",
+  "given": "Query WHERE score > 90. Footer stats: Row Group 1 score in [60, 85], Row Group 2 score in [85, 99]. Slide: a 10 TB Parquet query may physically read only 50 GB.",
+  "solution_steps": [
+   "Read the file footer only: min/max per column chunk per row group.",
+   "Row Group 1: max 85 < 90, so no row can match. Skip the whole row group (no I/O).",
+   "Row Group 2: range [85, 99] overlaps > 90, so it must be read.",
+   "Inside Row Group 2 read only the score column chunk.",
+   "Data read 50 GB of 10 TB = 0.5%, a reduction of 99.5%, about 200x less I/O."
+  ],
+  "answer": "Skip RG1, read only the score chunk of RG2; 10 TB to 50 GB is 200x less data (99.5% saved).",
+  "variants": [
+   {
+    "q": "Footer stats for amount: RG1 [0, 4,000], RG2 [3,500, 9,000], RG3 [12,000, 20,000]. Query WHERE amount > 10,000. Which row groups are read?",
+    "a": "Only RG3 (min 12,000 > 10,000, all rows may match). RG1 max 4,000 and RG2 max 9,000 are below 10,000, so both are skipped."
+   },
+   {
+    "q": "A 4 TB Parquet table: after pushdown and column pruning Spark reads 80 GB. Earlier step given: speedup = data size / data read. Find the speedup.",
+    "a": "4,000 GB / 80 GB = 50x less I/O."
+   }
+  ],
+  "why": {
+   "q": "Why can Parquet skip a row group without opening it, and why is no Spark setting needed?",
+   "a": "Each row group's footer stores min/max per column chunk; if the predicate cannot be true inside [min, max] the reader never touches those bytes. Spark enables Parquet filter pushdown by default (spark.sql.parquet.filterPushdown=true), so the saving is automatic."
+  },
+  "rank": "very likely"
+ },
+ {
+  "id": "w05-pymk-scale",
+  "week": 5,
+  "slides": "W05 P2 s10, s19",
+  "card": "w05/yarn-arch",
+  "title": "YARN scale numbers: 6,000 vs 4,000 nodes; PYMK 18 h to 4 h",
+  "given": "Paper: YARN tested on 6,000 nodes with 100,000 concurrent tasks vs Hadoop 1.x's 4,000-node limit; RM handled 1,000 heartbeats/s. LinkedIn: PYMK recompute 18 h on MR1, 4 h on YARN; 400,000 peak containers on 5,000 nodes.",
+  "solution_steps": [
+   "Scale gain = (6,000 - 4,000) / 4,000 = 50% more nodes.",
+   "PYMK speedup = 18 / 4 = 4.5x; time saved = 14/18 = 77.8%.",
+   "Containers per node at peak = 400,000 / 5,000 = 80.",
+   "Heartbeats: 6,000 NMs at 1,000/s means each NM can report about every 6 s."
+  ],
+  "answer": "50% beyond the old ceiling; PYMK 4.5x faster; about 80 containers per node at peak.",
+  "variants": [
+   {
+    "q": "A job took 12 h on MR1 and 3 h on YARN with Spark. Given: speedup = T_old / T_new. Find the speedup and the time saved.",
+    "a": "12/3 = 4x; saved 75%."
+   },
+   {
+    "q": "The RM processes 1,000 heartbeats per second. A cluster has 8,000 NodeManagers, each sending one heartbeat per interval. What is the shortest interval the RM can sustain?",
+    "a": "8,000 / 1,000 = 8 s per heartbeat per node."
+   }
+  ],
+  "why": {
+   "q": "Why was Hadoop 1.x stuck near 4,000 nodes?",
+   "a": "A single JobTracker did both cluster resource management and per-job scheduling and monitoring for every task, so it became the bottleneck. YARN moved per-job work into one ApplicationMaster per job, leaving the RM only global scheduling."
+  },
+  "rank": "likely"
+ },
+ {
+  "id": "w05-queue-shares",
+  "week": 5,
+  "slides": "W05 P1 s13-s14; W05 P2 s17-s18",
+  "card": "w05/yarn-sched",
+  "title": "Capacity Scheduler queue shares (a2i 60/30/10, LinkedIn 40/25/15/10/7/3)",
+  "given": "a2i cluster: Queue A 60% (DGHS batch), Queue B 30% (Spark streaming), Queue C 10% (ad-hoc Hive). LinkedIn 5,000 nodes: production 40%, spark 25%, samza 15%, adhoc 10%, tez 7%, reserve 3%.",
+  "solution_steps": [
+   "Guaranteed nodes = cluster nodes x queue share.",
+   "LinkedIn: production 2,000, spark 1,250, samza 750, adhoc 500, tez 350, reserve 150 nodes.",
+   "Check: shares sum to 100%.",
+   "Idle capacity in one queue can be borrowed by others and is reclaimed by pre-emption (LinkedIn: 30-second warning)."
+  ],
+  "answer": "Production 2,000, spark 1,250, samza 750, adhoc 500, tez 350, reserve 150 nodes; queue B on a2i can never take queue A's guaranteed 60%.",
+  "variants": [
+   {
+    "q": "a2i runs on a 400-node cluster with A 60%, B 30%, C 10%. Given: guaranteed = nodes x share. How many nodes is Queue B guaranteed?",
+    "a": "400 x 0.30 = 120 nodes."
+   },
+   {
+    "q": "Engineering 60%, Finance 40% on 1,000 nodes. Finance is idle and Engineering borrows its share. How many nodes can Engineering use now, and what happens when Finance submits a job?",
+    "a": "Engineering can elastically use all 1,000 nodes; when Finance submits, pre-emption reclaims its guaranteed 400 nodes."
+   }
+  ],
+  "why": {
+   "q": "Why does a shared cluster use the Capacity Scheduler instead of FIFO?",
+   "a": "FIFO runs jobs in order, so one long job starves everyone else. Capacity gives each team a guaranteed share (an SLA), so ad-hoc analyst queries cannot starve revenue pipelines, while still lending idle capacity to busy queues."
+  },
+  "rank": "likely"
+ },
+ {
+  "id": "w05-utilisation-73",
+  "week": 5,
+  "slides": "W05 P2 s19, s21, s27",
+  "card": "w05/yarn-sched",
+  "title": "LinkedIn consolidation: 45% to 78% utilisation = 73% more work",
+  "given": "Three siloed clusters ran at 45% average utilisation. One consolidated YARN cluster ran at 78%.",
+  "solution_steps": [
+   "Work done is proportional to utilisation x capacity; capacity is unchanged.",
+   "Ratio = 78 / 45 = 1.733.",
+   "Extra workload = 1.733 - 1 = 73.3%, about 73%.",
+   "Note: the gain is 33 percentage points, but 73% in relative workload."
+  ],
+  "answer": "78/45 = 1.733: the same hardware served about 73% more workload.",
+  "variants": [
+   {
+    "q": "A bank merges two clusters running at 40% into one YARN cluster that runs at 70%. Given: extra work = U_new / U_old - 1. How much more work does the same hardware do?",
+    "a": "70/40 - 1 = 75% more."
+   },
+   {
+    "q": "A cluster at 50% utilisation must take 60% more workload with no new nodes. What utilisation is needed?",
+    "a": "50% x 1.6 = 80%."
+   }
+  ],
+  "why": {
+   "q": "Why did one shared cluster beat three separate clusters on utilisation?",
+   "a": "Each silo was idle at different times and could not lend its spare capacity. One YARN cluster pools all nodes, so idle capacity in one queue is borrowed by another (and reclaimed by pre-emption), and cross-cluster data copies disappear."
+  },
+  "rank": "very likely"
+ },
+ {
+  "id": "w06-a1-wallclock",
+  "week": 6,
+  "slides": "W06 P1 s38 (Analytical A1)",
+  "card": "w06/mr-vs-spark",
+  "title": "Analytical A1: wall-clock time for 100 K-means iterations (500 vs 5,000 MB/s)",
+  "given": "50 GB bKash data, 100 iterations. HDFS read speed 500 MB/s, RAM cache read 5,000 MB/s. Assume HDFS write runs at the same 500 MB/s (not stated on the slide).",
+  "solution_steps": [
+   "One HDFS pass: 50,000 MB / 500 MB/s = 100 s.",
+   "MapReduce per iteration = read + write = 200 s; total = 100 x 200 = 20,000 s = 5.56 h. Total HDFS I/O 10 TB.",
+   "Spark: first read from HDFS 100 s; 99 more passes from RAM at 50,000/5,000 = 10 s each = 990 s.",
+   "Spark total = 100 + 990 = 1,090 s, about 18.2 min. HDFS I/O 50 GB.",
+   "Speedup = 20,000 / 1,090 = 18.3x."
+  ],
+  "answer": "MapReduce about 20,000 s (5.56 h); Spark about 1,090 s (18.2 min); about 18.3x faster. Spark loses its edge if the data does not fit in RAM, or the job is a single pass.",
+  "variants": [
+   {
+    "q": "Given: one HDFS pass over 50 GB takes 100 s and one RAM pass takes 10 s. Spark reads HDFS once, then RAM for the remaining iterations. Total Spark time for 10 iterations?",
+    "a": "100 + 9 x 10 = 190 s."
+   },
+   {
+    "q": "Given: MapReduce takes 200 s per iteration (read + write). How long do 10 iterations take, and what is the speedup over the 190 s Spark run?",
+    "a": "10 x 200 = 2000 s; 2,000/190 = 10.5x."
+   }
+  ],
+  "why": {
+   "q": "Under what conditions would Spark not outperform MapReduce?",
+   "a": "When the working set does not fit in cluster RAM (Spark spills to disk), when the job is a single pass over the data (nothing to reuse; slides say gains shrink to 2-5x), or when each executor's memory overhead (about 8 GB minimum) is too costly on a very large cluster."
+  },
+  "rank": "very likely"
+ },
+ {
+  "id": "w06-a2-recovery",
+  "week": 6,
+  "slides": "W06 P1 s14-s15, s21, s38 (Analytical A2)",
+  "card": "w06/rdd",
+  "title": "Analytical A2: executor with partitions 3 and 7 crashes (10 partitions)",
+  "given": "input -> filteredRDD -> mappedRDD -> reducedRDD, 10 partitions each. The executor holding partitions 3 and 7 of reducedRDD crashes.",
+  "solution_steps": [
+   "Driver: the executor stops heartbeating and its tasks fail; the driver marks partitions 3 and 7 (and anything else cached there) lost.",
+   "Lineage lookup: reducedRDD <- mappedRDD <- filteredRDD <- input (HDFS).",
+   "If all steps are narrow: recompute only partitions 3 and 7 of filteredRDD and mappedRDD from HDFS blocks 3 and 7: 2 input partitions, 2 x 3 = 6 partition computations.",
+   "If reducedRDD comes from groupByKey (wide): partition 3 of reducedRDD needs data from all 10 mappedRDD partitions.",
+   "Worst case (shuffle files lost with the executor and nothing cached): recompute all 10 partitions of filteredRDD and mappedRDD, re-shuffle, then rebuild partitions 3 and 7: 10 + 10 + 2 = 22 partition computations, plus re-reading all 10 HDFS blocks."
+  ],
+  "answer": "Narrow: 2 partitions per RDD (from 2 HDFS blocks). Wide (groupByKey) worst case: all 10 parent partitions recomputed and re-shuffled, 5x the input re-read.",
+  "variants": [
+   {
+    "q": "A job with 20 partitions, all narrow (map, filter). An executor holding 4 partitions dies. Given: narrow recovery recomputes only the lost partitions from their single parents. How many input partitions are re-read?",
+    "a": "4 (one parent per lost partition)."
+   },
+   {
+    "q": "Same job but the last step is reduceByKey over 20 partitions and no shuffle output survives. How many parent partitions must be recomputed in the worst case?",
+    "a": "All 20, because every reduce partition depends on every map partition."
+   }
+  ],
+  "why": {
+   "q": "Why do long or wide lineages get checkpointed to HDFS?",
+   "a": "Recomputing a lost partition through a wide dependency drags in every parent partition, and a long chain multiplies that. A checkpoint cuts the lineage so recovery starts from the saved copy instead of from the original input."
+  },
+  "rank": "very likely"
+ },
+ {
+  "id": "w06-graysort",
+  "week": 6,
+  "slides": "W06 P2 s2, s13-s14, s20; W06 P1 s9",
+  "card": "w06/mr-vs-spark",
+  "title": "Daytona GraySort 2013: 100 TB in 23 min on 206 nodes vs Hadoop 72 min on 2,100",
+  "given": "Hadoop record (Yahoo! 2012): 100 TB in 72 min on 2,100 nodes. Spark (Databricks 2013): 100 TB in 23 min on 206 EC2 i2.8xlarge (32 vCPU, 244 GB RAM, 8 x 800 GB SSD each). Input stored with 3x replication.",
+  "solution_steps": [
+   "Faster: 72 / 23 = 3.13x (slide: 3.1x).",
+   "Fewer nodes: 2,100 / 206 = 10.19x (slide: 10.2x).",
+   "Efficiency per node = (72 x 2,100) / (23 x 206) = 151,200 / 4,738 = 31.9x (slide: 32x).",
+   "Total RAM = 206 x 244 GB = 50,264 GB = 50.3 TB; SSD per node 8 x 800 GB = 6.4 TB, total 206 x 6.4 = 1,318 TB = 1.32 PB.",
+   "On disk with 3x replication: 100 x 3 = 300 TB.",
+   "Throughput = 100 TB / 23 min = 4.35 TB/min (the slide prints 4.27, which would need 23.4 min)."
+  ],
+  "answer": "3.1x faster on 10.2x fewer nodes, about 31.91x more work per node; 4.35 TB/min by recomputation.",
+  "variants": [
+   {
+    "q": "Yahoo! 2009 sorted 100 TB on 3,800 nodes in 173 min. Spark: 206 nodes, 23 min. Given: efficiency per node = (T_old x N_old) / (T_new x N_new). Compute it.",
+    "a": "(173 x 3,800) / (23 x 206) = 657,400 / 4,738 = 138.8x."
+   },
+   {
+    "q": "A cluster of 100 nodes, each 256 GB RAM and 8 x 1 TB SSD. Total RAM and total SSD?",
+    "a": "RAM 100 x 256 = 25,600 GB = 25.6 TB; SSD 100 x 8 = 800 TB."
+   }
+  ],
+  "why": {
+   "q": "Why does node-time (time x nodes) matter more than raw speed in this comparison?",
+   "a": "Spark finished 3.1x faster while using 10.2x fewer machines, so it did the same job with about 1/32 of the machine-minutes. That shows the gain is from the design (sort-based shuffle on SSDs, off-heap sort buffers, fewer stages), not from throwing more hardware at it."
+  },
+  "rank": "very likely"
+ },
+ {
+  "id": "w06-graysort-io",
+  "week": 6,
+  "slides": "W06 P2 s13, s15",
+  "card": "w06/narrow-wide",
+  "title": "Why MapReduce sorts slowly: each byte written twice (~200 TB extra at 100 TB)",
+  "given": "MapReduce's sort phase writes intermediate data to disk twice per byte (spill + merge). Spark's sort-based shuffle writes sorted runs once, eliminating about 120 TB of extra I/O at 100 TB.",
+  "solution_steps": [
+   "MapReduce extra disk I/O = 2 writes x 100 TB = 200 TB.",
+   "Spark removes about 120 TB of that, leaving about 80 TB of shuffle I/O.",
+   "Reduction in extra I/O = 120 / 200 = 60%."
+  ],
+  "answer": "About 200 TB of extra disk I/O for MapReduce; Spark's sort shuffle saves about 120 TB (60%).",
+  "variants": [
+   {
+    "q": "A 40 TB sort on MapReduce writes every intermediate byte twice. Given: extra I/O = 2 x data. How much extra disk I/O?",
+    "a": "2 x 40 = 80 TB."
+   },
+   {
+    "q": "Spark's shuffle cuts that extra I/O by 60%. How much remains for the 40 TB sort?",
+    "a": "80 x 0.40 = 32 TB."
+   }
+  ],
+  "why": {
+   "q": "Why is the shuffle the bottleneck both at GraySort and in production Spark?",
+   "a": "A shuffle is a wide dependency: every output partition needs data from every input partition, so data crosses the network and hits disk, and it forms a stage barrier. Minimising wide dependencies is the main Spark tuning skill."
+  },
+  "rank": "likely"
+ },
+ {
+  "id": "w06-hash-partition",
+  "week": 6,
+  "slides": "W06 P2 s10; W06 P1 s21-s22",
+  "card": "w06/narrow-wide",
+  "title": "Hash partitioner: key.hashCode() % numPartitions",
+  "given": "Spark's default partitioner sends a key to partition key.hashCode() % numPartitions. For an integer key, hashCode() is the value itself (Java behaviour, general knowledge).",
+  "solution_steps": [
+   "Take the key's hash.",
+   "Divide by the number of partitions and keep the remainder.",
+   "Example: key 17, 4 partitions: 17 % 4 = 1, so partition 1.",
+   "All pairs with the same key land in the same partition, which is what reduceByKey and join need."
+  ],
+  "answer": "partition = hash(key) mod numPartitions; key 17 with 4 partitions goes to partition 1.",
+  "variants": [
+   {
+    "q": "An RDD of (customer_id, amount) has 8 partitions. Given: partition = key % 8. Where does customer_id 1,234 go?",
+    "a": "1,234 % 8 = 2, partition 2."
+   },
+   {
+    "q": "Keys 10, 20, 30, 40 with 5 partitions. Which partitions are used, and what is the problem?",
+    "a": "[0, 0, 0, 0]: all land in partition 0, a hot spot (skew). Range or custom partitioning would spread them."
+   }
+  ],
+  "why": {
+   "q": "Why do two RDDs partitioned with the same partitioner join without a shuffle?",
+   "a": "Matching keys already sit in the same-numbered partition of both RDDs, so partition i joins only with partition i (a narrow dependency). Without co-partitioning, rows must be reshuffled across the network first."
+  },
+  "rank": "likely"
+ },
+ {
+  "id": "w06-hotcloud-3h",
+  "week": 6,
+  "slides": "W06 P2 s4",
+  "card": "w06/mr-vs-spark",
+  "title": "HotCloud claim: 10 iterations over 100 GB at 100 MB/s costs about 3 hours of I/O",
+  "given": "For k iterations MapReduce pays k x HDFS read + k x HDFS write. Spinning disk 100 MB/s, 10 iterations, 100 GB.",
+  "solution_steps": [
+   "Reads only: 10 x 100 GB = 1,000 GB = 1,000,000 MB / 100 MB/s = 10,000 s = 2.78 h, about 3 h.",
+   "Reads + writes (the slide's own formula): 2,000 GB / 100 MB/s = 20,000 s = 5.56 h.",
+   "So the slide's 3 hours matches the read side only; with writes included it is about 5.6 h. Either way it is hours of pure I/O, which Spark avoids by caching after the first read."
+  ],
+  "answer": "About 2.8 h counting reads only (the slide's 3 h); 5.6 h if writes are counted too.",
+  "variants": [
+   {
+    "q": "A graph job runs 20 iterations over 50 GB on disk at 100 MB/s. Given: read time per iteration = 50,000 MB / 100 MB/s = 500 s. Total read time?",
+    "a": "20 x 500 = 10,000 s = 2.78 h."
+   },
+   {
+    "q": "Same job, Spark: first read from disk takes 500 s, later passes come from RAM at 2,000 MB/s. Time for one RAM pass?",
+    "a": "50,000 / 2,000 = 25 s."
+   }
+  ],
+  "why": {
+   "q": "What is a working set, and why can't MapReduce exploit it?",
+   "a": "A working set is data reused across many parallel operations (the same training set every gradient step, the same table in repeated queries, the same graph in every BFS pass). MapReduce has no cache between jobs, so it rereads it from HDFS every time; Spark keeps it as a cached RDD."
+  },
+  "rank": "likely"
+ },
+ {
+  "id": "w06-kmeans-io",
+  "week": 6,
+  "slides": "W06 P1 s6-s7",
+  "card": "w06/mr-vs-spark",
+  "title": "K-means, 100 iterations on 50 GB: MapReduce 10 TB disk I/O vs Spark 50 GB",
+  "given": "50 GB on HDFS, 100 iterations. MapReduce reads and writes 50 GB per iteration. Spark reads once and caches in RAM.",
+  "solution_steps": [
+   "MapReduce: 100 x (50 GB read + 50 GB write) = 10,000 GB = 10 TB.",
+   "Spark: iteration 1 reads 50 GB from HDFS; iterations 2-100 read RAM. HDFS I/O = 50 GB.",
+   "Ratio = 10,000 / 50 = 200x less disk I/O."
+  ],
+  "answer": "10 TB vs 50 GB: about 200x less disk I/O for Spark.",
+  "variants": [
+   {
+    "q": "A bKash model trains for 20 iterations over 200 GB. Given: MapReduce disk I/O = k x (read + write). Find MapReduce's total disk I/O.",
+    "a": "20 x (200 + 200) = 8,000 GB = 8 TB."
+   },
+   {
+    "q": "Same job: MapReduce does 8 TB of disk I/O; Spark reads 200 GB once. How many times less disk I/O does Spark do?",
+    "a": "8,000 / 200 = 40x."
+   }
+  ],
+  "why": {
+   "q": "Why does MapReduce pay disk I/O on every iteration?",
+   "a": "Each iteration is a separate MapReduce job, and MapReduce writes every job's output to HDFS before the next job can start. It has no way to keep the working set in memory across jobs, so an iterative algorithm reads and writes the full dataset every pass."
+  },
+  "rank": "very likely"
+ },
+ {
+  "id": "w06-live-cache",
+  "week": 6,
+  "slides": "W06 P2 s18 (Live Exercise)",
+  "card": "w06/lazy-eval",
+  "title": "Live Exercise: RDD lineage, lazy evaluation and cache speedup",
+  "given": "Word count on README.md with sc local[4]: flatMap -> map -> reduceByKey. Time counts.count() before and after cache(); compare reduceByKey with groupByKey in the Spark UI. Sample timings (not on the slide): first count 2.40 s, cached count 0.012 s.",
+  "solution_steps": [
+   "Before any action, toDebugString shows the lineage only: no job has run (lazy evaluation).",
+   "First count() triggers the whole DAG: read, flatMap, map, shuffle for reduceByKey.",
+   "counts.cache() marks the RDD for caching; the warm-up count() fills the cache; toDebugString now shows the RDD as cached in memory.",
+   "Speedup = 2.40 / 0.012 = 200x.",
+   "groupByKey ships every (word, 1) pair across the shuffle; reduceByKey combines locally first, so shuffle read/write bytes are much smaller."
+  ],
+  "answer": "Cached count is served from memory; with the sample timings the speedup is 200x. reduceByKey shuffles fewer bytes than groupByKey.",
+  "variants": [
+   {
+    "q": "A student times count(): 3.6 s uncached, 0.045 s cached. Given: speedup = uncached / cached. Report the speedup.",
+    "a": "3.6 / 0.045 = 80x."
+   },
+   {
+    "q": "One partition holds 1,000 (word, 1) pairs covering 50 distinct words. How many records leave that partition in the shuffle with groupByKey vs reduceByKey?",
+    "a": "groupByKey: 1,000; reduceByKey: 50 (one partial sum per word)."
+   }
+  ],
+  "why": {
+   "q": "Why is the first count() slow even though the script defined everything earlier?",
+   "a": "Transformations are lazy: they only record the lineage. Nothing is read or computed until an action, so the first count() pays for the full DAG. Only after cache() plus one action does a later count() read from memory."
+  },
+  "rank": "likely"
+ },
+ {
+  "id": "w06-rdd-benchmark",
+  "week": 6,
+  "slides": "W06 P2 s10",
+  "card": "w06/rdd",
+  "title": "RDD paper benchmarks: logistic regression 132x, k-means 30x",
+  "given": "Logistic regression, 10 iterations: Hadoop 127 s/iteration, Spark (MEMORY_ONLY) 0.96 s/iteration. K-means, 10 iterations: Hadoop 150 s vs Spark 5 s.",
+  "solution_steps": [
+   "LR speedup = 127 / 0.96 = 132.3x, about 132x.",
+   "LR total over 10 iterations: Hadoop 1,270 s vs Spark 9.6 s.",
+   "K-means speedup = 150 / 5 = 30x."
+  ],
+  "answer": "About 132.29x for logistic regression (1,270 s vs 9.6 s over 10 iterations) and 30x for k-means.",
+  "variants": [
+   {
+    "q": "A Spark LR job takes 1.2 s per iteration; Hadoop takes 120 s. Given: speedup = T_old / T_new. Find the speedup.",
+    "a": "120 / 1.2 = 100x."
+   },
+   {
+    "q": "Hadoop 127 s per iteration, Spark 0.96 s per iteration. How long do 50 iterations take on each?",
+    "a": "Hadoop 50 x 127 = 6,350 s; Spark 50 x 0.96 = 48 s."
+   }
+  ],
+  "why": {
+   "q": "Why is the logistic regression gain (132x) bigger than the k-means gain (30x)?",
+   "a": "Logistic regression does very little CPU work per pass, so its time is almost all I/O, which caching removes. K-means does more computation per point per iteration, so a larger share of its time is CPU that caching cannot remove. (Reasoning, not stated on the slide.)"
+  },
+  "rank": "very likely"
+ },
+ {
+  "id": "w06-speedup-ranges",
+  "week": 6,
+  "slides": "W06 P1 s26, s31-s32; W06 P2 s16",
+  "card": "w06/dataframes",
+  "title": "Speedup ranges: 10-100x iterative, 2-5x single pass, DataFrame 10-100x over RDD",
+  "given": "Spark is 10-100x faster on iterative workloads; for single-pass ETL larger than RAM, 2-5x. DataFrames are 10-100x faster than RDDs for structured data. Spark executors need about 8 GB minimum. Use Spark for >2 iterations over the same data.",
+  "solution_steps": [
+   "A 10-hour iterative MapReduce job at 10-100x becomes 6 min to 60 min.",
+   "A 10-hour single-pass ETL at 2-5x becomes 2 h to 5 h.",
+   "Executor memory floor: 50 executors x 8 GB = 400 GB of RAM before any data is cached."
+  ],
+  "answer": "Iterative: 10 h becomes 6-60 min; single pass: 2-5 h; 50 executors need at least 400 GB RAM.",
+  "variants": [
+   {
+    "q": "A nightly single-pass ETL takes 6 h on MapReduce. Given: single-pass gains are 2-5x. What range of Spark run times should you expect?",
+    "a": "6/5 = 1.2 h to 6/2 = 3 h."
+   },
+   {
+    "q": "A cluster runs 200 Spark executors at the 8 GB minimum. How much RAM is reserved just for executor overhead?",
+    "a": "200 x 8 = 1,600 GB = 1.6 TB."
+   }
+  ],
+  "why": {
+   "q": "Why is in-memory processing 'a multiplier, not a panacea'?",
+   "a": "The gain comes from reusing data held in RAM. A single pass reads each byte once, so there is nothing to reuse and the speedup shrinks to 2-5x; and data larger than RAM spills to disk. Spark's JVM memory overhead can even hurt with many small files or high-cardinality groupBy."
+  },
+  "rank": "likely"
+ },
+ {
+  "id": "w07-a1-design",
+  "week": 7,
+  "slides": "W07 P1 s32 (Analytical A1)",
+  "card": "w07/bucketing",
+  "title": "Analytical A1: partition and bucket a 5 TB e-commerce table",
+  "given": "5 TB table (txn_id, user_id, product_id, amount, country, txn_date). Reports filter by country and txn_date; joins with a 10 M-row user profile table on user_id. Assume 1 year of data and 10 countries (assumption, not on slide).",
+  "solution_steps": [
+   "Partition on txn_date and country (both low-cardinality and in every WHERE). Never on user_id.",
+   "Partitions = 365 x 10 = 3,650; average partition = 5,000,000 MB / 3,650 = 1,370 MB.",
+   "Bucket on user_id, the join key, with the same bucket count in the user table.",
+   "Pick N so files are near the 128 MB HDFS block: 1,370 / 128 = 10.7, so 8 or 16 buckets; N = 16 gives 85.62 MB files (58,400 files).",
+   "DDL: CREATE TABLE txns (txn_id BIGINT, user_id BIGINT, product_id BIGINT, amount DOUBLE) PARTITIONED BY (country STRING, txn_date DATE) CLUSTERED BY (user_id) INTO 16 BUCKETS STORED AS ORC;"
+  ],
+  "answer": "PARTITIONED BY (country, txn_date), CLUSTERED BY (user_id) INTO 16 BUCKETS, ORC; about 85.62 MB per bucket file.",
+  "variants": [
+   {
+    "q": "A 2 TB table has 1,000 partitions. Given: partition size = 2,000,000 MB / 1,000 = 2,000 MB. How many buckets give files of about 128 MB?",
+    "a": "2,000 / 128 = 15.6, so 16 buckets (125 MB files)."
+   },
+   {
+    "q": "The user table is bucketed into 32 buckets on user_id, the transaction table into 16. Can Hive do a bucket map join?",
+    "a": "Not as the slide defines it: a bucket map join needs both tables bucketed on the join key with the same number of buckets, so use the same N (16 or 32) on both. (General knowledge: Hive also accepts one count being a multiple of the other, and 32 is a multiple of 16.)"
+   }
+  ],
+  "why": {
+   "q": "Why choose the bucket count from file size rather than picking a large number?",
+   "a": "Too many buckets make many small files, which waste NameNode memory and launch too many tasks; too few make huge files with little parallelism. Aim near the 128 MB block size per bucket file."
+  },
+  "rank": "very likely"
+ },
+ {
+  "id": "w07-a2-compile",
+  "week": 7,
+  "slides": "W07 P1 s32 (Analytical A2); W07 P2 s11",
+  "card": "w07/hive-arch",
+  "title": "Analytical A2: top 5 products by revenue in 2023, compiled to MapReduce",
+  "given": "SELECT product_id, SUM(amount) AS revenue FROM transactions WHERE YEAR(txn_date) = 2023 GROUP BY product_id ORDER BY revenue DESC LIMIT 5. Sample: 3 mappers, each sees all 1,000 products.",
+  "solution_steps": [
+   "Job 1 Map: read rows, apply the 2023 filter, emit (product_id, amount); map-side aggregation emits (product_id, partial sum).",
+   "Shuffle key: product_id.",
+   "Job 1 Reduce: SUM per product -> (product_id, revenue).",
+   "Job 2: global sort by revenue DESC and LIMIT 5 (one reducer sees all totals). With 3 mappers x 1,000 products the shuffle carries at most 3,000 partial sums.",
+   "On Tez: the two jobs become one DAG; no HDFS write between the aggregate and the sort."
+  ],
+  "answer": "Map emits (product_id, amount); shuffle on product_id; reduce sums; a second stage sorts and takes 5. Tez fuses the stages into one DAG with no intermediate HDFS write.",
+  "variants": [
+   {
+    "q": "Mappers emit partial sums per product. 5 mappers, 2,000 products, each mapper sees every product. Given: records shuffled = mappers x groups. How many records are shuffled?",
+    "a": "5 x 2,000 = 10,000."
+   },
+   {
+    "q": "Without map-side aggregation, how many records would 30 million 2023 rows shuffle, and what is the saving vs 10,000?",
+    "a": "30,000,000 records; 30,000,000 / 10,000 = 3,000x more."
+   }
+  ],
+  "why": {
+   "q": "Why does Tez make this query faster than MapReduce without changing the HiveQL?",
+   "a": "MapReduce runs the aggregate and the global sort as two separate jobs and writes Job 1's output to HDFS between them. Tez runs one DAG of tasks and passes data directly between stages, so the intermediate HDFS write and the second job start-up disappear."
+  },
+  "rank": "likely"
+ },
+ {
+  "id": "w07-als-size",
+  "week": 7,
+  "slides": "W07 P2 s18 (Discussion Q2); W05 P2 s23",
+  "card": "w07/spotify",
+  "title": "Discussion Q2: ALS model size, 75 M users x 30 M songs at rank 50",
+  "given": "ALS factorises a 75 M-user x 30 M-song matrix at rank k = 50, 4 bytes per float. Compare with the 5,000-node YARN cluster (64 GB per node, W05 Live Exercise).",
+  "solution_steps": [
+   "ALS stores one k-vector per user and per song: (users + songs) x k floats.",
+   "(75,000,000 + 30,000,000) x 50 = 5,250,000,000 floats.",
+   "x 4 bytes = 21,000,000,000 bytes = 21 GB.",
+   "Cluster RAM = 5,000 x 64 GB = 320,000 GB = 320 TB.",
+   "Model is 21 / 320,000 = 0.0066% of cluster RAM: it fits easily."
+  ],
+  "answer": "21 GB; fits in the 320 TB of aggregate RAM many times over.",
+  "variants": [
+   {
+    "q": "Rank is raised to k = 100, everything else the same. Given: size = (users + songs) x k x 4 B. New model size?",
+    "a": "105,000,000 x 100 x 4 = 42 GB."
+   },
+   {
+    "q": "Why is the full 75 M x 30 M matrix never stored? Compute its size at 4 bytes per cell.",
+    "a": "75e6 x 30e6 x 4 = 9.0e+15 bytes = 9 PB; ALS stores only the factors."
+   }
+  ],
+  "why": {
+   "q": "Why is ALS run in Spark rather than as HiveQL?",
+   "a": "ALS is iterative: it alternates solving user and song factors many times over the same data. Spark caches the data and factors in memory across iterations; HiveQL on MapReduce would write to HDFS every pass. Spotify used HiveQL for the co-occurrence aggregation (one SQL pass) and Spark for ALS."
+  },
+  "rank": "very likely"
+ },
+ {
+  "id": "w07-bucketing",
+  "week": 7,
+  "slides": "W07 P1 s23-s24",
+  "card": "w07/bucketing",
+  "title": "Bucketing: hash(user_id) % N; bucket map join on 4 or 32 buckets",
+  "given": "CLUSTERED BY (user_id) INTO N BUCKETS. Rows where hash(column) % N = k go to bucket file k. Slide examples: 4 buckets in the diagram, 32 in the DDL. For an integer key, hash = the value (general knowledge).",
+  "solution_steps": [
+   "user_id 98 with 4 buckets: 98 % 4 = 2, bucket 2.",
+   "Both tables bucketed on user_id with the same N: rows with equal user_id sit in the same bucket number in both.",
+   "Bucket map join pairs bucket i of sales with bucket i of users only: with 32 buckets, 32 small joins instead of one full shuffle join.",
+   "Each partition (e.g. year=2024/month=01) holds N bucket files."
+  ],
+  "answer": "Bucket = hash % N (98 % 4 = 2); a bucket map join does N matched bucket-pair joins with no full shuffle.",
+  "variants": [
+   {
+    "q": "A users table is CLUSTERED BY (user_id) INTO 32 BUCKETS. Given: bucket = user_id % 32. Which bucket holds user_id 1,000?",
+    "a": "1,000 % 32 = 8, bucket 8."
+   },
+   {
+    "q": "A table partitioned by 365 dt values is bucketed into 32 buckets. How many bucket files exist, and what is their average size if the table is 1.168 TB?",
+    "a": "365 x 32 = 11,680 files; 1,168,000 MB / 11,680 = 100 MB each."
+   }
+  ],
+  "why": {
+   "q": "Partitioning and bucketing both split data. Why is bucketing the one that speeds up joins?",
+   "a": "Partitioning skips directories by filter value but leaves rows with the same join key scattered. Bucketing places equal keys in the same-numbered file in both tables, so Hive joins bucket i with bucket i and skips the sort-merge shuffle. Both tables need the same bucket count on the join key."
+  },
+  "rank": "very likely"
+ },
+ {
+  "id": "w07-cooccurrence-size",
+  "week": 7,
+  "slides": "W07 P2 s16-s18 (Discussion Q1); W07 P2 s20 (Live Exercise)",
+  "card": "w07/spotify",
+  "title": "Discussion Q1: output size of GROUP BY song_a, song_b over 30 M songs",
+  "given": "Co-occurrence query GROUP BY song_a, song_b over 2 billion playlist rows, 30 M songs, pairs counted once (song_a < song_b), HAVING COUNT(*) > 5.",
+  "solution_steps": [
+   "Upper bound on distinct pairs = 30 M x (30 M - 1) / 2 = 4.500e+14 (about 4.5 x 10^14).",
+   "Real output is far smaller: only pairs that actually co-occur, and HAVING > 5 drops rare ones; it is bounded by the pairs generated from playlists.",
+   "A playlist of L songs gives L(L-1)/2 pairs: 20 songs give 190 pairs.",
+   "To shrink the shuffle: bucket playlist_songs by playlist_id (so the self-join is bucket-local) and partition by week/dt so only recent data is read."
+  ],
+  "answer": "At most about 4.50e+14 pairs; actual output limited to co-occurring pairs above the HAVING threshold. Bucket on playlist_id, partition on date.",
+  "variants": [
+   {
+    "q": "A playlist has 30 songs. Given: pairs per playlist = L(L-1)/2. How many song pairs does it emit?",
+    "a": "30 x 29 / 2 = 435."
+   },
+   {
+    "q": "Live Exercise data: 10,000 rows spread over 1,000 playlists, so about 10 songs per playlist. Estimate the pair rows produced by the self-join (a.song_id < b.song_id).",
+    "a": "1,000 x 10 x 9 / 2 = 45,000 pair rows."
+   }
+  ],
+  "why": {
+   "q": "Why does the query use a.song_id < b.song_id in the self-join?",
+   "a": "Without it every pair appears twice (A,B and B,A) plus self-pairs (A,A). The < condition keeps each unordered pair once, halving the shuffle and output."
+  },
+  "rank": "very likely"
+ },
+ {
+  "id": "w07-hive-scale",
+  "week": 7,
+  "slides": "W07 P2 s4, s9-s10, s14; W07 P1 s11",
+  "card": "w07/hive-arch",
+  "title": "Facebook Hive scale (2 PB, 15 TB/day, 7,500 queries) and Spotify event rates",
+  "given": "Facebook 2010: 2 PB stored, 15 TB/day growth, 7,500+ queries/day, <15% failure rate, 200+ analysts. Spotify: about 3 billion events/day; its Hive Metastore catalogs over 1 million tables on a cluster processing 600 billion events/day.",
+  "solution_steps": [
+   "Yearly growth = 15 TB x 365 = 5,475 TB = 5.47 PB.",
+   "Failures at most 15% of 7,500 = 1,125 queries/day.",
+   "Queries per analyst = 7,500 / 200 = 37.5 per day.",
+   "Spotify 3 B events/day / 86,400 s = 34,722 events/s."
+  ],
+  "answer": "About 5.47 PB/year growth; up to 1,125 failed queries/day; about 34,722 Spotify events per second.",
+  "variants": [
+   {
+    "q": "A data lake grows 15 TB per day. Given: yearly growth = daily x 365. How much after 2 years if it started at 2 PB?",
+    "a": "2 PB + 2 x 5.475 PB = 12.95 PB."
+   },
+   {
+    "q": "600 billion events per day. Given: per second = daily / 86,400. Compute.",
+    "a": "600e9 / 86,400 = 6,944,444 events/s."
+   }
+  ],
+  "why": {
+   "q": "Why do the slides call the Metastore 'as important as HDFS itself'?",
+   "a": "Hive cannot answer a single query without the Metastore: it holds table schemas, partition paths, SerDes and statistics. If it is corrupted, every table is unqueryable even though the data on HDFS is intact, so it runs as a replicated HA service."
+  },
+  "rank": "likely"
+ },
+ {
+  "id": "w07-map-side-agg",
+  "week": 7,
+  "slides": "W07 P2 s10",
+  "card": "w07/hive-arch",
+  "title": "Map-side aggregation: 50 M rows, 200 countries, shuffle cut by ~250,000x",
+  "given": "SELECT country, COUNT(*) FROM logs GROUP BY country on 50 million rows with 200 countries. Hive does partial aggregation in the mapper (combiner pattern) before shuffling.",
+  "solution_steps": [
+   "Without map-side aggregation every row is shuffled as (country, 1): 50,000,000 records.",
+   "With it, the output is at most one (country, partial count) per country: 200 records (if one mapper; M mappers send up to M x 200).",
+   "Reduction = 50,000,000 / 200 = 250,000x.",
+   "With 10 mappers: 10 x 200 = 2,000 records, still 25,000x less."
+  ],
+  "answer": "50,000,000 records become 200: about 250,000x less shuffle data.",
+  "variants": [
+   {
+    "q": "A Hive table of 80 million click rows is grouped by 400 browser versions. Given: with map-side aggregation, one record per group leaves the map side. What is the shuffle reduction?",
+    "a": "80,000,000 / 400 = 200,000x."
+   },
+   {
+    "q": "Same 80 M rows, 400 groups, but run by 20 mappers, each emitting one partial count per group. How many records are shuffled?",
+    "a": "20 x 400 = 8,000 records (10,000x less than 80 M)."
+   }
+  ],
+  "why": {
+   "q": "Why is map-side aggregation safe for COUNT but not for every function?",
+   "a": "COUNT and SUM can be split into partial results and added up later (they are associative), so combining in the mapper gives the same final answer. A function like median cannot be built from partial medians, so it cannot be pre-aggregated that way."
+  },
+  "rank": "very likely"
+ },
+ {
+  "id": "w07-partition-36",
+  "week": 7,
+  "slides": "W07 P1 s19-s21",
+  "card": "w07/partitioning",
+  "title": "year=2024/month=01 reads 1 sub-directory, not 36 months; 100 M user_id partitions",
+  "given": "Table partitioned by (year, month) over 3 years: 36 sub-directories. Query WHERE year=2024 AND month=01. Warning: partitioning a 100 M user table on user_id would create 100 M directories.",
+  "solution_steps": [
+   "Partitions = 3 years x 12 months = 36.",
+   "The query reads 1 of 36 = 2.78%; 35 directories skipped.",
+   "If data is even and the job is I/O bound, job time drops by about 36x.",
+   "On user_id: one directory per distinct value = 100,000,000 directories, each a NameNode metadata object, which overflows NameNode memory."
+  ],
+  "answer": "1 of 36 directories (2.8%); partitioning on user_id would mean 100 M directories.",
+  "variants": [
+   {
+    "q": "Daily partitions (dt) over 2 years. Given: partitions = 2 x 365. A dashboard query reads the last 7 days. What fraction is read?",
+    "a": "7 / 730 = 0.96%."
+   },
+   {
+    "q": "An engineer partitions a 20 M-row orders table by order_id. How many partition directories result, and is this a good idea?",
+    "a": "20,000,000 directories (one per order). No: high cardinality causes partition explosion and NameNode metadata overflow; partition by date instead and bucket by order_id."
+   }
+  ],
+  "why": {
+   "q": "Why should partition keys be low-cardinality columns used often in WHERE?",
+   "a": "Each distinct value is a directory. Low cardinality (date, country, status) keeps the directory count small, and frequent filtering on it means most queries skip most data. High cardinality creates millions of tiny directories and files that overload the NameNode."
+  },
+  "rank": "very likely"
+ },
+ {
+  "id": "w07-partition-pruning",
+  "week": 7,
+  "slides": "W07 P2 s11",
+  "card": "w07/partitioning",
+  "title": "Partition pruning: 3 of 365 x 200 = 73,000 partitions read",
+  "given": "play_events partitioned by (dt, country): 365 days x 200 countries. Query WHERE p.dt = '2024-10-01' AND p.country IN ('BD','IN','US').",
+  "solution_steps": [
+   "Total partitions = 365 x 200 = 73,000.",
+   "The filter fixes one dt and three countries: 1 x 3 = 3 partitions.",
+   "Fraction read = 3 / 73,000 = 0.0041%; 72,997 partitions skipped.",
+   "The Metastore holds each partition's HDFS path, so Hive picks the 3 directories without listing all files."
+  ],
+  "answer": "Hive reads 3 of 73,000 partitions (0.0041%).",
+  "variants": [
+   {
+    "q": "A sales table is partitioned by (year, month) over 3 years. Given: total partitions = years x 12. A query asks for year=2024 AND month IN (1, 2). How many partitions are read out of the total?",
+    "a": "2 of 3 x 12 = 36; fraction 5.6%."
+   },
+   {
+    "q": "A 7.3 TB table is spread evenly over 73,000 partitions. A query hits 3. How much data is read?",
+    "a": "7.3 TB / 73,000 = 100 MB per partition; 3 x 100 = 300 MB."
+   }
+  ],
+  "why": {
+   "q": "Why must the WHERE clause filter on the partition column itself for pruning to work?",
+   "a": "Pruning works at planning time from the Metastore's list of partition directories. Hive can only skip a directory if the predicate is on the column that names it (dt, country). A filter on another column must be checked row by row, so every directory is read."
+  },
+  "rank": "very likely"
+ },
+ {
+  "id": "w07-presto-latency",
+  "week": 7,
+  "slides": "W07 P1 s17, s26",
+  "card": "w07/presto",
+  "title": "Presto vs Hive+MR: 5-15 min vs 5-60 s; vectorised 1,024-row batches",
+  "given": "Hive+MR: 5-15 min; Presto: 5-60 s. A COUNT(*) on 1 TB takes 5-10 min on MapReduce. Presto processes column chunks in batches of 1,024 rows. Presto is about 10x faster than Hive+MapReduce.",
+  "solution_steps": [
+   "Hive best and worst: 5 min = 300 s, 15 min = 900 s.",
+   "Ratios: 300/60 = 5x (worst Presto vs best Hive) up to 900/5 = 180x; about 10x typical.",
+   "Vectorised batches: 10,000,000 rows / 1,024 = 9,766, so 9,766 batches instead of 10 million row-at-a-time calls."
+  ],
+  "answer": "Presto is roughly 5x to 180x faster across the ranges (about 10x typical); 10 M rows run as 9,766 batches.",
+  "variants": [
+   {
+    "q": "A Hive+MR query takes 12 min. Given: Presto is about 10x faster for interactive queries. Estimate Presto's time.",
+    "a": "12 x 60 / 10 = 72 s."
+   },
+   {
+    "q": "Presto reads a 2,048,000-row column chunk in 1,024-row batches. How many batches?",
+    "a": "2,048,000 / 1,024 = 2,000."
+   }
+  ],
+  "why": {
+   "q": "Why is Presto faster than Hive+MapReduce for interactive queries?",
+   "a": "Presto pipelines data through the stages entirely in memory and never writes intermediate results to HDFS, while Hive+MR materialises data to HDFS between every MapReduce stage. Vectorised execution and a cost-based optimiser add more."
+  },
+  "rank": "likely"
+ },
+ {
+  "id": "w07-spotify-week-partition",
+  "week": 7,
+  "slides": "W07 P2 s18",
+  "card": "w07/spotify",
+  "title": "Spotify: partitioning play_events by week cut co-occurrence HiveQL from 8 h to 2 h",
+  "given": "Partitioning play_events by week reduced the co-occurrence HiveQL from 8 hours to 2 hours. Daily retraining would cost 7x the compute of weekly.",
+  "solution_steps": [
+   "Speedup = 8 / 2 = 4x.",
+   "Time saved = (8 - 2) / 8 = 75%.",
+   "Retraining: weekly costs 1 unit per week; daily costs 7 units per week (7x)."
+  ],
+  "answer": "4x faster, 75% of the time saved; daily retraining would cost 7x the weekly compute.",
+  "variants": [
+   {
+    "q": "A HiveQL report drops from 6 h to 45 min after partitioning by date. Given: speedup = T_old / T_new. Find the speedup.",
+    "a": "360 / 45 = 8x."
+   },
+   {
+    "q": "Weekly retraining costs 140 CPU-hours. What would daily retraining cost per week?",
+    "a": "7 x 140 = 980 CPU-hours."
+   }
+  ],
+  "why": {
+   "q": "Why did the choice of partition column change latency by hours?",
+   "a": "The co-occurrence job only needs recent weeks. With play_events partitioned by week, Hive reads just those week directories and skips the rest; partitioned on a column the query does not filter on, it scans everything."
+  },
+  "rank": "very likely"
+ },
+ {
+  "id": "w08-a1-bank",
+  "week": 8,
+  "slides": "W08 P1 s9, s36 (Analytical A1)",
+  "card": "w08/sqoop-flume",
+  "title": "Analytical A1: bank pipeline, 10 M records nightly, 200 ms fraud, 5-minute dashboard",
+  "given": "(a) Sync 10 million customer records nightly from Oracle to Hadoop. (b) Fraud decision within 200 ms. (c) Risk dashboard no older than 5 minutes. Assume Sqoop runs 4 map tasks and a 2-hour batch window (assumptions).",
+  "solution_steps": [
+   "(a) Sqoop import (JDBC, parallel map tasks split by primary-key range, incremental by last-value): 10,000,000 / 4 = 2,500,000 rows per mapper; over 2 h that is 1,389 rows/s overall.",
+   "(b) Card swipes -> Kafka -> Spark Streaming (or Flink) scoring: only a stream path can answer in 200 ms.",
+   "(c) Stream aggregates refreshed every <= 5 min: 288 refreshes per day.",
+   "Architecture: Lambda fits (nightly Sqoop batch for accurate history and regulatory reports + Kafka speed layer); Kappa only if all history can be replayed from Kafka fast enough."
+  ],
+  "answer": "Sqoop for (a), Kafka + Spark Streaming for (b) and (c); Lambda architecture.",
+  "variants": [
+   {
+    "q": "Sqoop imports 10 M rows with 8 map tasks. Given: rows per mapper = rows / mappers. How many rows does each read?",
+    "a": "10,000,000 / 8 = 1,250,000."
+   },
+   {
+    "q": "A dashboard must be at most 5 minutes old. How many updates per day at least?",
+    "a": "86,400 / 300 = 288."
+   }
+  ],
+  "why": {
+   "q": "Why not use Sqoop for the 200 ms fraud check?",
+   "a": "Sqoop is a batch tool that launches MapReduce jobs, usually nightly; its latency is hours. Fraud scoring needs each event processed as it arrives, which is what Kafka plus a stream processor gives."
+  },
+  "rank": "very likely"
+ },
+ {
+  "id": "w08-a2-kappa-replay",
+  "week": 8,
+  "slides": "W08 P1 s25-s27, s36 (Analytical A2)",
+  "card": "w08/lambda-kappa",
+  "title": "Analytical A2: is the stream engine fast enough for Kappa replay?",
+  "given": "Kappa reprocesses by starting a new job at offset 0 and letting it catch up. Example: 7 days retained at Netflix's average rate (100 B events/day); the stream engine can process 10 M events/s (assumption).",
+  "solution_steps": [
+   "Events to replay = 7 x 100 B = 700 billion.",
+   "Replay time = 700e9 / 10e6 = 70,000 s = 19.4 h.",
+   "Live data keeps arriving at 1,157,407/s, so the new job gains 8,842,593/s on the head; catch-up time = 700e9 / 8,842,593 = 22 h.",
+   "Viable only if that catch-up time is acceptable and the engine processes much faster than the live rate; if history is TB+ and replay takes days, keep Lambda."
+  ],
+  "answer": "About 22 h to catch up; Kappa is viable if that window is acceptable.",
+  "variants": [
+   {
+    "q": "A bank keeps 30 days of events at 50,000 events/s. Given: events to replay = rate x seconds. How many events?",
+    "a": "50,000 x 30 x 86,400 = 129,600,000,000."
+   },
+   {
+    "q": "The bank's stream engine replays at 1 M events/s while live traffic is 50,000/s. Catch-up time for those events?",
+    "a": "129,600,000,000 / 950,000 = 136,421 s = 37.9 h."
+   }
+  ],
+  "why": {
+   "q": "Name conditions where Kappa is not suitable.",
+   "a": "When reprocessing TB+ of history is too slow for the stream engine; when teams prefer batch SQL (Hive, Spark batch) over stream SQL; when a regulator requires a separate batch reconciliation (e.g. Bangladesh Bank end-of-day reconciliation, or DGHS audited health reports)."
+  },
+  "rank": "very likely"
+ },
+ {
+  "id": "w08-consumer-groups",
+  "week": 8,
+  "slides": "W08 P1 s16, s18-s19; W08 P2 s7-s8",
+  "card": "w08/kafka-log",
+  "title": "Consumer groups: each partition to exactly one consumer per group",
+  "given": "page-views has 3 partitions, Consumer Group A has 3 consumers. bKash streams wallet events to 3 consumer applications (fraud, balance, audit). P partitions allow up to P consumers in a group.",
+  "solution_steps": [
+   "Active consumers in a group = min(P, C): min(3, 3) = 3, one partition each.",
+   "A 4th consumer in the group would sit idle (C - P = 1).",
+   "Different groups each read every message: 3 bKash consumer groups means each event is read 3 times, without any extra copy in Kafka.",
+   "Throughput scales with partitions: 3 partitions cap one group's parallelism at 3."
+  ],
+  "answer": "3 active consumers, 1 partition each; extra consumers idle; each group independently reads every message.",
+  "variants": [
+   {
+    "q": "Pathao's driver-location topic has 10 partitions. A group starts 14 consumers. Given: active = min(P, C). How many are active and how many idle?",
+    "a": "10 active, 4 idle."
+   },
+   {
+    "q": "Same topic, a group of 4 consumers. How many partitions does each consumer get?",
+    "a": "10 / 4 = 2.5, so two consumers get 3 partitions and two get 2."
+   }
+  ],
+  "why": {
+   "q": "Why can't two consumers in the same group share one partition?",
+   "a": "Kafka assigns each partition to exactly one consumer per group so that messages in a partition are processed in order and each is processed once per group. To get more parallelism you add partitions, not consumers."
+  },
+  "rank": "very likely"
+ },
+ {
+  "id": "w08-event-rates",
+  "week": 8,
+  "slides": "W08 P2 s11, s14, s17-s18",
+  "card": "w08/kafka-speed",
+  "title": "Events per second: Netflix 100 B/day vs 1.3 M/s peak; LinkedIn 1.8 trillion/day",
+  "given": "Netflix: 100 billion events/day, peak 1.3 M events/s, 7-day retention, Super Bowl spikes 5x. LinkedIn 2021: 1.8 trillion messages/day, 4,400 brokers, peak 13 M messages/s.",
+  "solution_steps": [
+   "Netflix average = 100e9 / 86,400 = 1,157,407 events/s; the 1.3 M/s peak is 1.12x average.",
+   "Netflix messages in 7-day retention = 7 x 100 B = 700 billion.",
+   "LinkedIn average = 1.8e12 / 86,400 = 20,833,333 msgs/s, which is above the stated 13 M/s peak; the slide's numbers are inconsistent (a peak cannot be below the average).",
+   "LinkedIn per broker = 1.8e12 / 4,400 = 409,090,909 msgs/day."
+  ],
+  "answer": "Netflix about 1,157,407 events/s average; 700 billion events retained. LinkedIn's 1.8 T/day averages 20,833,333/s, which contradicts its 13 M/s peak.",
+  "variants": [
+   {
+    "q": "A platform logs 43.2 billion events per day. Given: per second = daily / 86,400. Average rate?",
+    "a": "43.2e9 / 86,400 = 500,000 events/s."
+   },
+   {
+    "q": "Average 500,000 events/s; during a cricket final the rate spikes 5x. Peak rate, and how many events pile up in 10 minutes if consumers keep running at the average?",
+    "a": "Peak 2,500,000/s; backlog (2,500,000 - 500,000) x 600 = 1,200,000,000 events, absorbed by Kafka's durable log."
+   }
+  ],
+  "why": {
+   "q": "Why does Kafka's retention help during a 5x spike?",
+   "a": "Producers keep appending to the durable log while consumers fall behind; nothing is lost because messages stay for the retention period (7 days). Consumers such as Flink then catch up within minutes. A queue that deletes on consume, or a push system, would drop or block."
+  },
+  "rank": "likely"
+ },
+ {
+  "id": "w08-kafka-benchmark",
+  "week": 8,
+  "slides": "W08 P2 s4, s11",
+  "card": "w08/kafka-speed",
+  "title": "Kafka paper benchmark: 50.5 MB/s = 505,000 msgs/s (100-byte messages)",
+  "given": "Single broker, 100-byte messages, no replication. Producer: ActiveMQ 4.3 MB/s, RabbitMQ 14.7, Kafka 50.5. Consumer: ActiveMQ 4.0, RabbitMQ 8.2, Kafka 22.0. LinkedIn needed 100 MB/s per broker.",
+  "solution_steps": [
+   "Messages/s = MB/s x 1,000,000 / 100 B: Kafka producer 50.5 -> 505,000; RabbitMQ 14.7 -> 147,000; ActiveMQ 4.3 -> 43,000.",
+   "Producer speedup: 50.5/4.3 = 11.7x over ActiveMQ; 50.5/14.7 = 3.4x over RabbitMQ.",
+   "Consumer: Kafka 22.0 -> 220,000 msgs/s; 22.0/4.0 = 5.5x ActiveMQ; 22.0/8.2 = 2.7x RabbitMQ.",
+   "Against the 100 MB/s target: one benchmark broker gives 50.5, so about 2 brokers per 100 MB/s."
+  ],
+  "answer": "505,000 msgs/s; Kafka producer 11.7x ActiveMQ and 3.4x RabbitMQ; consumer 5.5x and 2.7x.",
+  "variants": [
+   {
+    "q": "A broker sustains 30 MB/s with 200-byte messages. Given: msgs/s = bytes per second / message size. How many messages per second?",
+    "a": "30,000,000 / 200 = 150,000."
+   },
+   {
+    "q": "Kafka consumes at 22.0 MB/s, RabbitMQ at 8.2 MB/s. How long does each take to consume 1.1 GB (1,100 MB)?",
+    "a": "Kafka 1,100/22 = 50 s; RabbitMQ 1,100/8.2 = 134.1 s."
+   }
+  ],
+  "why": {
+   "q": "Why does Kafka's throughput not drop when messages pile up on disk?",
+   "a": "Kafka only appends sequentially and consumers pull by offset, so the broker never tracks per-consumer queues or per-message ACKs. Sequential I/O and the OS page cache keep reads and writes near disk bandwidth regardless of how much is retained."
+  },
+  "rank": "very likely"
+ },
+ {
+  "id": "w08-kafka-replication",
+  "week": 8,
+  "slides": "W08 P1 s16-s17",
+  "card": "w08/kafka-log",
+  "title": "Kafka replication: bkash-txns, 3 partitions, RF = 2",
+  "given": "Topic bkash-txns has 3 partitions with replication factor 2 on 2 brokers. Each partition has 1 leader and R - 1 followers (default R = 3).",
+  "solution_steps": [
+   "Partition copies = P x R = 3 x 2 = 6.",
+   "Each partition survives R - 1 = 1 broker failure.",
+   "Default R = 3: 3 x 3 = 9 copies, survives 2 broker failures.",
+   "Writes go to the leader; followers replicate it."
+  ],
+  "answer": "6 partition copies; survives 1 broker failure (with R = 3: 9 copies, survives 2).",
+  "variants": [
+   {
+    "q": "A topic has 12 partitions with RF = 3. Given: copies = P x R. How many partition replicas are stored?",
+    "a": "12 x 3 = 36."
+   },
+   {
+    "q": "Each replica of that topic holds 50 GB. Total disk used across the cluster?",
+    "a": "36 x 50 = 1,800 GB = 1.8 TB."
+   }
+  ],
+  "why": {
+   "q": "Why does the key go to the same partition every time?",
+   "a": "The producer picks the partition by key hash, so all events for one key (e.g. one txn_id or driver_id) land in one partition, and Kafka preserves order within a partition. That gives per-key ordering while partitions still run in parallel."
+  },
+  "rank": "very likely"
+ },
+ {
+  "id": "w08-lambda-cost",
+  "week": 8,
+  "slides": "W08 P1 s21-s23, s27",
+  "card": "w08/lambda-kappa",
+  "title": "Lambda's cost: 30-40% of effort on dual code paths; serving-layer merge",
+  "given": "Lambda: batch views are 1-24 h stale; speed layer covers data since the last batch. Query = batch view (up to N hours ago) UNION real-time view (last N hours). Teams report 30-40% of engineering effort goes to keeping the two layers consistent.",
+  "solution_steps": [
+   "Team of 10 engineers: 30-40% = 3 to 4 engineers' worth of effort on consistency.",
+   "Nightly batch finishing at 02:00 covers data up to 00:00. A query at 15:00: batch view covers up to 00:00, speed layer covers 00:00-15:00 (15 hours).",
+   "Kappa removes the batch code path, so that 30-40% overhead is the main saving (at the cost of stream-replay throughput)."
+  ],
+  "answer": "3-4 of 10 engineers on sync work; at 15:00 the speed layer must cover the last 15 hours.",
+  "variants": [
+   {
+    "q": "A team of 15 engineers runs Lambda. Given: 30-40% of effort goes to keeping layers consistent. How many engineers' worth of effort is that?",
+    "a": "15 x 0.30 = 4.5 to 15 x 0.40 = 6 engineers."
+   },
+   {
+    "q": "The batch layer recomputes every 6 hours (00:00, 06:00, 12:00, 18:00), each run taking 1 hour. A query arrives at 13:30. What window must the speed layer cover?",
+    "a": "The 12:00 run finishes at 13:00 and covers data up to 12:00, so the speed layer covers 12:00-13:30 (1.5 hours)."
+   }
+  ],
+  "why": {
+   "q": "Why does Lambda need business logic written twice, and why is that costly?",
+   "a": "The batch layer (Spark/Hive) and the speed layer (Spark Streaming/Flink) are different systems, so the same aggregation must be implemented in each. Every logic change must be made in both and kept in sync, the serving layer must merge two results, and two infrastructures must be run."
+  },
+  "rank": "likely"
+ },
+ {
+  "id": "w08-live-kafka",
+  "week": 8,
+  "slides": "W08 P2 s20 (Live Exercise)",
+  "card": "w08/kafka-log",
+  "title": "Live Exercise: 1,000 play events over 20 shows; reset offsets; new group",
+  "given": "Producer sends 1,000 events to play-events with content_id chosen at random from show_0..show_19 and action from [play, pause, seek]. Consumer group cse4345-group, auto_offset_reset=earliest, counts per content_id.",
+  "solution_steps": [
+   "Expected count per show = 1,000 / 20 = 50 (random, so actual counts vary around 50).",
+   "Expected per action = 1,000 / 3 = 333.3.",
+   "Reset the offset to the beginning and re-consume: the same 1,000 messages are read again, so the counts are identical (idempotent result).",
+   "A new group ID has no committed offsets, so with earliest it starts at offset 0 and reads all 1,000."
+  ],
+  "answer": "About 50 per show; replay gives identical counts; a new group starts from offset 0.",
+  "variants": [
+   {
+    "q": "The producer now sends 5,000 events over 25 shows uniformly. Given: expected = events / shows. Expected plays per show?",
+    "a": "5,000 / 25 = 200."
+   },
+   {
+    "q": "A consumer in an existing group has committed offset 600 of 1,000. A second, brand-new group starts with auto_offset_reset=earliest. How many messages does each read next?",
+    "a": "Old group: 400 (offsets 600-999). New group: 1,000 (from offset 0)."
+   }
+  ],
+  "why": {
+   "q": "Why can a Kafka consumer replay data while a traditional queue cannot?",
+   "a": "Kafka retains messages for the retention period and the consumer tracks its own offset, so resetting the offset re-reads history. A traditional queue deletes a message once consumed, so a late or replaying consumer finds nothing."
+  },
+  "rank": "likely"
+ },
+ {
+  "id": "w08-p2p-etl",
+  "week": 8,
+  "slides": "W08 P1 s5-s6",
+  "card": "w08/pipelines",
+  "title": "Point-to-point ETL: 50 systems = 2,450 jobs vs 50 bus connections",
+  "given": "With N systems, direct ETL needs up to N(N-1) connections (O(N^2)). A central message bus needs one connection per system.",
+  "solution_steps": [
+   "Point-to-point = 50 x 49 = 2,450 ETL jobs.",
+   "Bus (Kafka) = 50 connections, one per system.",
+   "Ratio = 2,450 / 50 = 49x fewer integrations.",
+   "Adding a 51st consumer: point-to-point adds up to 2 x 50 = 100 jobs; the bus adds 1 subscription and no source changes."
+  ],
+  "answer": "2,450 jobs vs 50 connections (49x fewer).",
+  "variants": [
+   {
+    "q": "A bank has 20 systems connected point-to-point. Given: jobs = N(N-1). How many ETL jobs?",
+    "a": "20 x 19 = 380."
+   },
+   {
+    "q": "The bank moves to Kafka. How many connections now, and how many fewer than before?",
+    "a": "20 connections; 380 - 20 = 360 fewer (19x)."
+   }
+  ],
+  "why": {
+   "q": "Besides the job count, why does a message bus beat point-to-point ETL?",
+   "a": "Sources and consumers are decoupled: a new consumer subscribes without touching any source. Kafka retains events, so an offline consumer can replay instead of losing data, and events flow in real time instead of nightly batches."
+  },
+  "rank": "very likely"
+ },
+ {
+  "id": "w08-pathao-gps",
+  "week": 8,
+  "slides": "W08 P1 s19",
+  "card": "w08/kafka-log",
+  "title": "Pathao GPS pings every 3 s into 10 partitions keyed by driver_id",
+  "given": "Active drivers publish a GPS ping every 3 seconds to driver-location (10 partitions, keyed by driver_id). Assume 30,000 active drivers (assumption).",
+  "solution_steps": [
+   "Messages per second = 30,000 / 3 = 10,000.",
+   "Per partition (even keys) = 10,000 / 10 = 1,000 msgs/s.",
+   "Per day = 10,000 x 86,400 = 864,000,000 messages.",
+   "Keying by driver_id keeps one driver's pings in order in one partition."
+  ],
+  "answer": "10,000 msgs/s overall, about 1,000 per partition; 864,000,000 per day.",
+  "variants": [
+   {
+    "q": "In Eid traffic Pathao has 60,000 active drivers pinging every 3 s. Given: rate = drivers / interval. What is the message rate?",
+    "a": "60,000 / 3 = 20,000 msgs/s."
+   },
+   {
+    "q": "20,000 msgs/s at 200 bytes each across 10 partitions. Bytes per second per partition?",
+    "a": "20,000 x 200 / 10 = 400,000 B/s = 0.4 MB/s."
+   }
+  ],
+  "why": {
+   "q": "Why do the routing engine and dispatch service consume the same topic independently?",
+   "a": "They are separate consumer groups, each with its own offsets, so each reads every ping at its own pace. Neither slows the other, and adding a third service needs no change to the producer."
+  },
+  "rank": "likely"
+ },
+ {
+  "id": "w08-segments",
+  "week": 8,
+  "slides": "W08 P2 s9-s10",
+  "card": "w08/kafka-log",
+  "title": "Segmented log: which segment holds offset 1,500; 7-day retention",
+  "given": "Partition 0 has segments: seg 0 = offsets 0-999, seg 1 = 1,000-1,999 (closed), active = 2,000+. Each segment has a .log and a .index (offset -> byte position). Old segments are deleted after 7 days.",
+  "solution_steps": [
+   "Find the segment whose base offset is the largest one <= the target: 1,500 is in seg 1 (base 1,000).",
+   "Use seg 1's .index to map offset 1,500 to a byte position, then read the .log from there.",
+   "New messages append only to the active segment (2,000+).",
+   "After 7 days a closed segment is deleted as a whole file; offsets are never reused."
+  ],
+  "answer": "Offset 1,500 is in segment 1; the index gives its byte position.",
+  "variants": [
+   {
+    "q": "Segments roll every 1,000 offsets starting at 0. Given: segment number = floor(offset / 1,000). Which segment holds offset 7,342?",
+    "a": "floor(7,342 / 1,000) = 7, segment 7 (base offset 7,000)."
+   },
+   {
+    "q": "A topic receives 2 GB per day with 7-day retention. How much disk does one replica hold in steady state?",
+    "a": "2 x 7 = 14 GB."
+   }
+  ],
+  "why": {
+   "q": "Why does Kafka delete whole segments instead of single messages?",
+   "a": "Closed segments are immutable files, so deleting one is a single cheap file operation and never disturbs the active segment being appended. Deleting single messages would mean rewriting files in place, breaking sequential I/O."
+  },
+  "rank": "likely"
+ },
+ {
+  "id": "w08-seq-zero-copy",
+  "week": 8,
+  "slides": "W08 P1 s18; W08 P2 s9, s11",
+  "card": "w08/kafka-speed",
+  "title": "Sequential vs random disk and zero-copy: 6x, and 4 copies down to 2",
+  "given": "Paper summary: sequential I/O about 600 MB/s vs random about 100 MB/s (6x). Part 1 slide: 600 MB/s sequential vs <1 MB/s random. Zero-copy: traditional broker makes 4 copies, Kafka's sendfile() makes 2, about 2x throughput.",
+  "solution_steps": [
+   "Using the paper figures: 600 / 100 = 6x.",
+   "Using the Part 1 figures: 600 / 1 = at least 600x (random under 1 MB/s). The two slides disagree; quote the one the question gives.",
+   "Copies removed by zero-copy = 4 - 2 = 2 (the two user-space copies), plus 2 context switches.",
+   "Fewer copies per byte gives about 2x throughput with CPU near zero."
+  ],
+  "answer": "6x by the paper's figures (600x by Part 1's); zero-copy halves copies from 4 to 2 for about 2x throughput.",
+  "variants": [
+   {
+    "q": "A disk does 480 MB/s sequential and 80 MB/s random. Given: advantage = sequential / random. Find it.",
+    "a": "480 / 80 = 6x."
+   },
+   {
+    "q": "A broker sends 1 GB to consumers. With 4 copies per byte, how many GB pass through memory copies? With sendfile()?",
+    "a": "4 GB with the traditional path; 2 GB with zero-copy."
+   }
+  ],
+  "why": {
+   "q": "Why does an append-only log allow sequential disk I/O?",
+   "a": "Kafka never updates a message in place; each new message is written at the end of the active segment. The disk head (or SSD) writes one contiguous stream, and the OS page cache prefetches the next pages for readers, so neither side does random seeks."
+  },
+  "rank": "likely"
+ },
+ {
+  "id": "w09-a1-dghs",
+  "week": 9,
+  "slides": "W09 P1 s11, s30 (Analytical A1)",
+  "card": "w09/shneiderman",
+  "title": "Analytical A1: DGHS dashboard, district cases over 24 months, 5-minute updates",
+  "given": "(a) COVID cases by district over 24 months; (b) hospitalisation rate updated every 5 minutes; (c) age/gender breakdown. Assume 64 districts (general knowledge).",
+  "solution_steps": [
+   "(a) Temporal data: line charts as small multiples by district: 64 x 24 = 1,536 monthly points (choropleth for the geographic snapshot). Challenge: none severe at this size.",
+   "(b) Streaming: Grafana on a time-series DB; 86,400 / 300 = 288 updates per day. Challenge 3 (streaming).",
+   "(c) Categorical/multi-dim: grouped bar chart (age group x gender). Avoid a 3-D pie.",
+   "Tufte: remove heavy gridlines and 3-D effects; Shneiderman: national overview, filter by district, tooltip details on demand."
+  ],
+  "answer": "Small-multiple line charts (1,536 points), Grafana for the 5-min rate (288 updates/day), grouped bars for demographics.",
+  "variants": [
+   {
+    "q": "A dashboard shows 8 divisions over 36 months. Given: points = series x periods. How many data points?",
+    "a": "8 x 36 = 288."
+   },
+   {
+    "q": "A metric updates every 2 minutes. Updates per day?",
+    "a": "86,400 / 120 = 720."
+   }
+  ],
+  "why": {
+   "q": "Why are small multiples better than one animated map for 24 months by district?",
+   "a": "Every panel uses the same scale and is visible at once, so the eye compares districts and months directly. Animation forces the viewer to remember earlier frames. The NYT found the 50-state grid more actionable than an animated map."
+  },
+  "rank": "very likely"
+ },
+ {
+  "id": "w09-a2-streaming",
+  "week": 9,
+  "slides": "W09 P1 s20, s30 (Analytical A2); W09 P1 s24",
+  "card": "w09/streaming-tools",
+  "title": "Analytical A2: streaming sentiment at 10,000 tweets/s, 1-minute windows",
+  "given": "10,000 tweets per second. Pipeline: Kafka -> Spark Structured Streaming (1-minute tumbling window) -> time-series DB -> Grafana (5 s polling) or D3 + WebSocket push. Harvard lab rate: 1,000 tweets/minute.",
+  "solution_steps": [
+   "Tweets per 1-minute window = 10,000 x 60 = 600,000.",
+   "Aggregate per window per topic (mean VADER compound score, count): 10 topics give 10 points per minute instead of 600,000 tweets.",
+   "Browser load: 10 points/min = 14,400 points/day, trivial to render; raw tweets would be 864,000,000 per day.",
+   "Grafana polling at 5 s: 17,280 refreshes/day.",
+   "Harvard lab: 1,000/minute = 16.7 tweets/s, 600x less than this pipeline."
+  ],
+  "answer": "600,000 tweets per 1-min window collapsed to one point per topic; line chart of sentiment over time; Kafka -> Spark Streaming -> InfluxDB/Prometheus -> Grafana (or D3 via WebSocket).",
+  "variants": [
+   {
+    "q": "A pipeline ingests 2,000 events/s and aggregates them in 30-second tumbling windows. Given: events per window = rate x window. How many events per window?",
+    "a": "2,000 x 30 = 60,000."
+   },
+   {
+    "q": "A Grafana panel refreshes every 5 s. How many refreshes per hour, and per day?",
+    "a": "3,600/5 = 720 per hour; 86,400/5 = 17,280 per day."
+   }
+  ],
+  "why": {
+   "q": "Why aggregate in a window before visualising instead of pushing every tweet to the browser?",
+   "a": "A browser cannot render 10,000 new marks per second; it would freeze and the chart would be an overplotted blob. Windowed aggregation reduces velocity to a few points per minute that still show sentiment drift."
+  },
+  "rank": "very likely"
+ },
+ {
+  "id": "w09-anscombe",
+  "week": 9,
+  "slides": "W09 P1 s5",
+  "card": "w09/tufte",
+  "title": "Anscombe's quartet: same mean, variance, r = 0.816, y = 3 + 0.5x",
+  "given": "All four datasets: mean x 9.0, mean y 7.5, variance of x 11.0, r = 0.816, linear fit y = 3 + 0.5x.",
+  "solution_steps": [
+   "Check the fit passes through the means: 3 + 0.5 x 9 = 7.5 = mean y.",
+   "r^2 = 0.816^2 = 0.666: the line 'explains' 66.6% of variance in all four sets.",
+   "Yet I is linear, II curved, III has an outlier, IV is a vertical cluster: identical numbers, four stories."
+  ],
+  "answer": "Identical statistics (r^2 = 0.67) hide four different shapes; always plot first.",
+  "variants": [
+   {
+    "q": "Using the shared fit y = 3 + 0.5x, predict y at x = 14.",
+    "a": "3 + 0.5 x 14 = 10."
+   },
+   {
+    "q": "A dashboard reports r = 0.9 between two metrics. Given: r^2 = share of variance explained. Compute r^2 and state what you would do before trusting it.",
+    "a": "0.9^2 = 0.81 (81%). Plot a scatterplot first: an outlier or a curve could produce the same r."
+   }
+  ],
+  "why": {
+   "q": "Why are summary statistics even more dangerous at big data scale?",
+   "a": "A table of billions of rows can mix populations with opposite trends that average out, skewed distributions make means meaningless, and streams can hide sudden regime changes inside a daily average. A plot reveals what the numbers flatten."
+  },
+  "rank": "very likely"
+ },
+ {
+  "id": "w09-data-cube",
+  "week": 9,
+  "slides": "W09 P1 s19",
+  "card": "w09/latency",
+  "title": "Data cube: 100 billion fact rows pre-aggregated to millions; under 1 s",
+  "given": "Fact table 100 billion rows in Hive. A nightly job materialises a cube over district x date x product x channel; cube size is millions of rows, dashboards answer in < 1 s, data up to 24 h stale. Assume 64 districts (Bangladesh, general knowledge), 365 days, 100 products, 4 channels.",
+  "solution_steps": [
+   "Max cube cells = 64 x 365 x 100 x 4 = 9,344,000 rows.",
+   "Reduction = 100,000,000,000 / 9,344,000 = 10,702x fewer rows to scan.",
+   "All group-by combinations of 4 dimensions = 2^4 = 16 cuboids (general knowledge).",
+   "Trade-off: freshness; the cube is only as recent as the last nightly build (up to 24 h)."
+  ],
+  "answer": "About 9,344,000 cube rows vs 100 B fact rows (~10,702x less); cost = up to 24 h staleness.",
+  "variants": [
+   {
+    "q": "A cube over 8 divisions x 730 days x 50 products x 3 channels. Given: max rows = product of dimension sizes. How many rows?",
+    "a": "8 x 730 x 50 x 3 = 876,000."
+   },
+   {
+    "q": "A fact table of 20 billion rows is reduced to a 5 M-row cube. Reduction factor?",
+    "a": "20e9 / 5e6 = 4,000x."
+   }
+  ],
+  "why": {
+   "q": "When is a data cube the wrong choice, and what is the alternative?",
+   "a": "When the dashboard needs data fresher than the last cube build, or ad-hoc dimensions the cube did not pre-compute. Approximate query processing (sampling, e.g. BlinkDB, DataSketches) answers in milliseconds with an estimate, acceptable for dashboards but not for financial reconciliation."
+  },
+  "rank": "very likely"
+ },
+ {
+  "id": "w09-data-ink",
+  "week": 9,
+  "slides": "W09 P1 s8; W09 P2 s6",
+  "card": "w09/tufte",
+  "title": "Data-ink ratio = ink encoding data / total ink",
+  "given": "Data-ink ratio = ink used to display data / total ink used in the graphic. Example (not on slide): a chart uses 200 units of ink, 60 of which draw the bars.",
+  "solution_steps": [
+   "Ratio = 60 / 200 = 0.3.",
+   "Remove the 3-D effect (40 units), redundant legend (20) and heavy gridlines (60): total becomes 200 - 120 = 80.",
+   "New ratio = 60 / 80 = 0.75."
+  ],
+  "answer": "0.30 before, 0.75 after removing chartjunk.",
+  "variants": [
+   {
+    "q": "A bar chart uses 500 units of ink; 150 draw data. Given: ratio = data ink / total ink. Find the ratio.",
+    "a": "150 / 500 = 0.3."
+   },
+   {
+    "q": "From that chart you erase 250 units of gridlines and borders without touching data. New ratio?",
+    "a": "150 / 250 = 0.6."
+   }
+  ],
+  "why": {
+   "q": "Does a high data-ink ratio mean 'use less ink'?",
+   "a": "No. It is about what the ink encodes, not how much is used: one thick bar showing one important value can have a ratio near 1. The rule is: if erasing an element loses no information, erase it."
+  },
+  "rank": "likely"
+ },
+ {
+  "id": "w09-hexbin",
+  "week": 9,
+  "slides": "W09 P1 s17-s18",
+  "card": "w09/overplotting",
+  "title": "Overplotting: 10 M points to about 10,000 hex cells; alpha = 0.02",
+  "given": "A scatter of 10 million points becomes a grid of about 10,000 hexagonal cells, each coloured by count. Alpha transparency at 0.02 darkens dense regions but saturates.",
+  "solution_steps": [
+   "Reduction = 10,000,000 / 10,000 = 1,000x fewer marks to draw.",
+   "Average points per hex = 1,000.",
+   "Alpha stacking (general formula): opacity after n overlapping points = 1 - (1 - 0.02)^n; n = 100 gives 0.867, n = 300 gives 0.998: dense regions all look the same black."
+  ],
+  "answer": "1,000x fewer marks; alpha saturates near 0.998 after a few hundred points.",
+  "variants": [
+   {
+    "q": "A Pathao heatmap plots 50 million GPS points into 25,000 hex cells. Given: reduction = points / cells. Find it.",
+    "a": "50,000,000 / 25,000 = 2,000x."
+   },
+   {
+    "q": "With alpha = 0.02, what opacity do 50 overlapping points reach? Given: opacity = 1 - (1 - alpha)^n.",
+    "a": "1 - 0.98^50 = 0.636."
+   }
+  ],
+  "why": {
+   "q": "Why does hexbin beat alpha transparency at very high density?",
+   "a": "Alpha only stacks opacity, and after a few hundred overlaps every dense area is the same black, so differences between 500 and 50,000 points vanish. Hexbin counts points per cell and maps the count to colour, so density differences stay visible and only about 10,000 shapes are rendered."
+  },
+  "rank": "very likely"
+ },
+ {
+  "id": "w09-lie-factor",
+  "week": 9,
+  "slides": "W09 P2 s7",
+  "card": "w09/tufte",
+  "title": "Lie factor: +10% in data drawn as a bar that doubles, lie factor about 10",
+  "given": "Lie factor = size of effect shown in graphic / size of effect in data. Y-axis starts at 50; the data rise 10% but the bar appears to double.",
+  "solution_steps": [
+   "Effect in data = +10%.",
+   "Effect shown = bar doubles = +100%.",
+   "Lie factor = 100 / 10 = 10: the graphic overstates the change 10 times."
+  ],
+  "answer": "Lie factor about 10 (truthful = 1).",
+  "variants": [
+   {
+    "q": "Revenue rises from 50 to 55 (+10%). The chart's y-axis starts at 45, so the bars are drawn 5 and 10 units tall. Given: shown effect = (10 - 5)/5. Find the lie factor.",
+    "a": "Shown = +100%; data = +10%; lie factor = 10."
+   },
+   {
+    "q": "Users fall 20% but the chart's shrinking icon shrinks by only 5%. Lie factor?",
+    "a": "5 / 20 = 0.25: it understates the effect."
+   }
+  ],
+  "why": {
+   "q": "Why does a truncated y-axis create a large lie factor, and what is the fix?",
+   "a": "Bar length is read as the quantity. Cutting the axis at 50 removes the common base, so a small difference fills most of the visible bar. Start bar charts at 0 (the D3 Live Exercise requires it)."
+  },
+  "rank": "very likely"
+ },
+ {
+  "id": "w09-live-d3",
+  "week": 9,
+  "slides": "W09 P2 s17 (Live Exercise)",
+  "card": "w09/tufte",
+  "title": "Live Exercise: D3 bar chart, y-axis from 0, scaleLinear range [260, 20]",
+  "given": "5 topics x 7 days = 35 random values; count = floor(random x 50,000) + 10,000. y = d3.scaleLinear().domain([0, max]).range([260, 20]); bar height = 260 - y(count). Suppose max = 50,000.",
+  "solution_steps": [
+   "Count range: 10,000 to 59,999 (random in [0, 1)).",
+   "Pixels per unit = (260 - 20) / 50,000 = 0.0048 px.",
+   "Count 25,000: y = 260 - 25,000/50,000 x 240 = 140; height = 260 - 140 = 120 px.",
+   "Because the domain starts at 0, bar heights are proportional to counts (lie factor 1)."
+  ],
+  "answer": "A 25,000 bar is 120 px tall and its top sits at y = 140.",
+  "variants": [
+   {
+    "q": "Same scale (domain [0, 50,000], range [260, 20]). Given: height = count / 50,000 x 240. Height of a 40,000 bar?",
+    "a": "40,000/50,000 x 240 = 192 px."
+   },
+   {
+    "q": "A student sets the domain to [30,000, 50,000]. Bars of 35,000 and 40,000: heights, and the lie factor of the 40,000 vs 35,000 comparison?",
+    "a": "Heights 60 px and 120 px: drawn +100% for a +14.3% change, lie factor 7."
+   }
+  ],
+  "why": {
+   "q": "Which Tufte and Shneiderman rules does the exercise apply, and why?",
+   "a": "Tufte: no gridlines (or one light reference line), flat colour, y-axis from 0, so ink encodes data and lengths are truthful. Shneiderman: a hover tooltip gives details on demand, and the dropdown filter is the zoom-and-filter step."
+  },
+  "rank": "likely"
+ },
+ {
+  "id": "w09-pie-rule",
+  "week": 9,
+  "slides": "W09 P1 s15; W09 P1 s28 (T/F 1)",
+  "card": "w09/shneiderman",
+  "title": "Pie chart rule: only for 4 or fewer categories and part-of-whole questions",
+  "given": "Pie charts only when there are <= 4 categories and the question is 'what fraction of the whole?'. Above 5 categories use a horizontal bar chart ordered by value.",
+  "solution_steps": [
+   "Count categories and identify the question type.",
+   "Example: 8 districts' share of dengue cases: 8 > 4, so use a horizontal bar chart sorted by value.",
+   "Example: a 3-way split of revenue by channel as a fraction of total: a pie is acceptable."
+  ],
+  "answer": "Pie only for <= 4 categories and part-to-whole; otherwise bar (or line for time).",
+  "variants": [
+   {
+    "q": "A bKash report shows the share of 3 transaction types (send money, cash out, payment) in total volume. Given the <= 4 rule, is a pie acceptable?",
+    "a": "Yes: 3 categories and a part-of-whole question."
+   },
+   {
+    "q": "A report shows monthly sales for 12 months. Pie or not, and what instead?",
+    "a": "No: it is a time series, and 12 slices is far above 4. Use a line chart."
+   }
+  ],
+  "why": {
+   "q": "Why are pie charts read less accurately than bar charts?",
+   "a": "Humans judge angles and arc lengths far less accurately than lengths along a common baseline. A bar chart puts every value on one axis, so small differences are visible."
+  },
+  "rank": "likely"
+ },
+ {
+  "id": "w09-rolling-avg",
+  "week": 9,
+  "slides": "W09 P2 s14-s15",
+  "card": "w09/nyt-case",
+  "title": "NYT COVID tracker: 7-day rolling average; 800 M loads in 2020",
+  "given": "The NYT used 7-day rolling averages to remove day-of-week reporting artefacts; the tracker loaded 800 million times in 2020; 6 million readers per day. Sample daily cases (not on slide): 120, 135, 128, 300, 140, 131, 126.",
+  "solution_steps": [
+   "7-day average = sum / 7 = 1,080 / 7 = 154.3.",
+   "The 300 spike (a reporting backlog) moves the average far less than it moves the daily line.",
+   "800 M loads / 366 days (2020 leap year) = 2,185,792 loads per day."
+  ],
+  "answer": "7-day average = 154.3; about 2,185,792 loads per day.",
+  "variants": [
+   {
+    "q": "Daily dengue cases for 7 days: 210, 190, 205, 400, 195, 200, 180. Given: 7-day average = sum / 7. Compute it.",
+    "a": "1,580 / 7 = 225.7."
+   },
+   {
+    "q": "Next day's count is 220, and 210 drops out of the window. New 7-day average?",
+    "a": "(1,580 - 210 + 220) / 7 = 227.1."
+   }
+  ],
+  "why": {
+   "q": "Why do the slides call rolling averages an editorial decision?",
+   "a": "The window length changes the story: 7-day smooths weekday reporting dips; 14-day hides more noise but reacts more slowly to a real surge. The choice decides what readers see, so it carries ethical weight."
+  },
+  "rank": "likely"
+ },
+ {
+  "id": "w10-3hop",
+  "week": 10,
+  "slides": "W10 P2 s15 (Discussion Q1); W10 P2 s6",
+  "card": "w10/social-graph",
+  "title": "Discussion Q1: misinformation reach within 3 hops at out-degree 45",
+  "given": "Twitter: average shortest path 4.12 hops over 41.7 M users. A tweet is retweeted by a high-PageRank account. Assume an average out-degree of 45 and estimate reach within 3 hops.",
+  "solution_steps": [
+   "Hop 1: 45 users.",
+   "Hop 2: 45^2 = 2,025.",
+   "Hop 3: 45^3 = 91,125.",
+   "Total within 3 hops = 45 + 2,025 + 91,125 = 93,195, about 0.22% of 41.7 M users.",
+   "It is an overestimate: real networks are clustered (followers share followers), so the same users are counted many times; reciprocity (22.1%) and overlapping neighbourhoods mean paths loop back."
+  ],
+  "answer": "Upper bound 93,195 users; an overestimate because of clustering/overlapping neighbourhoods (the tree assumption ignores repeated users).",
+  "variants": [
+   {
+    "q": "A Bangla-language rumour starts at an account whose followers each have 30 followers on average. Given: reach in h hops = d + d^2 + ... + d^h. Reach within 2 hops?",
+    "a": "30 + 900 = 930."
+   },
+   {
+    "q": "Same d = 30, 3 hops: what does hop 3 add, and what is the new total?",
+    "a": "30^3 = 27,000; total 27,930."
+   }
+  ],
+  "why": {
+   "q": "Why does a tweet from a high-PageRank account spread further than one from an account with more raw followers?",
+   "a": "PageRank weights followers by their own influence: being followed by influential users who re-share matters more than a big but passive audience. Kwak et al. found PageRank and follower-count rankings differ substantially."
+  },
+  "rank": "very likely"
+ },
+ {
+  "id": "w10-a1-flu",
+  "week": 10,
+  "slides": "W10 P1 s35 (Analytical A1); W10 P2 s15 (Discussion Q3)",
+  "card": "w10/flu-surveillance",
+  "title": "Analytical A1: flu early-warning for Bangladesh from social posts and pharmacy sales",
+  "given": "Sources: Twitter/Facebook posts and pharmacy purchase records. Validate against DGHS ground truth. Example: 120 pharmacies upload hourly; 2 million posts per day (assumptions).",
+  "solution_steps": [
+   "Ingest: social posts via REST API -> Kafka; pharmacy POS: Kafka producers (real time) or nightly Sqoop from their RDBMS.",
+   "Load: 120 pharmacies x 24 uploads = 2,880 files/day; 2 M posts / 86,400 = 23.1 posts/s.",
+   "Features: keyword counts (flu, fever, can't taste), VADER sentiment, spike ratio vs baseline per district; pharmacy: daily antipyretic units, ratio to a 7-day baseline.",
+   "Model: Prophet with social and pharmacy signals as covariates (they lead by days); validate by back-testing against DGHS case counts week by week.",
+   "Ethics: privacy (aggregate by district, de-identify), misinformation-driven false alarms, Bangla-English code-switching bias."
+  ],
+  "answer": "Kafka ingestion, NLP + pharmacy ratio features, Prophet with exogenous signals, validation on DGHS history, privacy by aggregation.",
+  "variants": [
+   {
+    "q": "Antipyretic sales in a district average 400 units/day over the last 7 days; today 1,000 units sold. Given: spike = today / baseline. Spike ratio?",
+    "a": "1,000 / 400 = 2.5x."
+   },
+   {
+    "q": "An alert fires when the ratio exceeds 2.0. Another district sells 700 against a baseline of 380. Does it alert?",
+    "a": "700 / 380 = 1.84 < 2.0, so no alert."
+   }
+  ],
+  "why": {
+   "q": "Why validate against DGHS ground truth before using the system for policy?",
+   "a": "Proxy signals can drift for non-medical reasons (Google Flu Trends over-predicted 2x). Back-testing on past DGHS counts shows whether the lead time is real and how often false alarms happen before anyone acts on them."
+  },
+  "rank": "very likely"
+ },
+ {
+  "id": "w10-alphafold",
+  "week": 10,
+  "slides": "W10 P1 s25-s26, s32",
+  "card": "w10/health-data",
+  "title": "AlphaFold scale: 170,000 PDB structures -> 200 M predictions; 250 M UniProt sequences",
+  "given": "Trained on 170,000 experimentally determined structures; released 200 million predicted structures (2022). MSA search over 250 million UniProt sequences (>200 GB compressed). Training used 128 TPU v3 cores. Median GDT > 92%.",
+  "solution_steps": [
+   "Predictions per training structure = 200,000,000 / 170,000 = 1,176x.",
+   "Average compressed size per UniProt sequence = 200 GB / 250 M = 800 bytes.",
+   "Each prediction searches all 250 M sequences to build the MSA, which is why it is a big data problem."
+  ],
+  "answer": "About 1,176x more predicted structures than training structures; about 800 bytes per sequence.",
+  "variants": [
+   {
+    "q": "A lab predicts 2 million structures from a model trained on 20,000. Given: ratio = predicted / trained. Ratio?",
+    "a": "2,000,000 / 20,000 = 100x."
+   },
+   {
+    "q": "If X-ray crystallography takes 6 months per protein, how many protein-years would 200 M structures take?",
+    "a": "200 M x 0.5 = 100,000,000 protein-years."
+   }
+  ],
+  "why": {
+   "q": "Why is AlphaFold a big data problem and not just a deep learning one?",
+   "a": "Its input for each protein is a multiple sequence alignment built by searching 250 M sequences from millions of genomes, and training used the whole PDB plus UniRef90. The model works because of that scale of evolutionary data."
+  },
+  "rank": "likely"
+ },
+ {
+  "id": "w10-clinical",
+  "week": 10,
+  "slides": "W10 P1 s23-s24",
+  "card": "w10/health-data",
+  "title": "Clinical ML claims: readmission down 20%, sepsis 6 h early, AUROC > 0.90",
+  "given": "Gradient boosting on discharge records reduces 30-day readmissions by 20%. Streaming sepsis model detects onset 6 hours before clinical criteria. ICU mortality model AUROC > 0.90. Needs 1 million+ records. HIPAA Safe Harbour removes 18 identifiers.",
+  "solution_steps": [
+   "Readmissions: 1,500 per year x (1 - 0.20) = 1,200; 300 avoided.",
+   "Sepsis onset by clinical criteria at 14:00 -> model alert at 08:00.",
+   "De-identification: a record with name, DOB, phone, NID and zip has all 5 removed under Safe Harbour (part of the 18)."
+  ],
+  "answer": "1,500 readmissions become 1,200 (300 avoided); sepsis flagged 6 hours earlier.",
+  "variants": [
+   {
+    "q": "A Dhaka hospital has 800 readmissions per year. Given: the model cuts readmissions by 20%. How many remain?",
+    "a": "800 x 0.8 = 640."
+   },
+   {
+    "q": "Clinical criteria would flag sepsis at 03:00. When does the streaming model flag it?",
+    "a": "6 hours earlier: 21:00 the previous evening."
+   }
+  ],
+  "why": {
+   "q": "Why do these models need streaming infrastructure and a million records?",
+   "a": "Sepsis warning only helps if vitals are scored as they arrive (Kafka + Spark Streaming); a nightly batch would be too late. A million+ records are needed so the model generalises across patients rather than memorising one hospital."
+  },
+  "rank": "likely"
+ },
+ {
+  "id": "w10-genomics",
+  "week": 10,
+  "slides": "W10 P1 s21",
+  "card": "w10/health-data",
+  "title": "Genomics storage: 200 GB per genome x 10,000 patients = 2 PB",
+  "given": "A single whole-genome sequence is about 200 GB. A clinical study of 10,000 patients. DICOM images are 200 MB to 2 GB each.",
+  "solution_steps": [
+   "Total = 200 GB x 10,000 = 2,000,000 GB.",
+   "= 2,000 TB = 2 PB.",
+   "With HDFS 3x replication: 6 PB of raw disk."
+  ],
+  "answer": "2 PB (6 PB raw with 3x replication).",
+  "variants": [
+   {
+    "q": "A Bangladesh study sequences 2,500 patients at 200 GB each. Given: total = genomes x size. Total storage?",
+    "a": "2,500 x 200 = 500,000 GB = 500 TB."
+   },
+   {
+    "q": "A hospital stores 50,000 CT scans averaging 500 MB. Total, and with 3x replication?",
+    "a": "50,000 x 0.5 GB = 25,000 GB = 25 TB; 75 TB replicated."
+   }
+  ],
+  "why": {
+   "q": "Why are genomics and imaging not handled with plain SQL tables?",
+   "a": "Genomes are huge and processed by specialised pipelines (Parquet + GATK on Spark); DICOM images are unstructured binary files analysed by deep learning (CNN, ViT). They need distributed file/object storage and ML, not row-column queries."
+  },
+  "rank": "very likely"
+ },
+ {
+  "id": "w10-gft",
+  "week": 10,
+  "slides": "W10 P1 s29; W10 P2 s14-s15",
+  "card": "w10/flu-surveillance",
+  "title": "Google Flu Trends: r = 0.97 in training, then over-predicted by 2x",
+  "given": "GFT correlated 45 search queries with ILINet; initial r = 0.97 on 2003-2008 data. In 2012-13 it over-predicted flu by 2x. Twitter signals arrive 2 weeks earlier than ILINet but with 30% higher error.",
+  "solution_steps": [
+   "r^2 = 0.97^2 = 0.9409: 94.1% of variance explained in training.",
+   "Over-prediction by 2x: true ILI rate 3% -> GFT predicted 6%.",
+   "Twitter error: if ILINet-based error is 10%, Twitter's is 10 x 1.3 = 13% (30% higher), but 2 weeks sooner.",
+   "Three causes (Lazer 2014): big-data hubris, autocomplete changed the features, media coverage drove searches."
+  ],
+  "answer": "r^2 = 0.94 in-sample, yet a 2x over-prediction out of sample.",
+  "variants": [
+   {
+    "q": "True ILI in a week was 2.4%. GFT over-predicted by 2x. Given: predicted = 2 x true. What did GFT report?",
+    "a": "2 x 2.4 = 4.8%."
+   },
+   {
+    "q": "A model's correlation with ground truth is r = 0.9. What fraction of variance does it explain, and does that guarantee future accuracy?",
+    "a": "0.9^2 = 0.81 (81%). No: in-sample fit does not guarantee out-of-sample accuracy when the data-generating process changes."
+   }
+  ],
+  "why": {
+   "q": "Why must syndromic signals supplement, not replace, clinical surveillance?",
+   "a": "Proxy data measure behaviour (searching, tweeting) that can shift for reasons unrelated to illness, such as media panic or a search-engine change. They give lead time, not ground truth, so they are combined with ILINet/BioSense reports."
+  },
+  "rank": "likely"
+ },
+ {
+  "id": "w10-influence",
+  "week": 10,
+  "slides": "W10 P1 s10",
+  "card": "w10/social-graph",
+  "title": "Influence maximisation: greedy achieves at least (1 - 1/e) of optimal",
+  "given": "Choosing k seed nodes for maximum spread is NP-hard (Kempe et al., KDD 2003); the greedy algorithm guarantees at least (1 - 1/e) of the optimal spread.",
+  "solution_steps": [
+   "1 - 1/e = 1 - 0.3679 = 0.6321, about 63%.",
+   "If the best possible seeding reaches 100,000 users, greedy reaches at least 63,212.",
+   "Greedy: repeatedly add the node with the largest marginal gain in spread."
+  ],
+  "answer": "Greedy reaches at least 63.2% of optimal.",
+  "variants": [
+   {
+    "q": "A campaign's optimal 10-seed spread is 40,000 users. Given: greedy >= 0.632 x optimal. Minimum greedy spread?",
+    "a": "0.632 x 40,000 = 25,280."
+   },
+   {
+    "q": "Greedy reached 25,000 users. What is the most the optimal spread could be?",
+    "a": "25,000 / 0.632 = 39,557 (39,549 with the exact 1 - 1/e = 0.6321)."
+   }
+  ],
+  "why": {
+   "q": "Why settle for an approximation instead of the optimal seed set?",
+   "a": "Finding the optimum is NP-hard: checking every k-subset of millions of nodes is infeasible. Greedy runs in practical time with a proven 63% guarantee."
+  },
+  "rank": "likely"
+ },
+ {
+  "id": "w10-iqr",
+  "week": 10,
+  "slides": "W10 P1 s18",
+  "card": "w10/anomaly",
+  "title": "STL anomaly rule: flag |residual| > k x IQR of residuals",
+  "given": "STL splits a series into trend, seasonal and residual, and flags residuals whose absolute value exceeds k x IQR. Example (not on slide): residual Q1 = -0.65, Q3 = 1.25, k = 3.",
+  "solution_steps": [
+   "IQR = Q3 - Q1 = 1.25 - (-0.65) = 1.9.",
+   "Threshold = 3 x 1.9 = 5.7.",
+   "Residuals [1.2, -0.8, 0.5, 2.0, -1.5, 9.4, 0.3, -0.2]: only 9.4 has |r| > 5.7, so that hour is the anomaly."
+  ],
+  "answer": "IQR 1.9, threshold 5.7; the residual 9.4 is flagged.",
+  "variants": [
+   {
+    "q": "bKash residuals for one agent have Q1 = -2 and Q3 = 4. Given: IQR = Q3 - Q1 = 6 and k = 2. What is the flag threshold?",
+    "a": "2 x 6 = 12: flag |residual| > 12."
+   },
+   {
+    "q": "With that threshold (12), which residuals are flagged: 5, -14, 11, 30?",
+    "a": "-14 and 30 (|-14| = 14 > 12, 30 > 12)."
+   }
+  ],
+  "why": {
+   "q": "Why flag the residual and not the raw value?",
+   "a": "The raw value includes trend and seasonality: a high Friday-evening value may be normal. Once STL removes the expected trend and season, what is left is the unexplained part, so a big residual means truly unusual behaviour. IQR is robust to the outliers it is trying to find."
+  },
+  "rank": "likely"
+ },
+ {
+  "id": "w10-kwak-stats",
+  "week": 10,
+  "slides": "W10 P2 s4-s7; W10 P1 s7",
+  "card": "w10/social-graph",
+  "title": "Kwak 2010: 41.7 M users, 1.47 B edges, 22.1% reciprocity, alpha 2.276",
+  "given": "41.7 M users, 1.47 billion following edges, 106 M tweets. 77.9% of users have a follower they do not follow back; 22.1% of relationships mutual. Power law P(k) ∝ k^-2.276. Top 0.05% have >1 M followers. 85% of trending topics are news; median trend lasts 17.5 h.",
+  "solution_steps": [
+   "Average out-degree = 1.47e9 / 41.7e6 = 35.25 follows per user.",
+   "Mutual relationships = 22.1% of 1.47 B = 324.87 million.",
+   "Top 0.05% of 41.7 M = 20,850 users with >1 M followers.",
+   "Power law: doubling k cuts P(k) by 2^2.276 = 4.84x.",
+   "Of 200 trending topics, 85% = 170 news, 15% = 30 memes."
+  ],
+  "answer": "Average 35.3 follows per user; 20,850 celebrities; P(k) falls 4.8x when k doubles.",
+  "variants": [
+   {
+    "q": "A graph has 2 million users and 70 million directed edges. Given: average out-degree = edges / users. Compute it.",
+    "a": "70e6 / 2e6 = 35."
+   },
+   {
+    "q": "In that graph 22.1% of edges are reciprocated. How many mutual edges?",
+    "a": "0.221 x 70e6 = 15,470,000."
+   }
+  ],
+  "why": {
+   "q": "Why do the low reciprocity and fast trending make Twitter a 'news medium' rather than a social network?",
+   "a": "Most following is one-way broadcasting from a few hubs to many followers (77.9% asymmetry, power-law in-degree), and 85% of trending topics are headline news peaking within 15 minutes. It behaves like a news wire, which is why it became a public-health surveillance signal."
+  },
+  "rank": "very likely"
+ },
+ {
+  "id": "w10-lead-times",
+  "week": 10,
+  "slides": "W10 P1 s28; W10 P2 s13",
+  "card": "w10/flu-surveillance",
+  "title": "Syndromic lead times: Twitter 7-10 days, pharmacy 3-5 days, CDC lag 1-2 weeks",
+  "given": "Physician reports reach CDC 1-2 weeks after symptoms. Twitter posts with 'flu', 'fever', 'can't taste' peak 7-10 days before ER visits. OTC antipyretic sales spike 3-5 days before clinical confirmation. ILINet: >3,000 sentinel physicians; BioSense: 3,500+ EDs.",
+  "solution_steps": [
+   "ER visits peak on 20 October.",
+   "Twitter signal peaks 7-10 days earlier: 10-13 October.",
+   "Taking 20 October as the clinical confirmation date, the pharmacy spike comes 3-5 days earlier: 15-17 October.",
+   "Traditional report reaches CDC 1-2 weeks after symptoms: 27 October to 3 November (if symptoms start 20 October)."
+  ],
+  "answer": "Twitter about 10-13 Oct, pharmacy 15-17 Oct, ER peak 20 Oct, CDC reports 27 Oct-3 Nov.",
+  "variants": [
+   {
+    "q": "Dengue ER visits in Dhaka peak on 15 September. Given: social posts peak 7-10 days before ER visits. When does the social signal peak?",
+    "a": "5-8 September."
+   },
+   {
+    "q": "Clinical confirmation is on 12 March. Given: pharmacy sales spike 3-5 days earlier. When is the spike?",
+    "a": "7-9 March."
+   }
+  ],
+  "why": {
+   "q": "Why do pharmacy sales lead clinical confirmation?",
+   "a": "People self-medicate with paracetamol or ibuprofen as soon as symptoms start, days before they see a doctor and long before a diagnosis is reported. Sales data capture illness at that earlier stage."
+  },
+  "rank": "likely"
+ },
+ {
+  "id": "w10-live-prophet",
+  "week": 10,
+  "slides": "W10 P2 s17 (Live Exercise); W10 P2 s10, s15 (Discussion Q2)",
+  "card": "w10/forecasting",
+  "title": "Live Exercise: synthetic weekly ILI = 5 + 3 sin(2πt/52 - π/2) + noise",
+  "given": "156 weekly points (3 years). ili = 5 + 3 sin(2π t / 52 - π/2) + N(0, 0.5), clipped at 0. Fit Prophet with yearly and weekly seasonality, forecast 12 weeks, add an Eid holiday (upper_window 3), change changepoint_prior_scale 0.05 -> 0.5.",
+  "solution_steps": [
+   "t = 0: 5 + 3 sin(-π/2) = 2 (trough).",
+   "t = 13: 5 + 3 sin(0) = 5.",
+   "t = 26: 5 + 3 sin(π/2) = 8 (peak).",
+   "Period 52 weeks = 1 year; 156 / 52 = 3 seasons.",
+   "Forecast 12 weeks beyond week 155 (weeks 156-167).",
+   "changepoint_prior_scale 0.05 -> 0.5 is 10x looser: the trend bends more easily (more flexible, risk of overfitting).",
+   "Discussion Q2: a sudden COVID wave is a trend changepoint, caught by g(t); the changepoint_prior_scale sets how readily new changepoints are accepted."
+  ],
+  "answer": "Trough 2 at week 0, mean 5 at week 13, peak 8 at week 26; 3 full seasons; prior scale raised 10x.",
+  "variants": [
+   {
+    "q": "Same formula. Given: sin(2π·39/52 - π/2) = sin(π) = 0. What is the expected ILI at week 39?",
+    "a": "5 + 3 x 0 = 5."
+   },
+   {
+    "q": "A model's yearly Fourier seasonality uses N = 10 terms (each with a cos and a sin coefficient). How many seasonal coefficients are fitted? Add weekly with N = 3.",
+    "a": "Yearly 2 x 10 = 20; weekly 2 x 3 = 6; total 26."
+   }
+  ],
+  "why": {
+   "q": "Why does Prophet's g + s + h structure suit epidemiologists better than a black-box model?",
+   "a": "Each component can be inspected and adjusted on its own: trend changepoints, annual flu season, holiday effects such as Eid. Domain experts can audit and tune it without ARIMA expertise, and the additive form absorbs spikes without corrupting the trend."
+  },
+  "rank": "likely"
+ },
+ {
+  "id": "w10-scale-rates",
+  "week": 10,
+  "slides": "W10 P1 s8; W10 P2 s10, s14",
+  "card": "w10/social-graph",
+  "title": "Social and surveillance scale: YouTube 500 h/min, 500 M tweets/day, BioSense 38 M visits",
+  "given": "YouTube: 500 hours uploaded per minute. Twitter/X: 500 M tweets/day. BioSense 2019-20: 38 million ED visits; Prophet ran on 60 HHS regions in parallel; 3,500+ EDs. Facebook ran Prophet on 500,000+ series.",
+  "solution_steps": [
+   "YouTube per day = 500 x 60 x 24 = 720,000 hours of video.",
+   "Tweets per second = 500e6 / 86,400 = 5,787.",
+   "ED visits per ED = 38e6 / 3,500 = 10,857 per season.",
+   "500,000 Prophet series on 1,000 executors = 500 series each."
+  ],
+  "answer": "720,000 hours/day of video; about 5,787 tweets/s; about 10,857 visits per ED.",
+  "variants": [
+   {
+    "q": "A platform receives 100 million posts per day. Given: per second = daily / 86,400. Rate?",
+    "a": "100e6 / 86,400 = 1,157 posts/s."
+   },
+   {
+    "q": "60 HHS regions are forecast in parallel with applyInPandas on 12 executors. How many region models per executor?",
+    "a": "60 / 12 = 5."
+   }
+  ],
+  "why": {
+   "q": "Why does the slide say social media's graph, not the individual post, is the main analytical object?",
+   "a": "Influence, communities and cascades are properties of who follows and retweets whom. Single posts are short and noisy; the network structure explains how information spreads."
+  },
+  "rank": "likely"
+ },
+ {
+  "id": "w10-sku-40x",
+  "week": 10,
+  "slides": "W10 P1 s19; W10 P1 s35 (Analytical A2)",
+  "card": "w10/forecasting",
+  "title": "Vectorised Prophet: 5,000 SKUs, 8 h to about 12 min on 20 executors (40x)",
+  "given": "90-day forecasts for 5,000 store-product SKUs. Sequential Prophet on one machine: 8+ hours. Spark applyInPandas, grouped by sku_id, on a 20-executor cluster: about 12 minutes.",
+  "solution_steps": [
+   "Speedup = 8 x 60 / 12 = 40x.",
+   "Models per executor = 5,000 / 20 = 250.",
+   "Sequential time per model = 480 min / 5,000 = 5.76 s.",
+   "One model at a time per executor would take 250 x 5.76 s = 24 min; the measured 12 min is half that, which implies about 2 models running at once per executor (multi-core executors; inference, not stated on the slide).",
+   "Forecast output rows = 5,000 x 90 = 450,000."
+  ],
+  "answer": "40x speedup; 250 models per executor; 450,000 forecast rows.",
+  "variants": [
+   {
+    "q": "A chain has 12,000 SKUs; Prophet takes 6 s per SKU on one machine. Given: sequential time = SKUs x time per model. How long sequentially?",
+    "a": "12,000 x 6 = 72,000 s = 20 h."
+   },
+   {
+    "q": "Run that on 40 executors with perfect parallelism. Models per executor and wall-clock time?",
+    "a": "12,000 / 40 = 300 models; 300 x 6 s = 1,800 s = 30 min."
+   }
+  ],
+  "why": {
+   "q": "Why is fitting thousands of Prophet models 'embarrassingly parallel'?",
+   "a": "Each SKU's series is fitted independently with no data shared between models. Spark groups rows by sku_id, sends each group to one task, and runs Prophet inside a Pandas UDF, so all models fit at once across the cluster."
+  },
+  "rank": "very likely"
+ },
+ {
+  "id": "w10-spike",
+  "week": 10,
+  "slides": "W10 P1 s12, s18",
+  "card": "w10/sentiment-trend",
+  "title": "Trend and anomaly spikes: 10 to 10,000 per hour = 1,000x; #QurbaniEid 1,200x",
+  "given": "A phrase normally appears 10 times/hour and suddenly 10,000 times/hour: trending regardless of absolute volume. #QurbaniEid showed a 1,200x spike over 6 hours with 92% positive sentiment. A bKash agent's hourly volume jumps from 10 to 10,000 transactions.",
+  "solution_steps": [
+   "Spike ratio = current rate / baseline = 10,000 / 10 = 1,000x.",
+   "The rule is relative: a phrase going 1,000 to 10,000 (10x) trends less than one going 10 to 10,000.",
+   "#QurbaniEid: if the baseline was 50 per hour, 1,200x gives 60,000 per hour.",
+   "92% positive of 60,000 tweets = 55,200 positive."
+  ],
+  "answer": "1,000x spike ratio; same arithmetic flags the bKash agent for Isolation Forest review.",
+  "variants": [
+   {
+    "q": "A hashtag's baseline is 25 posts/hour; it now has 15,000/hour. Given: spike = current / baseline. Spike ratio?",
+    "a": "15,000 / 25 = 600x."
+   },
+   {
+    "q": "A hashtag has 40,000 posts in a spike; VADER marks 92% positive. How many are not positive?",
+    "a": "40,000 x 0.08 = 3,200."
+   }
+  ],
+  "why": {
+   "q": "Why does trend detection use the ratio to the baseline instead of the absolute count?",
+   "a": "Big topics are always high-volume, so absolute counts would always show the same things. A ratio to each phrase's own history finds sudden change, which is what 'trending' means. (High sentiment like 92% positive also helped show the spike was organic, not coordinated.)"
+  },
+  "rank": "very likely"
+ },
+ {
+  "id": "w10-vader",
+  "week": 10,
+  "slides": "W10 P1 s11",
+  "card": "w10/sentiment-trend",
+  "title": "VADER compound score thresholds: > 0.05 positive, < -0.05 negative",
+  "given": "VADER outputs a compound score in [-1, +1]: positive if > 0.05, negative if < -0.05, otherwise neutral. Sample scores (not on slide): 0.62, 0.04, -0.03, -0.41, 0.05.",
+  "solution_steps": [
+   "0.62: positive.",
+   "0.04: neutral.",
+   "-0.03: neutral.",
+   "-0.41: negative.",
+   "0.05: neutral.",
+   "Share positive = 1/5 = 20%. Note 0.05 itself is neutral (the rule is strictly greater)."
+  ],
+  "answer": "1 positive, 3 neutral, 1 negative.",
+  "variants": [
+   {
+    "q": "Three tweets score 0.30, -0.06 and 0.05. Given the thresholds, classify each.",
+    "a": "0.30 positive; -0.06 negative; 0.05 neutral."
+   },
+   {
+    "q": "'great' scores 0.62. Name two VADER rules that would raise the score of 'GREAT!!!'.",
+    "a": "Capitalisation (GREAT > great) and punctuation (great!!! > great) both intensify it."
+   }
+  ],
+  "why": {
+   "q": "Why use VADER instead of a general-purpose sentiment model on tweets?",
+   "a": "VADER is a lexicon-and-rule model tuned for social media: it handles capitals, exclamation marks, degree words, negation and emojis, which dominate short noisy posts. It is cheap enough to run as a Spark UDF on every tweet."
+  },
+  "rank": "likely"
+ }
+]

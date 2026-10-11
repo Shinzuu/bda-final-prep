@@ -1,0 +1,3078 @@
+[
+ {
+  "id": "w05-hadoop1-vs-yarn",
+  "week": 5,
+  "slides": "P1 s7, s9; P2 s4, s6, s12; P1 s29 (MCQ Q4)",
+  "x": "Hadoop 1.x (JobTracker)",
+  "y": "Hadoop 2.x (YARN)",
+  "rows": [
+   [
+    "Design",
+    "JobTracker = resource mgmt + job scheduling in one monolith",
+    "ResourceManager (global scheduler) separated from per-job ApplicationMaster"
+   ],
+   [
+    "Max nodes",
+    "~4,000",
+    ">10,000"
+   ],
+   [
+    "Frameworks",
+    "MR only",
+    "Any (Spark, Tez, Samza ...)"
+   ],
+   [
+    "Resource unit",
+    "Slot (fixed)",
+    "Container (flexible)"
+   ],
+   [
+    "AM",
+    "In JobTracker",
+    "Per-app process"
+   ],
+   [
+    "RM HA",
+    "No",
+    "Yes (ZooKeeper)"
+   ]
+  ],
+  "key": "Hadoop 1.x's single JobTracker mixed resource management with MapReduce job scheduling (MapReduce only, ~4,000-node ceiling); YARN (Hadoop 2.0, 2013) split this into a global ResourceManager and a per-job ApplicationMaster, so any framework can share a 10,000+ node cluster.",
+  "cue": "If the question describes a cluster that can only run MapReduce, stalls near 4,000 nodes, or one daemon doing both scheduling and job tracking, the answer is Hadoop 1.x / JobTracker; if Spark, Tez and MapReduce share one cluster, it is YARN.",
+  "likelihood": "high",
+  "card_id": "yarn-arch"
+ },
+ {
+  "id": "w05-rm-vs-am",
+  "week": 5,
+  "slides": "P1 s10-11; P2 s7, s11; P1 s28 (MCQ Q1 note)",
+  "x": "ResourceManager (RM)",
+  "y": "ApplicationMaster (AM)",
+  "rows": [
+   [
+    "How many",
+    "One per cluster, on a dedicated master node",
+    "One per running job (application)"
+   ],
+   [
+    "Role",
+    "Global cluster resource scheduler",
+    "The job's own scheduler"
+   ],
+   [
+    "Parts / duties",
+    "Scheduler (allocates containers; FIFO/Fair/Capacity) + ApplicationsManager (accepts jobs, starts first container for each AM)",
+    "Requests containers from RM, tells NM to launch tasks, monitors progress, re-requests for failed tasks, releases containers"
+   ],
+   [
+    "Framework knowledge",
+    "Framework-agnostic",
+    "Holds the framework-specific logic (MR AM, Spark AM, Tez AM, Samza AM)"
+   ],
+   [
+    "If it fails",
+    "YARN 2.4+: ZooKeeper Active/Standby RM, failover < 60 s",
+    "RM restarts the AM (max attempts, default 2)"
+   ],
+   [
+    "Slide example",
+    "Grants 80 containers (cluster busy)",
+    "Spark AM requests 100 containers (4 cores, 8 GB each)"
+   ]
+  ],
+  "key": "The ResourceManager is the single global scheduler that hands out containers for the whole cluster, while an ApplicationMaster is a per-job process that negotiates containers from the RM and runs that one job's tasks.",
+  "cue": "If the question says 'one per cluster / decides which application gets which containers', the answer is the ResourceManager; if it says 'one per job / requests containers on behalf of the job / restarts failed tasks', it is the ApplicationMaster.",
+  "likelihood": "high",
+  "card_id": "yarn-arch"
+ },
+ {
+  "id": "w05-nm-fail-vs-am-fail",
+  "week": 5,
+  "slides": "P2 s11; P1 s12; P1 s32 (A2)",
+  "x": "NodeManager failure",
+  "y": "ApplicationMaster failure",
+  "rows": [
+   [
+    "Detected by",
+    "RM, via missing heartbeat (>10 min)",
+    "RM"
+   ],
+   [
+    "State change",
+    "All containers on that node marked failed",
+    "AM attempt counted (yarn.resourcemanager.am.max-attempts, default 2)"
+   ],
+   [
+    "Recovery",
+    "AM is notified and re-requests containers elsewhere",
+    "RM restarts a new AM"
+   ],
+   [
+    "Job state",
+    "Tasks re-run in new containers",
+    "New AM recovers state from HDFS checkpoints if the framework supports it (MapReduce: yes; early Spark: no)"
+   ],
+   [
+    "Third case (RM failure)",
+    "-",
+    "YARN 2.4+: ZooKeeper promotes Standby RM in < 60 s"
+   ]
+  ],
+  "key": "A NodeManager failure is caught by the RM through missed heartbeats and the job's AM re-requests the lost containers elsewhere, whereas an AM failure is handled by the RM restarting the AM itself (default 2 attempts), recovering state from HDFS checkpoints if supported.",
+  "cue": "If the question traces a worker node (e.g. NM2 with 5 containers) dying mid-job, the answer is the NodeManager-failure path (heartbeat timeout -> containers failed -> AM re-requests); if the job's coordinator dies, it is the AM-restart path.",
+  "likelihood": "high",
+  "card_id": "yarn-fault"
+ },
+ {
+  "id": "w05-capacity-vs-fair",
+  "week": 5,
+  "slides": "P1 s13-14; P2 s10, s17, s21",
+  "x": "Capacity Scheduler",
+  "y": "Fair Scheduler",
+  "rows": [
+   [
+    "Policy",
+    "Cluster divided into queues with guaranteed capacity; elastically borrows unused capacity",
+    "All jobs get equal share of resources"
+   ],
+   [
+    "Slide example",
+    "Engineering 60% / Finance 40%; a2i queues 60/30/10; LinkedIn 6 queues (production 40%)",
+    "Latency-sensitive short jobs complete quickly even if a large job is running"
+   ],
+   [
+    "Default in / used by",
+    "HDP/CDH; Yahoo!, LinkedIn",
+    "Cloudera; Facebook, Twitter"
+   ],
+   [
+    "Strength",
+    "SLAs: production queue guaranteed minimum; adhoc queries cannot starve revenue pipelines",
+    "Small jobs get fast turnaround"
+   ],
+   [
+    "Contrast with FIFO",
+    "FIFO: one queue, submission order; one long job starves all others",
+    "FIFO not suitable for multi-tenant clusters"
+   ]
+  ],
+  "key": "The Capacity Scheduler gives each team's queue a guaranteed percentage of the cluster (lending idle capacity), whereas the Fair Scheduler shares resources equally among running jobs so short jobs finish fast; FIFO simply runs jobs in submission order and lets one long job starve the rest.",
+  "cue": "If the question describes several teams/departments that each need a guaranteed share (e.g. 60% health batch, 30% streaming, 10% ad hoc), the answer is the Capacity Scheduler; if many short interactive jobs must not wait behind a big one, it is the Fair Scheduler; a single queue in arrival order is FIFO.",
+  "likelihood": "high",
+  "card_id": "yarn-sched"
+ },
+ {
+  "id": "w05-row-vs-columnar",
+  "week": 5,
+  "slides": "P1 s6, s16, s17, s22-23; P1 s30 (T/F 1), s31 (D2)",
+  "x": "Row store (CSV / JSON / Avro)",
+  "y": "Columnar store (Parquet / ORC)",
+  "rows": [
+   [
+    "Layout on disk",
+    "Record by record (id, name, age, score together)",
+    "Column by column"
+   ],
+   [
+    "SELECT score FROM users",
+    "Reads ALL columns",
+    "Reads ONLY the score column"
+   ],
+   [
+    "100-col, 10 TB table, 3-col query",
+    "CSV reads all 10 TB",
+    "Parquet reads ~300 GB (33x speedup; 97% I/O reduction)"
+   ],
+   [
+    "Filter skipping",
+    "None",
+    "Min/max stats per row group -> predicate pushdown skips row groups"
+   ],
+   [
+    "Best for",
+    "Portability, small data; row-append streaming ingest (Avro)",
+    "Analytical, read-heavy workloads (Spark, Presto, ML, Hive)"
+   ]
+  ],
+  "key": "A row store keeps each record's fields together so any query reads every column, while a columnar store keeps each column together so a query reads only the columns it needs (3 of 100 columns -> ~3% of the data).",
+  "cue": "If the question describes an analyst query that touches a few columns of a very wide table and is slow on CSV, the answer is to switch to columnar (Parquet/ORC); if it describes appending whole events or exchanging records, a row format (Avro/CSV) fits.",
+  "likelihood": "high",
+  "card_id": "columnar"
+ },
+ {
+  "id": "w05-avro-vs-parquet",
+  "week": 5,
+  "slides": "P1 s17-18, s21, s25-26; P1 s31 (D3)",
+  "x": "Avro",
+  "y": "Parquet",
+  "rows": [
+   [
+    "Orientation",
+    "Row",
+    "Columnar"
+   ],
+   [
+    "Schema",
+    "Self-describing (JSON); reader vs writer schema",
+    "Self-describing"
+   ],
+   [
+    "Key strength",
+    "Schema evolution: missing fields use defaults, extra fields ignored (backward + forward compatible)",
+    "Row groups (~128 MB) with min/max stats -> predicate pushdown"
+   ],
+   [
+    "Codec",
+    "Snappy / Deflate",
+    "Snappy / Gzip"
+   ],
+   [
+    "Best for",
+    "Streaming ingest Kafka -> HDFS; data exchange",
+    "Spark analytics, Presto, ML pipelines"
+   ],
+   [
+    "bKash strategy",
+    "Ingest layer (API versioning)",
+    "Analytics layer, converted nightly (Parquet+Snappy)"
+   ]
+  ],
+  "key": "Avro is a row-oriented format whose reader/writer schema handles schema evolution, so it suits append-heavy streaming ingest, whereas Parquet is columnar with per-row-group statistics, so it suits analytic reads that select few columns and filter.",
+  "cue": "If the question describes LinkedIn adding a new field to Kafka events without breaking old consumers, the answer is Avro; if it describes analysts running Spark/Presto queries over a few columns, it is Parquet.",
+  "likelihood": "high",
+  "card_id": "formats"
+ },
+ {
+  "id": "w05-parquet-vs-orc",
+  "week": 5,
+  "slides": "P1 s17, s25, s28 (MCQ Q2 note), s30 (T/F 4); W07 P2 s12",
+  "x": "Parquet",
+  "y": "ORC",
+  "rows": [
+   [
+    "Orientation",
+    "Columnar",
+    "Columnar"
+   ],
+   [
+    "Codec",
+    "Snappy / Gzip",
+    "Zlib / Snappy"
+   ],
+   [
+    "Best for",
+    "Spark, Presto, ML pipelines (broader standard for analytics)",
+    "Hive warehouse, highest compression"
+   ],
+   [
+    "Extra features",
+    "Predicate pushdown via row-group stats; Spark-native",
+    "Hive ACID support; vectorized reads; pushdown within stripes"
+   ],
+   [
+    "Origin",
+    "-",
+    "Developed by the Hive team (2013); 2-4x faster reads than SequenceFile"
+   ]
+  ],
+  "key": "Both are columnar, but ORC is optimised for Hive (best compression, Hive ACID, vectorized reads) while Parquet is the broader analytics standard across Spark, Presto and ML.",
+  "cue": "If the question describes a Hive SQL warehouse needing ACID and maximum compression, the answer is ORC (+Zlib); if it describes a Spark/Presto/ML pipeline, it is Parquet (+Snappy).",
+  "likelihood": "medium",
+  "card_id": "formats"
+ },
+ {
+  "id": "w05-splittable-vs-not",
+  "week": 5,
+  "slides": "P1 s20-21, s25, s29 (MCQ Q3), s30 (T/F 3), s32 (A1)",
+  "x": "Splittable (Parquet+Snappy, bzip2, LZO+index)",
+  "y": "Not splittable (Gzip CSV)",
+  "rows": [
+   [
+    "Definition",
+    "HDFS can start reading from any point in the file without decompressing from the beginning",
+    "Must decompress from the beginning"
+   ],
+   [
+    "10 GB file",
+    "Multiple Mappers process different parts simultaneously (e.g. 3 row groups -> 3 Mappers)",
+    "Exactly 1 Mapper - no parallelism"
+   ],
+   [
+    "Why",
+    "Parquet splits at row-group boundaries; bzip2 natively splittable",
+    "MapReduce cannot split across gzip boundaries even though HDFS stores it in blocks"
+   ],
+   [
+    "Benefit",
+    "Enables data-local task scheduling",
+    "-"
+   ],
+   [
+    "Slide verdict",
+    "Best practice: Parquet + Snappy for analytics",
+    "'The Gzip Trap - very common mistake'; avoid raw gzip on large CSV"
+   ]
+  ],
+  "key": "A splittable file can be read from any point so many Mappers work on it in parallel, whereas a gzip-compressed CSV must be decompressed from the start, so one Mapper reads the whole file.",
+  "cue": "If the question describes a big gzip CSV processed by a single slow Mapper (e.g. telecom CDRs taking 6 hours), the answer is 'not splittable - convert to Parquet+Snappy (or bzip2)'.",
+  "likelihood": "high",
+  "card_id": "compression"
+ },
+ {
+  "id": "w05-snappy-vs-gzip",
+  "week": 5,
+  "slides": "P1 s20, s25",
+  "x": "Snappy",
+  "y": "Gzip",
+  "rows": [
+   [
+    "Speed",
+    "Fast",
+    "Slow"
+   ],
+   [
+    "Ratio",
+    "Medium",
+    "High"
+   ],
+   [
+    "Splittable?",
+    "No (but Parquet row groups are)",
+    "No"
+   ],
+   [
+    "Matrix use",
+    "Avro ingest; Parquet Spark analytics",
+    "Parquet ML features"
+   ],
+   [
+    "Other codecs",
+    "LZO: fast/medium, splittable with index; Zstd: fast/high, block-level",
+    "Bzip2: slowest/highest, splittable; ORC + Zlib for Hive warehouse"
+   ]
+  ],
+  "key": "Snappy trades a medium compression ratio for high speed, whereas Gzip compresses more but slowly; neither is splittable on raw files, so both are used inside splittable containers like Parquet.",
+  "cue": "If the question asks for a codec for a speed-critical Spark analytics or Kafka ingest pipeline, the answer is Snappy; for storage-heavy ML feature files it lists Gzip; for cold archive, Zstd; if splittability on a raw file is required, bzip2 or LZO+index.",
+  "likelihood": "high",
+  "card_id": "compression"
+ },
+ {
+  "id": "w05-silos-vs-unified-yarn",
+  "week": 5,
+  "slides": "P2 s16-17, s19, s21, s27",
+  "x": "LinkedIn separate clusters (Hadoop 1.x era)",
+  "y": "LinkedIn single YARN cluster",
+  "rows": [
+   [
+    "Setup",
+    "Cluster A MapReduce/Hive ETL, B experimental Spark, C Samza",
+    "One 5,000-node YARN cluster, Capacity Scheduler with 6 queues"
+   ],
+   [
+    "Utilisation",
+    "45% (3 silos)",
+    "78%"
+   ],
+   [
+    "PYMK recompute",
+    "18 hr on MR1",
+    "4 hours"
+   ],
+   [
+    "Ops cost",
+    "Three configurations tripled ops cost; cross-cluster data movement added latency",
+    "One cluster, fair sharing + framework isolation"
+   ],
+   [
+    "Workload served",
+    "-",
+    "Same capacity served 73% more workload"
+   ]
+  ],
+  "key": "Running each framework on its own cluster left each under-used (45%), whereas consolidating them onto one YARN cluster with Capacity queues raised utilisation to 78% and served 73% more work on the same hardware.",
+  "cue": "If the question describes a company running separate MapReduce, Spark and streaming clusters that sit idle at different times, the answer is to consolidate onto one YARN cluster with Capacity Scheduler queues.",
+  "likelihood": "medium",
+  "card_id": null
+ },
+ {
+  "id": "w05-yarn-vs-kubernetes",
+  "week": 5,
+  "slides": "P2 s4, s13, s27",
+  "x": "YARN",
+  "y": "Kubernetes",
+  "rows": [
+   [
+    "Timeline",
+    "2013; cluster OS for EMR, HDInsight, CDP through 2020",
+    "2018-present; largely replaced YARN for new deployments"
+   ],
+   [
+    "Design",
+    "Global scheduler / node agent / per-app master",
+    "Identical three-tier design"
+   ],
+   [
+    "Resource unit",
+    "Container {vcores, memory}",
+    "Pod (YARN container is its direct ancestor)"
+   ],
+   [
+    "Still dominant where",
+    "Spark on YARN in on-premise Hadoop clusters",
+    "New deployments"
+   ]
+  ],
+  "key": "Kubernetes has largely replaced YARN for new deployments, but it keeps YARN's three-tier design, and its Pod descends directly from YARN's container.",
+  "cue": "If the question asks what replaced YARN, or where the container idea went, the answer is Kubernetes (Pods); if it is about an on-premise Hadoop cluster running Spark, it is still YARN.",
+  "likelihood": "medium",
+  "card_id": null
+ },
+ {
+  "id": "w06-mapreduce-vs-spark",
+  "week": 6,
+  "slides": "P1 s6-7, s31-32; P2 s4-5, s10, s16; P1 s34, s36",
+  "x": "MapReduce",
+  "y": "Spark",
+  "rows": [
+   [
+    "Intermediate storage",
+    "Disk (HDFS) after every step",
+    "Memory (spill to disk if needed)"
+   ],
+   [
+    "Iterative algorithms",
+    "Slow (disk per iteration); K-Means 100 iters = 10 TB I/O",
+    "Fast (cache RDD; 10-100x); 50 GB read once"
+   ],
+   [
+    "Fault tolerance",
+    "Re-execute task from HDFS",
+    "Recompute from lineage"
+   ],
+   [
+    "Programming model / languages",
+    "Map + Reduce only; Java",
+    "map, filter, join, groupBy, SQL, ML, stream; Python, Scala, Java, R"
+   ],
+   [
+    "Streaming / interactive",
+    "Not supported natively; not feasible (>30 s)",
+    "Structured Streaming; Spark Shell (sub-second)"
+   ],
+   [
+    "Use when",
+    "Single-pass batch where Spark's ~8 GB/Executor overhead is prohibitive, or stable MR code",
+    "ML, graph, interactive, streaming, >2 iterations over same data"
+   ]
+  ],
+  "key": "MapReduce writes every intermediate result to HDFS, so iterative jobs pay disk I/O on every pass, whereas Spark caches the working set in memory as RDDs and recovers from lineage, making iterative work 10-100x faster.",
+  "cue": "If the question describes an ML or graph job that loops many times over the same data (K-Means, logistic regression, PageRank), the answer is Spark; a one-pass batch job on a huge cluster with tight memory can stay on MapReduce.",
+  "likelihood": "high",
+  "card_id": "mr-vs-spark"
+ },
+ {
+  "id": "w06-driver-vs-executor",
+  "week": 6,
+  "slides": "P1 s11-12",
+  "x": "Driver program",
+  "y": "Executor",
+  "rows": [
+   [
+    "Where it runs",
+    "The user's application process",
+    "JVM processes launched on Worker Nodes"
+   ],
+   [
+    "Does",
+    "Runs main(); creates SparkContext/SparkSession",
+    "Executes tasks"
+   ],
+   [
+    "Plan",
+    "Builds the DAG of transformations; coordinates execution; schedules tasks",
+    "Receives tasks scheduled by the Driver"
+   ],
+   [
+    "Memory",
+    "Holds the plan (DAG)",
+    "Stores cached RDD partitions in memory"
+   ],
+   [
+    "Third tier",
+    "Cluster Manager allocates resources: YARN, Kubernetes, Mesos, Standalone",
+    "-"
+   ]
+  ],
+  "key": "The Driver runs main() and turns the program into a DAG of tasks and schedules them, while Executors are JVM processes on worker nodes that actually run those tasks and hold cached partitions.",
+  "cue": "If the question asks which component builds the DAG or where collect() results land, the answer is the Driver; where tasks run and cached RDD partitions live, it is the Executor.",
+  "likelihood": "medium",
+  "card_id": "spark-arch"
+ },
+ {
+  "id": "w06-sparkcontext-vs-sparksession",
+  "week": 6,
+  "slides": "P1 s11, s24",
+  "x": "SparkContext",
+  "y": "SparkSession",
+  "rows": [
+   [
+    "Version",
+    "Entry point in Spark 1.x",
+    "Entry point in Spark 2.x+"
+   ],
+   [
+    "Covers",
+    "RDDs",
+    "Unifies SQL, DataFrames and RDDs under one entry point"
+   ],
+   [
+    "Relationship",
+    "Still accessible as spark.sparkContext",
+    "Wraps the SparkContext"
+   ],
+   [
+    "Slide code",
+    "sc.textFile(...)",
+    "SparkSession.builder.appName(...).getOrCreate(); spark.read.parquet, spark.sql"
+   ]
+  ],
+  "key": "SparkContext was the Spark 1.x entry point for RDDs, while SparkSession (2.x+) is the unified entry point for SQL, DataFrames and RDDs, still exposing the context as spark.sparkContext.",
+  "cue": "If the code starts with SparkSession.builder and uses spark.sql, it is the 2.x+ unified entry point; if it calls sc.textFile on raw RDDs, it uses SparkContext.",
+  "likelihood": "medium",
+  "card_id": "spark-arch"
+ },
+ {
+  "id": "w06-lineage-vs-replication",
+  "week": 6,
+  "slides": "P1 s13-15; P2 s7-8, s16, s20; P1 s34 (MCQ Q2), s37 (D1)",
+  "x": "HDFS replication (traditional)",
+  "y": "RDD lineage (Spark)",
+  "rows": [
+   [
+    "What is kept",
+    "3 copies of the data",
+    "The computation graph (log of transformations)"
+   ],
+   [
+    "Recovering a lost partition",
+    "Read another copy",
+    "Re-read the HDFS input for that partition and re-apply the same transformations"
+   ],
+   [
+    "Overhead",
+    "Replication overhead",
+    "No data replication overhead - 'the computation is the backup'"
+   ],
+   [
+    "Weak spot",
+    "-",
+    "Expensive for wide dependencies (many ancestors); checkpoint long chains to HDFS"
+   ],
+   [
+    "Slide lesson",
+    "-",
+    "Recomputing from lineage is cheaper than maintaining 3x replicated in-memory state"
+   ]
+  ],
+  "key": "HDFS tolerates failures by storing three copies of the data, whereas an RDD stores only how it was derived and recomputes a lost partition from its parents, so there is no replication overhead.",
+  "cue": "If the question asks how Spark recovers a lost partition without copying data (e.g. an executor holding partitions 3 and 7 crashes), the answer is lineage recomputation; for HDFS block loss, it is replication.",
+  "likelihood": "high",
+  "card_id": "rdd"
+ },
+ {
+  "id": "w06-transformation-vs-action",
+  "week": 6,
+  "slides": "P1 s17-20; P2 s8; P1 s35 (MCQ Q4), s37 (D2, D3)",
+  "x": "Transformation",
+  "y": "Action",
+  "rows": [
+   [
+    "Evaluation",
+    "Lazy: builds the DAG, does not execute",
+    "Eager: triggers execution of the DAG"
+   ],
+   [
+    "Returns",
+    "A new RDD",
+    "A value to the Driver, or writes to storage"
+   ],
+   [
+    "Examples",
+    "map, filter, flatMap, distinct, reduceByKey, join, groupByKey, cache",
+    "collect, count, first, take(n), reduce, saveAsTextFile, foreach"
+   ],
+   [
+    "Rule",
+    "No transformation executes until an action is called",
+    "Spark then analyses the full DAG, pipelines, runs only needed partitions"
+   ],
+   [
+    "Slide example",
+    "rdd.filter(x > 1000) records only",
+    ".first() stops after the first match"
+   ]
+  ],
+  "key": "A transformation lazily defines a new RDD and only adds to the DAG, while an action forces the DAG to run and returns a value to the Driver or writes output.",
+  "cue": "If the question shows a chain like filter().map() and asks why nothing ran, the answer is that these are lazy transformations; the first count()/collect()/saveAsTextFile() is the action that triggers the job.",
+  "likelihood": "high",
+  "card_id": "lazy-eval"
+ },
+ {
+  "id": "w06-narrow-vs-wide",
+  "week": 6,
+  "slides": "P1 s14, s21-22; P2 s9, s16, s20",
+  "x": "Narrow dependency",
+  "y": "Wide dependency",
+  "rows": [
+   [
+    "Partition mapping",
+    "Each output partition depends on at most one input partition (1-to-1)",
+    "Each output partition may depend on multiple input partitions (all-to-all)"
+   ],
+   [
+    "Examples",
+    "map, filter, flatMap, union, mapPartitions, coalesce",
+    "groupByKey, reduceByKey, aggregateByKey, join (not co-partitioned), repartition, distinct, sortByKey"
+   ],
+   [
+    "Data movement",
+    "No shuffle",
+    "Shuffle across the network"
+   ],
+   [
+    "Stages",
+    "Pipelined within a single stage",
+    "Creates a stage boundary"
+   ],
+   [
+    "Recovery",
+    "Recompute only that partition from its single parent",
+    "Must recompute from all parent partitions (expensive)"
+   ]
+  ],
+  "key": "In a narrow dependency each child partition needs at most one parent partition, so it pipelines in one stage with no shuffle, whereas a wide dependency needs many parent partitions, forcing a network shuffle and a new stage.",
+  "cue": "If the question shows a DAG and asks where the stage boundary is, put it at the first wide operation (reduceByKey, groupByKey, join, repartition); map/filter chains stay in one stage.",
+  "likelihood": "high",
+  "card_id": "narrow-wide"
+ },
+ {
+  "id": "w06-reducebykey-vs-groupbykey",
+  "week": 6,
+  "slides": "P1 s22; P2 s18 (live exercise Q3)",
+  "x": "reduceByKey",
+  "y": "groupByKey",
+  "rows": [
+   [
+    "Dependency",
+    "Wide (shuffle)",
+    "Wide (shuffle)"
+   ],
+   [
+    "Before shuffling",
+    "Applies a local combine (like a MapReduce Combiner)",
+    "Ships all values per key"
+   ],
+   [
+    "Network traffic",
+    "Greatly reduced",
+    "Larger"
+   ],
+   [
+    "Slide advice",
+    "Prefer reduceByKey",
+    "Avoid when an aggregate is all you need (inference from 'prefer reduceByKey')"
+   ],
+   [
+    "How to check",
+    "Spark UI (localhost:4040) shuffle read/write bytes - smaller",
+    "Shuffle read/write bytes - larger"
+   ]
+  ],
+  "key": "Both shuffle, but reduceByKey pre-aggregates values on each partition before the shuffle (like a Combiner), so far less data crosses the network than with groupByKey.",
+  "cue": "If the question describes a word count or per-key sum that is slow because of heavy shuffle, the answer is to replace groupByKey with reduceByKey.",
+  "likelihood": "high",
+  "card_id": "narrow-wide"
+ },
+ {
+  "id": "w06-coalesce-vs-repartition",
+  "week": 6,
+  "slides": "P1 s21",
+  "x": "coalesce",
+  "y": "repartition",
+  "rows": [
+   [
+    "Dependency type",
+    "Narrow",
+    "Wide"
+   ],
+   [
+    "Shuffle",
+    "No shuffle (reduces partitions)",
+    "Requires shuffle"
+   ],
+   [
+    "Stage",
+    "Pipelined in the same stage",
+    "Creates a stage boundary"
+   ],
+   [
+    "Recovery",
+    "Recompute only from the single parent partition",
+    "Recompute from all parent partitions"
+   ]
+  ],
+  "key": "coalesce reduces the number of partitions without a shuffle (narrow), while repartition reshuffles data across the network (wide) and starts a new stage.",
+  "cue": "If the question asks for the cheap way to cut partitions before writing output, the answer is coalesce; if it needs a full redistribution, repartition (with a shuffle).",
+  "likelihood": "medium",
+  "card_id": null
+ },
+ {
+  "id": "w06-dataframe-vs-rdd",
+  "week": 6,
+  "slides": "P1 s26, s36 (T/F 3); P2 s11, s20",
+  "x": "DataFrame",
+  "y": "RDD",
+  "rows": [
+   [
+    "Structure",
+    "Distributed collection organised into named columns with a schema",
+    "Read-only partitioned collection of records"
+   ],
+   [
+    "Optimiser",
+    "Catalyst (predicate pushdown, join reordering, constant folding)",
+    "DAG scheduler only"
+   ],
+   [
+    "Speed (structured data)",
+    "10-100x faster than RDDs",
+    "Baseline"
+   ],
+   [
+    "API",
+    "SQL syntax + Python/Scala method chaining",
+    "Functional: map, filter, lambdas"
+   ],
+   [
+    "Use when",
+    "Default for structured data",
+    "Low-level control needed"
+   ],
+   [
+    "Relationship",
+    "Built on top of RDDs; compiles down to an RDD plan",
+    "RDDs largely replaced by DataFrames/Datasets since Spark 2.0"
+   ]
+  ],
+  "key": "A DataFrame adds named columns and a schema so the Catalyst optimiser can rewrite the query before running it (10-100x faster on structured data), whereas an RDD is schema-less records processed with functional operators.",
+  "cue": "If the question describes structured tabular data queried with SQL/aggregations, the answer is DataFrame/Spark SQL; if it needs custom low-level per-record control, RDD.",
+  "likelihood": "high",
+  "card_id": "dataframes"
+ },
+ {
+  "id": "w06-memory-only-vs-memory-and-disk",
+  "week": 6,
+  "slides": "P2 s10",
+  "x": "MEMORY_ONLY",
+  "y": "MEMORY_AND_DISK",
+  "rows": [
+   [
+    "Stored in",
+    "JVM heap",
+    "Heap; overflow to local disk"
+   ],
+   [
+    "Partition that does not fit",
+    "Spill re-computes (recomputed from lineage)",
+    "Written to local disk, read back"
+   ],
+   [
+    "Other levels",
+    "MEMORY_ONLY_SER: Kryo-serialised bytes, smaller but slower; OFF_HEAP: native memory, avoids GC",
+    "DISK_ONLY: local disk, slower reuse"
+   ],
+   [
+    "When to cache at all",
+    "Reused in >1 action (iterative ML, interactive queries)",
+    "Caching single-use RDDs wastes RAM and triggers LRU eviction"
+   ],
+   [
+    "Benchmark",
+    "LR: Spark MEMORY_ONLY 0.96 s/iter vs Hadoop 127 s/iter (132x)",
+    "-"
+   ]
+  ],
+  "key": "MEMORY_ONLY keeps partitions in the JVM heap and recomputes any that do not fit, whereas MEMORY_AND_DISK spills those partitions to local disk instead of recomputing them.",
+  "cue": "If the question says the cached dataset is bigger than cluster RAM and recomputation is expensive, the answer is MEMORY_AND_DISK; if it fits in RAM and speed is everything, MEMORY_ONLY.",
+  "likelihood": "medium",
+  "card_id": null
+ },
+ {
+  "id": "w06-hash-vs-range-partitioner",
+  "week": 6,
+  "slides": "P2 s10",
+  "x": "Hash partitioner",
+  "y": "Range partitioner",
+  "rows": [
+   [
+    "How",
+    "key.hashCode() % numPartitions",
+    "Samples key distribution, assigns key ranges to partitions"
+   ],
+   [
+    "Default?",
+    "Default",
+    "Used by sortByKey()"
+   ],
+   [
+    "Behaviour",
+    "Uniform for random keys; can hot-spot on skewed data",
+    "Each partition holds a key range (inference: keeps sort order)"
+   ],
+   [
+    "Custom option",
+    "Custom partitioner: co-partition two RDDs on the same key to eliminate shuffle on join",
+    "-"
+   ]
+  ],
+  "key": "A hash partitioner spreads keys by hashCode modulo the partition count (the default, but it can hot-spot on skewed keys), while a range partitioner samples keys and assigns ordered ranges, which sortByKey needs.",
+  "cue": "If the question involves sorting by key, the answer is the range partitioner; for ordinary key grouping the default hash partitioner; for joining two RDDs without a shuffle, a custom co-partitioner.",
+  "likelihood": "medium",
+  "card_id": null
+ },
+ {
+  "id": "w06-sort-shuffle-vs-hash-shuffle",
+  "week": 6,
+  "slides": "P2 s13-15",
+  "x": "Spark at GraySort (sort-based shuffle)",
+  "y": "Hadoop MapReduce (hash shuffle)",
+  "rows": [
+   [
+    "Shuffle behaviour",
+    "Writes sorted runs to disk once, then merges",
+    "Spills, merges and re-reads multiple times (twice per byte)"
+   ],
+   [
+    "Extra I/O at 100 TB",
+    "Eliminates ~120 TB of extra I/O",
+    "~200 TB of additional disk I/O"
+   ],
+   [
+    "Result",
+    "100 TB in 23 min on 206 EC2 nodes (Nov 2013)",
+    "72 min on 2,100 nodes (Yahoo! 2012)"
+   ],
+   [
+    "Other tricks",
+    "All 8 SSDs as shuffle dirs; off-heap sort buffers (Unsafe); single wide sortByKey",
+    "-"
+   ],
+   [
+    "Ratio",
+    "3.1x faster (72 -> 23 min); 206 vs 2,100 nodes (P2 s2 says '3x faster on 3.5x fewer machines' - decks differ)",
+    "-"
+   ]
+  ],
+  "key": "Spark won GraySort mainly through a sort-based shuffle that writes sorted runs once and merges them, whereas MapReduce's shuffle spills and re-reads data several times, costing ~200 TB of extra disk I/O at 100 TB.",
+  "cue": "If the question asks why Spark sorted 100 TB in 23 minutes on 206 nodes versus Hadoop's 72 minutes on 2,100, the answer is sort-based shuffle on SSDs plus off-heap buffers and fewer stages, not just caching.",
+  "likelihood": "medium",
+  "card_id": null
+ },
+ {
+  "id": "w06-iterative-vs-single-pass",
+  "week": 6,
+  "slides": "P1 s6, s32; P2 s5, s10, s16",
+  "x": "Iterative / working-set workload",
+  "y": "Single-pass ETL",
+  "rows": [
+   [
+    "Spark speedup",
+    "10-100x (LR 132x, K-Means 30x)",
+    "Smaller (2-5x) when data is larger than RAM"
+   ],
+   [
+    "Examples",
+    "K-Means, logistic regression, graph BFS, interactive queries on the same table",
+    "Single-pass batch jobs on very large clusters"
+   ],
+   [
+    "Why",
+    "Working set cached in RAM and reused; MapReduce cannot cache across jobs",
+    "Each byte read once - nothing to reuse"
+   ],
+   [
+    "Better engine",
+    "Spark (>2 iterations over same data)",
+    "MapReduce acceptable where Spark's ~8 GB/Executor overhead is prohibitive"
+   ]
+  ],
+  "key": "Spark's in-memory caching pays off only when the same working set is reused across iterations (10-100x), while for single-pass ETL over data larger than RAM the gain is small (2-5x) - 'a multiplier, not a panacea'.",
+  "cue": "If the question asks under what conditions Spark would NOT outperform MapReduce, the answer is a single-pass job over data larger than cluster RAM (or tight memory), not an iterative one.",
+  "likelihood": "medium",
+  "card_id": null
+ },
+ {
+  "id": "w06-hotcloud2010-vs-nsdi2012",
+  "week": 6,
+  "slides": "P2 s2, s4-5, s7",
+  "x": "Zaharia et al. 2010 (HotCloud)",
+  "y": "Zaharia et al. 2012 (NSDI)",
+  "rows": [
+   [
+    "Title",
+    "Spark: Cluster Computing with Working Sets",
+    "Resilient Distributed Datasets: A Fault-Tolerant Abstraction for In-Memory Cluster Computing"
+   ],
+   [
+    "Venue",
+    "USENIX HotCloud (workshop, short paper)",
+    "USENIX NSDI, Rank A*; Best Paper Award"
+   ],
+   [
+    "Scope",
+    "4-page proof-of-concept",
+    "Formal RDD abstraction"
+   ],
+   [
+    "Key idea",
+    "Working set reused across parallel operations; MapReduce cannot cache it",
+    "Lineage-based fault tolerance; narrow vs wide dependencies; persistence levels"
+   ],
+   [
+    "Citations",
+    ">5,000",
+    ">13,000"
+   ]
+  ],
+  "key": "The 2010 HotCloud paper was a short proof-of-concept arguing for caching a reusable working set in memory, while the 2012 NSDI paper formalised RDDs with lineage-based fault tolerance and won Best Paper.",
+  "cue": "If the question asks which paper introduced lineage-based fault tolerance formally, the answer is NSDI 2012; the 'working set' motivation is HotCloud 2010.",
+  "likelihood": "medium",
+  "card_id": null
+ },
+ {
+  "id": "w07-schema-on-write-vs-read",
+  "week": 7,
+  "slides": "P1 s13-14; P1 s28 (MCQ Q2), s31 (D3); P2 s6-7",
+  "x": "Schema-on-write (RDBMS / MySQL)",
+  "y": "Schema-on-read (Hive)",
+  "rows": [
+   [
+    "When schema enforced",
+    "At INSERT / LOAD time",
+    "At SELECT / query time"
+   ],
+   [
+    "Invalid data",
+    "Rejected immediately (INSERT fails if amount is text)",
+    "Stored; NULL returned at query ('abc' in amount -> NULL)"
+   ],
+   [
+    "Write speed / query speed",
+    "Slower write (validation); faster query",
+    "Fast write (raw file copy); slower query (parse per query)"
+   ],
+   [
+    "Schemas per data",
+    "One schema per table",
+    "Many schemas on same data"
+   ],
+   [
+    "Storage format",
+    "Proprietary (InnoDB pages)",
+    "Open: ORC, Parquet, CSV, JSON, Avro"
+   ],
+   [
+    "Use case",
+    "OLTP: e-commerce orders, banking",
+    "OLAP: log analysis, batch reporting"
+   ]
+  ],
+  "key": "Schema-on-write validates data against the table schema when it is loaded and rejects bad rows, while schema-on-read stores raw files as-is and applies the schema only when queried, so bad values silently become NULL.",
+  "cue": "If the question describes loading raw web logs immediately and defining several tables over them later, or a corrupt column quietly returning NULL, the answer is schema-on-read; if an INSERT is rejected for a type error, it is schema-on-write.",
+  "likelihood": "high",
+  "card_id": "schema-on-read"
+ },
+ {
+  "id": "w07-sql-vs-hiveql",
+  "week": 7,
+  "slides": "P1 s16-17; P1 s30 (T/F 1)",
+  "x": "SQL (RDBMS)",
+  "y": "HiveQL",
+  "rows": [
+   [
+    "ACID / UPDATE / DELETE",
+    "Full; any row, any time",
+    "Limited: only ORC tables in ACID (transactional) mode"
+   ],
+   [
+    "Indexing",
+    "B-tree, hash, bitmap",
+    "Partitions + buckets (no traditional indexes)"
+   ],
+   [
+    "Sub-queries",
+    "Correlated",
+    "Non-correlated only (some limitations)"
+   ],
+   [
+    "Latency",
+    "Milliseconds",
+    "Minutes (MapReduce) / seconds (Tez/Spark)"
+   ],
+   [
+    "Execution / data location",
+    "Single-node or MPP; database storage engine",
+    "Distributed MR/Tez/Spark DAG; HDFS directories"
+   ],
+   [
+    "Scale / workload",
+    "Terabytes max; OLTP",
+    "Petabytes; OLAP"
+   ]
+  ],
+  "key": "HiveQL looks like SQL but compiles to distributed batch jobs over HDFS, so it scales to petabytes yet has minute-level latency, limited ACID/UPDATE and no traditional indexes, unlike an RDBMS's millisecond OLTP SQL.",
+  "cue": "If the question expects millisecond response or row-level UPDATEs from Hive, the answer is the misconception 'HiveQL = SQL'; a COUNT(*) on 1 TB can take 5-10 minutes - use Presto or Spark SQL for interactive latency.",
+  "likelihood": "high",
+  "card_id": "schema-on-read"
+ },
+ {
+  "id": "w07-partitioning-vs-bucketing",
+  "week": 7,
+  "slides": "P1 s19-24; P1 s29 (MCQ Q3 note), s30 (T/F 2, 4), s31 (D2), s32 (A1)",
+  "x": "Partitioning",
+  "y": "Bucketing",
+  "rows": [
+   [
+    "Physical unit",
+    "Separate HDFS sub-directory per column value (year=2024/month=01/)",
+    "Fixed number of files (buckets) inside each partition"
+   ],
+   [
+    "Decided by",
+    "Value of the partition column",
+    "hash(column) % N"
+   ],
+   [
+    "Main benefit",
+    "Partition pruning: skips non-matching directories, avoids full-table scan",
+    "Bucket map join: bucket i x bucket i, no full sort-merge shuffle"
+   ],
+   [
+    "Good column",
+    "Low-cardinality, used in WHERE (date, country, region, status)",
+    "The join key, e.g. user_id (slide example; 'high-cardinality' is general knowledge)"
+   ],
+   [
+    "Risk",
+    "High-cardinality key -> partition explosion (100 M directories crash NameNode)",
+    "Both tables must use same key and same bucket count"
+   ],
+   [
+    "DDL",
+    "PARTITIONED BY (year INT, month INT)",
+    "CLUSTERED BY (user_id) INTO 32 BUCKETS"
+   ]
+  ],
+  "key": "Partitioning splits a table into directories by a low-cardinality column value so WHERE filters skip whole directories, while bucketing hashes a (high-cardinality) column into a fixed number of files so tables bucketed the same way can be joined bucket-to-bucket without a full shuffle.",
+  "cue": "If the question describes daily reports filtered by country and date, the answer is partition on (country/date); if it describes repeatedly joining with a 10 M-row user table on user_id, bucket on user_id - often both together.",
+  "likelihood": "high",
+  "card_id": "bucketing"
+ },
+ {
+  "id": "w07-static-vs-dynamic-partition",
+  "week": 7,
+  "slides": "P1 s21-22",
+  "x": "Static partition insert",
+  "y": "Dynamic partition insert",
+  "rows": [
+   [
+    "Partition values",
+    "Written in the statement: PARTITION (year=2024, month=1)",
+    "Inferred from the last SELECT columns: PARTITION (year, month)"
+   ],
+   [
+    "Settings",
+    "None",
+    "SET hive.exec.dynamic.partition=true; ...partition.mode=nonstrict"
+   ],
+   [
+    "Partitions per statement",
+    "One",
+    "All at once (e.g. all months)"
+   ],
+   [
+    "Pitfall",
+    "-",
+    "Partition columns must be last in SELECT, in order; otherwise Hive silently assigns values incorrectly"
+   ]
+  ],
+  "key": "A static insert names the exact partition value in the INSERT, while a dynamic insert lets Hive take partition values from the last SELECT columns so many partitions load in one statement.",
+  "cue": "If the question needs to load 36 months of raw sales into a partitioned table in one statement, the answer is dynamic partition insert (with nonstrict mode and partition columns last).",
+  "likelihood": "medium",
+  "card_id": "partitioning"
+ },
+ {
+  "id": "w07-hive-vs-presto",
+  "week": 7,
+  "slides": "P1 s6, s17, s26; P1 s29 (MCQ Q4 note); P2 s4",
+  "x": "Hive (+MapReduce)",
+  "y": "Presto / Trino",
+  "rows": [
+   [
+    "Origin",
+    "Facebook, 2008",
+    "Meta (Facebook), 2013"
+   ],
+   [
+    "Execution model",
+    "Compiled to MR / Tez / Spark jobs",
+    "In-memory pipeline execution (split -> stage -> output)"
+   ],
+   [
+    "Intermediate results",
+    "Materialised to HDFS between every MapReduce stage",
+    "No intermediate disk writes"
+   ],
+   [
+    "Latency",
+    "5-15 min (minutes)",
+    "5-60 sec (seconds); '10x faster than Hive+MapReduce'"
+   ],
+   [
+    "Optimisations",
+    "Partition pruning, bucketing",
+    "Vectorized execution (1,024-row batches), cost-based optimizer, connector architecture (HDFS, Hive, Cassandra, MySQL, Kafka, S3 in one query)"
+   ],
+   [
+    "Best for",
+    "Batch analytics, large ETL jobs",
+    "Interactive BI dashboards"
+   ]
+  ],
+  "key": "Hive compiles queries into batch MapReduce/Tez jobs that write intermediate results to HDFS (minutes), whereas Presto pipelines data through memory with no intermediate disk writes, giving second-level interactive SQL.",
+  "cue": "If the question describes analysts needing sub-minute dashboard queries over petabytes on HDFS, the answer is Presto; a nightly multi-hour ETL is Hive.",
+  "likelihood": "high",
+  "card_id": "presto"
+ },
+ {
+  "id": "w07-hive-vs-sparksql",
+  "week": 7,
+  "slides": "P1 s6, s17; P2 s12",
+  "x": "Hive",
+  "y": "Spark SQL",
+  "rows": [
+   [
+    "Origin",
+    "Facebook, 2008",
+    "Databricks, 2014"
+   ],
+   [
+    "Execution model",
+    "MR / Tez / Spark (compile-time)",
+    "Catalyst optimizer, in-memory RDDs"
+   ],
+   [
+    "Latency",
+    "Minutes",
+    "Seconds"
+   ],
+   [
+    "Best for",
+    "Batch analytics, large ETL jobs",
+    "Unified batch + streaming SQL"
+   ],
+   [
+    "Shared piece",
+    "Hive Metastore",
+    "Reads the same Hive Metastore"
+   ]
+  ],
+  "key": "Hive compiles HiveQL into batch jobs with minute-level latency, whereas Spark SQL optimises queries with Catalyst and runs them in memory in seconds, sharing Hive's Metastore.",
+  "cue": "If the question wants SQL over the same Hive tables but with interactive latency plus streaming in one engine, the answer is Spark SQL.",
+  "likelihood": "medium",
+  "card_id": "presto"
+ },
+ {
+  "id": "w07-mr-vs-tez-engine",
+  "week": 7,
+  "slides": "P1 s8, s29 (MCQ Q4 note), s32 (A2); P2 s12; W05 P2 s13",
+  "x": "MapReduce engine",
+  "y": "Tez engine",
+  "rows": [
+   [
+    "Plan shape",
+    "Chain of MapReduce jobs",
+    "DAG of tasks"
+   ],
+   [
+    "Between stages",
+    "Materialises intermediate data to HDFS between every MR stage",
+    "DAG-based successor to MapReduce (no per-job HDFS round trip)"
+   ],
+   [
+    "Speed",
+    "Default legacy engine",
+    "Faster; Hive and Pig rewrote on Tez, reducing latency 5-10x"
+   ],
+   [
+    "How to choose",
+    "hive.execution.engine setting (slide shows SET ...=spark)",
+    "Same setting; Tez = 'DAG of tasks, faster'"
+   ],
+   [
+    "Later evolution",
+    "-",
+    "LLAP (2016): Hive-on-Tez with persistent in-memory daemon, sub-second queries"
+   ]
+  ],
+  "key": "Under MapReduce, Hive runs a chain of separate jobs that write intermediate results to HDFS, while Tez runs the same query as one DAG of tasks, cutting latency 5-10x with the same results.",
+  "cue": "If the question asks how switching Hive's execution engine from MapReduce to Tez changes the plan for a top-5 query, the answer is: one DAG instead of chained MR jobs with HDFS writes between them.",
+  "likelihood": "medium",
+  "card_id": "hive-arch"
+ },
+ {
+  "id": "w07-metastore-vs-namenode",
+  "week": 7,
+  "slides": "P1 s8, s10-11, s28 (MCQ Q1 note); P2 s7",
+  "x": "Hive Metastore",
+  "y": "HDFS NameNode",
+  "rows": [
+   [
+    "Stores",
+    "Table schemas, column types, partition info + HDFS path, SerDe, table statistics, privileges",
+    "HDFS block metadata"
+   ],
+   [
+    "What it is",
+    "Relational database (MySQL / PostgreSQL)",
+    "HDFS master"
+   ],
+   [
+    "Used for",
+    "Where data lives and how to parse it; partition pruning; cost-based optimizer stats",
+    "Locating file blocks"
+   ],
+   [
+    "If lost",
+    "Cannot query any table even though data on HDFS is intact",
+    "-"
+   ],
+   [
+    "Legacy",
+    "De facto catalogue for Spark, Presto/Trino, Impala, Athena (AWS Glue)",
+    "-"
+   ]
+  ],
+  "key": "The Hive Metastore is a relational DB holding table schemas, partitions and SerDe information, whereas the NameNode holds only HDFS block metadata; the NameNode is the common distractor for 'where is Hive schema stored'.",
+  "cue": "If the question asks where Hive keeps column names, types and partition locations, the answer is the Metastore (MySQL/PostgreSQL), not the NameNode.",
+  "likelihood": "medium",
+  "card_id": "hive-arch"
+ },
+ {
+  "id": "w07-pig-vs-hive",
+  "week": 7,
+  "slides": "P2 s4-5",
+  "x": "Pig Latin",
+  "y": "Hive (HiveQL)",
+  "rows": [
+   [
+    "Origin",
+    "Yahoo!, 2008",
+    "Facebook, 2008 (Thusoo et al. 2009)"
+   ],
+   [
+    "Style",
+    "Dataflow, more expressive than MR but still procedural",
+    "Declarative SQL dialect"
+   ],
+   [
+    "Translation",
+    "-",
+    "HiveQL translated directly to MapReduce"
+   ],
+   [
+    "Who can use it",
+    "Programmers (general knowledge; slide only says Pig is procedural)",
+    "Hundreds of analysts who could write SQL but not Java - self-service access"
+   ]
+  ],
+  "key": "Pig Latin is a procedural dataflow language, while HiveQL is declarative SQL that Hive compiles to MapReduce, letting SQL-only analysts query Hadoop without engineers.",
+  "cue": "If the question asks which tool let non-programmer analysts query Hadoop with SQL, the answer is Hive; a step-by-step procedural dataflow script is Pig.",
+  "likelihood": "medium",
+  "card_id": null
+ },
+ {
+  "id": "w07-java-mr-vs-hiveql",
+  "week": 7,
+  "slides": "P1 s5; P2 s4, s22",
+  "x": "Hand-written Java MapReduce",
+  "y": "HiveQL",
+  "rows": [
+   [
+    "Code for a GROUP BY",
+    "100+ lines of boilerplate",
+    "One SELECT ... GROUP BY"
+   ],
+   [
+    "Time-to-insight",
+    "Days (write, test, debug)",
+    "Analyst writes SELECT, Hive writes the distributed job"
+   ],
+   [
+    "Who writes it",
+    "Java engineers",
+    "Business analysts, data scientists, BI teams"
+   ],
+   [
+    "Execution",
+    "The job itself",
+    "Compiled into MapReduce jobs, Tez DAGs or Spark jobs"
+   ],
+   [
+    "Impact",
+    "-",
+    "200 analysts replaced 20 Java engineers (democratisation)"
+   ]
+  ],
+  "key": "Java MapReduce needs 100+ lines and days per aggregation, whereas HiveQL lets analysts declare the query in SQL and Hive generates the distributed job ('Declare, don't program').",
+  "cue": "If the question describes thousands of non-engineers needing to query petabytes, the answer is SQL-on-Hadoop (Hive) instead of Java MapReduce.",
+  "likelihood": "medium",
+  "card_id": null
+ },
+ {
+  "id": "w07-oltp-vs-olap",
+  "week": 7,
+  "slides": "P1 s13, s16",
+  "x": "OLTP (RDBMS)",
+  "y": "OLAP (Hive)",
+  "rows": [
+   [
+    "Example workload",
+    "E-commerce orders, banking",
+    "Log analysis, batch reporting, analytics"
+   ],
+   [
+    "Schema",
+    "Schema-on-write",
+    "Schema-on-read"
+   ],
+   [
+    "Operations",
+    "Real-time reads/writes; UPDATE/DELETE any row",
+    "Batch analytics; UPDATE only on ACID tables"
+   ],
+   [
+    "Latency",
+    "Milliseconds",
+    "Minutes / seconds"
+   ],
+   [
+    "Scale",
+    "Terabytes max",
+    "Petabytes"
+   ]
+  ],
+  "key": "OLTP systems handle many small real-time reads and writes on validated data with millisecond latency, while OLAP systems like Hive run large batch analytic scans over petabytes with minute-level latency.",
+  "cue": "If the question describes the live bKash wallet database that must not be slowed down, it is OLTP (copy it out with Sqoop); the nightly analytics over HDFS is OLAP (Hive).",
+  "likelihood": "medium",
+  "card_id": null
+ },
+ {
+  "id": "w07-partition-pruning-vs-predicate-pushdown",
+  "week": 7,
+  "slides": "W07 P1 s19-21, P2 s7, s11; W05 P1 s18, s22-23",
+  "x": "Partition pruning (Hive)",
+  "y": "Predicate pushdown (Parquet/ORC)",
+  "rows": [
+   [
+    "What is skipped",
+    "Whole HDFS sub-directories",
+    "Whole row groups inside a file"
+   ],
+   [
+    "Uses",
+    "Partition metadata (paths) in the Metastore",
+    "Min/max column stats in the file footer"
+   ],
+   [
+    "Works on",
+    "WHERE on the partition column only",
+    "WHERE on any column with stats"
+   ],
+   [
+    "Slide example",
+    "year=2024 AND month=01 reads 1 sub-directory, not 36 months",
+    "score > 90: row group with [60,85] skipped; 10 TB may read only 50 GB"
+   ],
+   [
+    "Scope",
+    "Directory level",
+    "File level (then only the needed column chunk)"
+   ]
+  ],
+  "key": "Partition pruning skips whole directories based on the partition-column value recorded in the Metastore, while predicate pushdown skips row groups within a columnar file using min/max statistics in the footer; the two stack.",
+  "cue": "If the question filters on the partitioned date column, the saving is partition pruning; if it filters on an ordinary column inside Parquet files, it is predicate pushdown.",
+  "likelihood": "medium",
+  "card_id": null
+ },
+ {
+  "id": "w07-hiveql-vs-spark-in-spotify",
+  "week": 7,
+  "slides": "P2 s14-18, s22",
+  "x": "HiveQL (Spotify feature engineering)",
+  "y": "Spark MLlib (Spotify ML)",
+  "rows": [
+   [
+    "Task",
+    "Playlist co-occurrence aggregation",
+    "ALS matrix factorisation (collaborative filtering)"
+   ],
+   [
+    "Nature of work",
+    "SQL aggregation: GROUP BY song_a, song_b HAVING COUNT(*) > 5",
+    "Iterative"
+   ],
+   [
+    "Scale",
+    "Over 2 billion playlists",
+    "75M users x 30M songs, rank 50"
+   ],
+   [
+    "Orchestration",
+    "Luigi task (declares output path + dependencies, skips finished outputs)",
+    "Same Luigi pipeline"
+   ],
+   [
+    "Lesson",
+    "Neither alone is sufficient",
+    "Complementary"
+   ]
+  ],
+  "key": "At Spotify, HiveQL did the one-pass SQL aggregation for features (playlist co-occurrence), while Spark did the iterative ALS model training, with Luigi chaining the two.",
+  "cue": "If the question describes counting song pairs across billions of playlists, the answer is a HiveQL GROUP BY; training the recommendation model over many iterations is Spark.",
+  "likelihood": "medium",
+  "card_id": null
+ },
+ {
+  "id": "w08-p2p-etl-vs-event-pipeline",
+  "week": 8,
+  "slides": "P1 s5-6, s14",
+  "x": "Point-to-point ETL",
+  "y": "Event-driven pipeline (message bus)",
+  "rows": [
+   [
+    "Connections",
+    "O(N^2): at 50 systems ~2,450 ETL jobs",
+    "Each source publishes once to a central bus; consumers subscribe"
+   ],
+   [
+    "Schema change",
+    "Brittle: breaks its ETL jobs",
+    "Decoupled"
+   ],
+   [
+    "Replay",
+    "None: offline consumer loses data",
+    "Replayable from the retained log"
+   ],
+   [
+    "Latency",
+    "Nightly batch, >= 24 hours",
+    "Real time"
+   ],
+   [
+    "Adding a consumer",
+    "New jobs, tightly bound to source",
+    "Zero changes to any source system"
+   ]
+  ],
+  "key": "Point-to-point ETL wires every pair of systems directly (O(N^2) brittle nightly jobs, no replay), whereas an event-driven pipeline routes everything through one bus like Kafka, so sources and consumers are decoupled, real-time and replayable.",
+  "cue": "If the question describes 50 systems with thousands of fragile nightly ETL jobs that break on every schema change, the answer is to replace them with a central Kafka event bus.",
+  "likelihood": "high",
+  "card_id": "pipelines"
+ },
+ {
+  "id": "w08-sqoop-vs-flume",
+  "week": 8,
+  "slides": "P1 s7, s9-12; P1 s32 (MCQ Q1 note), s34 (T/F 1, 4)",
+  "x": "Sqoop",
+  "y": "Flume",
+  "rows": [
+   [
+    "Direction / data",
+    "RDBMS <-> HDFS (Hive, HBase): database tables",
+    "Logs -> HDFS: web server, application, IoT logs"
+   ],
+   [
+    "Type",
+    "Batch (nightly bulk)",
+    "Batch / micro-batch"
+   ],
+   [
+    "Mechanism",
+    "Launches a MapReduce job; each map task reads a primary-key range; incremental import via last-value",
+    "Agent: Source -> Channel -> Sink; fan-in and fan-out"
+   ],
+   [
+    "Throughput",
+    "GB-TB/hour",
+    "MB-GB/hour"
+   ],
+   [
+    "Slide example",
+    "01:00 nightly: 10 M bKash rows Oracle -> HDFS Parquet",
+    "access.log from 3 web servers -> /logs/YYYY/MM/DD/"
+   ],
+   [
+    "Not for",
+    "Real-time streaming (use Kafka)",
+    "-"
+   ]
+  ],
+  "key": "Sqoop bulk-copies relational database tables to and from HDFS with a parallel MapReduce job, while Flume continuously collects log files from many servers into HDFS through Source-Channel-Sink agents.",
+  "cue": "If the question describes syncing 10 million customer records nightly from Oracle to Hadoop, the answer is Sqoop; collecting web-server access logs from many machines into HDFS is Flume.",
+  "likelihood": "high",
+  "card_id": "sqoop-flume"
+ },
+ {
+  "id": "w08-flume-vs-kafka",
+  "week": 8,
+  "slides": "P1 s7, s12, s14, s19; P2 s12",
+  "x": "Flume",
+  "y": "Kafka",
+  "rows": [
+   [
+    "Purpose",
+    "Optimised for log collection to HDFS",
+    "General-purpose event bus"
+   ],
+   [
+    "Direction",
+    "Logs -> HDFS",
+    "Any -> Any"
+   ],
+   [
+    "Mode",
+    "Batch / micro-batch",
+    "Real-time stream"
+   ],
+   [
+    "Durability / replay",
+    "File channel survives agent crash; no replay (inference: slide credits Kafka with the stronger durability and replay)",
+    "Stronger durability and replay from any offset"
+   ],
+   [
+    "Today",
+    "Often replaced by Kafka producers writing directly from applications",
+    "Kafka Connect replaces Sqoop and Flume for most use cases"
+   ]
+  ],
+  "key": "Flume is a specialised log-collection pipe into HDFS, whereas Kafka is a general-purpose durable event log that many consumers can read and replay, which is why Kafka has largely replaced Flume.",
+  "cue": "If the question needs several independent consumers (fraud, balance, audit) to read the same events in real time and replay them, the answer is Kafka; just shipping server logs into HDFS is Flume.",
+  "likelihood": "high",
+  "card_id": "sqoop-flume"
+ },
+ {
+  "id": "w08-queue-vs-kafka-log",
+  "week": 8,
+  "slides": "P1 s14-15; P2 s5; P1 s32 (MCQ Q2), s34 (T/F 2)",
+  "x": "Traditional queue",
+  "y": "Kafka append-only log",
+  "rows": [
+   [
+    "After a message is consumed",
+    "Deleted",
+    "Retained for a configured period (days, weeks, or forever)"
+   ],
+   [
+    "Late-joining consumer",
+    "Misses data",
+    "Reads from offset 0 and replays the entire history"
+   ],
+   [
+    "Who tracks read position",
+    "Broker (inference from 'the Kafka broker never tracks what a consumer has read')",
+    "Consumer tracks its own offset; broker never tracks it"
+   ],
+   [
+    "Many consumers",
+    "-",
+    "Each consumer (group) reads independently at its own offset"
+   ],
+   [
+    "Benefit",
+    "-",
+    "New pipelines built without re-ingesting from source"
+   ]
+  ],
+  "key": "A traditional queue deletes a message once consumed and the broker tracks delivery, whereas Kafka keeps an append-only log for a retention period and each consumer tracks its own offset, so late or new consumers can replay history.",
+  "cue": "If the question describes a new analytics team that needs last week's events without re-ingesting from the source database, the answer is Kafka's retained log (start at offset 0).",
+  "likelihood": "high",
+  "card_id": "kafka-log"
+ },
+ {
+  "id": "w08-kafka-vs-activemq-rabbitmq",
+  "week": 8,
+  "slides": "P2 s4, s9, s11, s22",
+  "x": "Kafka",
+  "y": "ActiveMQ / RabbitMQ (traditional MOM)",
+  "rows": [
+   [
+    "Designed for",
+    "Sustained 100 MB/s per broker, multi-day retention, replay",
+    "Transactional messaging: few thousand msgs/sec, guaranteed delivery, complex routing"
+   ],
+   [
+    "Producer throughput (paper)",
+    "50.5 MB/s (505,000 msgs/s)",
+    "ActiveMQ 4.3 MB/s; RabbitMQ 14.7 MB/s"
+   ],
+   [
+    "Consumer throughput",
+    "22.0 MB/s",
+    "ActiveMQ 4.0; RabbitMQ 8.2 MB/s"
+   ],
+   [
+    "Acknowledgement",
+    "Per batch",
+    "Per message"
+   ],
+   [
+    "Data path",
+    "Sequential writes + zero-copy sendfile() (2 copies)",
+    "Disk -> kernel -> user space -> socket -> NIC (4 copies)"
+   ],
+   [
+    "Consumers",
+    "Pull; one log serves all consumers",
+    "Per-consumer queues"
+   ]
+  ],
+  "key": "ActiveMQ and RabbitMQ were built for low-volume transactional messaging with per-message acknowledgements, whereas Kafka uses sequential append-only logs, zero-copy, batching and consumer pull to reach ~10x their throughput with retention and replay.",
+  "cue": "If the question asks why LinkedIn could not use ActiveMQ/RabbitMQ for billions of activity events per day, the answer: they targeted a few thousand msgs/sec without retention or replay; Kafka reached 50.5 MB/s vs 4.3/14.7.",
+  "likelihood": "high",
+  "card_id": "kafka-speed"
+ },
+ {
+  "id": "w08-lambda-vs-kappa",
+  "week": 8,
+  "slides": "P1 s21-27; P1 s33 (MCQ Q4), s34 (T/F 3), s35 (D1), s36 (A2); P2 s15, s18",
+  "x": "Lambda (Marz, 2011)",
+  "y": "Kappa (Kreps, 2014)",
+  "rows": [
+   [
+    "Code paths",
+    "Two (batch + stream) - must stay in sync",
+    "One (stream only)"
+   ],
+   [
+    "Historical reprocessing",
+    "Re-run batch job on HDFS",
+    "Replay Kafka log from offset 0"
+   ],
+   [
+    "Latency",
+    "Low (speed layer) + high (batch layer)",
+    "Low throughout"
+   ],
+   [
+    "Complexity",
+    "High: two systems, merging layer; 30-40% of effort keeping layers consistent",
+    "Lower: single pipeline"
+   ],
+   [
+    "Batch throughput / storage",
+    "Very high (Spark/Hive on full dataset); HDFS master dataset",
+    "Limited by stream engine; Kafka (bounded) + S3/Iceberg"
+   ],
+   [
+    "Use when",
+    "Logic too complex for stream-only; batch ML training; regulatory batch reports",
+    "Stream engine fast enough to reprocess; single code path worth the stream-storage cost"
+   ]
+  ],
+  "key": "Lambda runs a batch layer and a speed layer with the same logic implemented twice and merges them in a serving layer, whereas Kappa drops the batch layer and uses one stream-processing code path, reprocessing history by replaying the Kafka log from offset 0.",
+  "cue": "If the question describes a team tired of maintaining the same logic in Spark batch and Spark Streaming, the answer is Kappa; if a regulator mandates separate batch reconciliation or TB+ history is too slow to replay, keep Lambda.",
+  "likelihood": "high",
+  "card_id": "lambda-kappa"
+ },
+ {
+  "id": "w08-batch-vs-speed-layer",
+  "week": 8,
+  "slides": "P1 s21-23, s33 (MCQ Q3 note); P2 s15-16",
+  "x": "Batch layer",
+  "y": "Speed layer",
+  "rows": [
+   [
+    "Data handled",
+    "Complete, immutable master dataset (HDFS); periodically recomputes batch views",
+    "New data arriving since the last batch job"
+   ],
+   [
+    "Tools",
+    "HDFS + Spark/Hive (hourly or nightly)",
+    "Kafka + Spark Streaming / Flink"
+   ],
+   [
+    "Output",
+    "Accurate",
+    "Approximate"
+   ],
+   [
+    "Latency",
+    "High: 1-24 hours stale",
+    "Low: < seconds"
+   ],
+   [
+    "Netflix",
+    "Kafka -> S3 -> Spark + Iceberg, ~1 day (ML training, billing)",
+    "Kafka -> Flink, < 1 minute (dashboards, alerts, A/B counters)"
+   ],
+   [
+    "Serving layer (not a processing layer)",
+    "Query = batch view (up to N hours ago)",
+    "UNION real-time view (last N hours)"
+   ]
+  ],
+  "key": "The batch layer periodically recomputes accurate views from the full immutable master dataset (hours stale), while the speed layer processes only recent data with a stream engine to give approximate results within seconds; the serving layer merges the two.",
+  "cue": "If the question asks which Lambda layer gives real-time low-latency views, the answer is the speed layer (not the serving layer, which only merges and serves).",
+  "likelihood": "high",
+  "card_id": null
+ },
+ {
+  "id": "w08-data-lake-vs-warehouse",
+  "week": 8,
+  "slides": "P1 s29-30, s35 (D3); W07 P1 s13; W07 P2 s4",
+  "x": "Data lake",
+  "y": "Data warehouse",
+  "rows": [
+   [
+    "Schema",
+    "No upfront schema definition (schema-on-read)",
+    "Schema-on-write: must fit the schema at load (W07 s13)"
+   ],
+   [
+    "Data / format",
+    "Raw data, any format: structured, semi-structured, unstructured; open files (Parquet, ORC, CSV, JSON, Avro)",
+    "Validated, structured tables (general knowledge; W07 s13: proprietary storage format)"
+   ],
+   [
+    "Ingest",
+    "Cheap and quick; transformation on demand",
+    "Slower writes (validation overhead) (W07 s13)"
+   ],
+   [
+    "Storage / processing",
+    "HDFS or S3/ADLS zones raw -> processed -> curated; Spark, Hive, Presto",
+    "Enterprise DW, e.g. Teradata, Oracle (1990s) (W07 P2 s4)"
+   ],
+   [
+    "Typical use",
+    "Data science, ML, exploration on raw history (general knowledge)",
+    "Fixed reports, BI dashboards on cleaned data (general knowledge)"
+   ],
+   [
+    "Main risk",
+    "Becomes a data swamp without governance",
+    "Rigid: schema must be defined upfront"
+   ]
+  ],
+  "key": "A data lake stores raw data of any format cheaply and applies schema only when read, whereas a data warehouse validates data into a fixed schema before loading (schema-on-write), trading flexibility for clean, fast queries.",
+  "cue": "If the question describes dumping raw logs, images and tables into S3/HDFS for later exploration, the answer is a data lake; cleaned, pre-defined tables for fixed business reports is a warehouse.",
+  "likelihood": "high",
+  "card_id": "data-lake"
+ },
+ {
+  "id": "w08-governed-lake-vs-swamp",
+  "week": 8,
+  "slides": "P1 s29-30, s35 (D3)",
+  "x": "Governed data lake",
+  "y": "Data swamp",
+  "rows": [
+   [
+    "Catalogue",
+    "Catalogue/governance layer (Apache Atlas, AWS Glue, Hive Metastore) tracks schemas, lineage, ownership, access",
+    "No catalogue: analysts cannot find relevant datasets"
+   ],
+   [
+    "Currency",
+    "Owners assigned to every dataset",
+    "No one knows which files are current vs stale"
+   ],
+   [
+    "Versions",
+    "Table format (Delta Lake, Iceberg) adds ACID",
+    "Multiple copies with different transformations, no version control"
+   ],
+   [
+    "Privacy",
+    "Access control enforced",
+    "PII mixed with non-sensitive data, violating privacy regulations"
+   ],
+   [
+    "Quality",
+    "Automated quality checks",
+    "Raw files accumulate without metadata, owners or quality guarantees"
+   ]
+  ],
+  "key": "A data swamp is a data lake without governance, where raw files pile up with no catalogue, owners, versions or access control; enforcing a catalogue at ingest, owners, access control, quality checks and a table format keeps it a lake.",
+  "cue": "If the question describes analysts unable to find datasets, unclear current files and PII mixed in, the answer is a data swamp - prevent it with a catalogue at ingest, owners, access control, automated checks, Delta/Iceberg.",
+  "likelihood": "medium",
+  "card_id": null
+ },
+ {
+  "id": "w08-memory-vs-file-channel",
+  "week": 8,
+  "slides": "P1 s11-12",
+  "x": "Flume memory channel",
+  "y": "Flume file channel",
+  "rows": [
+   [
+    "Speed",
+    "Fast",
+    "Slower (general knowledge: disk writes)"
+   ],
+   [
+    "Persistence",
+    "No persistence",
+    "Persistent, on disk"
+   ],
+   [
+    "Agent crash/restart",
+    "Buffered events lost (inference from 'no persistence')",
+    "Survives agent restart / crash"
+   ],
+   [
+    "Choose when",
+    "Speed matters and loss is tolerable",
+    "Logs must not be lost"
+   ]
+  ],
+  "key": "A memory channel buffers Flume events in RAM (fast but lost on restart), while a file channel persists them on disk so the buffer survives an agent crash.",
+  "cue": "If the question says the Flume agent crashed and no log events may be lost, the answer is the file channel.",
+  "likelihood": "medium",
+  "card_id": null
+ },
+ {
+  "id": "w08-sequential-vs-random-io",
+  "week": 8,
+  "slides": "P1 s18; P2 s9, s11",
+  "x": "Sequential disk I/O (Kafka)",
+  "y": "Random disk I/O",
+  "rows": [
+   [
+    "Throughput (P1 s18)",
+    "Modern HDDs ~600 MB/s",
+    "< 1 MB/s"
+   ],
+   [
+    "Throughput (P2 s11)",
+    "~600 MB/s",
+    "~100 MB/s (6x advantage)"
+   ],
+   [
+    "How Kafka gets it",
+    "Never updates in place; append-only writes; OS page cache prefetches next pages",
+    "In-place updates"
+   ],
+   [
+    "Result",
+    "Near-disk-bandwidth on spinning disk without SSD",
+    "-"
+   ]
+  ],
+  "key": "Kafka only ever appends to the end of a log, so disk access is sequential (~600 MB/s on HDD) instead of random, which is a core reason it runs fast on spinning disks.",
+  "cue": "If the question asks why Kafka is fast without SSDs, the answer starts with sequential append-only writes (plus zero-copy, batching, partition parallelism). Note: the two decks give the random-I/O figure as <1 MB/s (P1) and ~100 MB/s (P2) - quote the slide you cite.",
+  "likelihood": "medium",
+  "card_id": null
+ },
+ {
+  "id": "w08-copy-path-vs-zero-copy",
+  "week": 8,
+  "slides": "P1 s18; P2 s9-11",
+  "x": "Traditional broker data path",
+  "y": "Kafka zero-copy (sendfile)",
+  "rows": [
+   [
+    "Path",
+    "Disk -> kernel buffer -> user space -> socket buffer -> NIC",
+    "Disk -> kernel buffer -> NIC via Linux sendfile()"
+   ],
+   [
+    "Copies",
+    "4",
+    "2"
+   ],
+   [
+    "Eliminated",
+    "-",
+    "2 user-space copies and 2 context switches"
+   ],
+   [
+    "Result",
+    "-",
+    "2x throughput, CPU near zero"
+   ]
+  ],
+  "key": "A traditional broker copies each message through user space (4 copies), while Kafka's sendfile() moves data from the kernel page cache straight to the network card (2 copies), doubling throughput with near-zero CPU.",
+  "cue": "If the question asks what zero-copy means in Kafka, the answer: sendfile() skips the user-space copy, so 4 copies become 2.",
+  "likelihood": "medium",
+  "card_id": null
+ },
+ {
+  "id": "w08-classic-lambda-vs-netflix",
+  "week": 8,
+  "slides": "P2 s15-18, s22",
+  "x": "Classic Lambda",
+  "y": "Netflix Kafka-first Lambda (moving to Kappa)",
+  "rows": [
+   [
+    "Ingestion",
+    "Two separate ingestion paths -> data inconsistency",
+    "All events written to Kafka first; speed and batch layers are both consumers of the same topic"
+   ],
+   [
+    "Reprocessing",
+    "Re-run batch job on HDFS",
+    "7-day Kafka retention lets them replay any window when a Flink/Spark job has a bug"
+   ],
+   [
+    "Layers",
+    "Batch + speed + serving",
+    "Flink (<1 min), S3 + Spark + Iceberg (~1 day), Cassandra + Druid serving"
+   ],
+   [
+    "Direction",
+    "-",
+    "Increasingly moved batch jobs to Flink (Kappa simplification)"
+   ],
+   [
+    "Burst handling",
+    "-",
+    "Kafka's durable log absorbs 5x Super Bowl spikes; Flink catches up"
+   ]
+  ],
+  "key": "Netflix removed classic Lambda's dual-ingestion problem by writing every event to Kafka first so both layers read the same durable log, and gradually shifted batch work to Flink streams (towards Kappa).",
+  "cue": "If the question asks how to keep Lambda's batch and speed layers consistent, the answer is Netflix's pattern: one Kafka topic as the single source of truth feeding both layers.",
+  "likelihood": "medium",
+  "card_id": null
+ },
+ {
+  "id": "w08-kafka-partition-vs-hive-partition",
+  "week": 8,
+  "slides": "W08 P1 s16, s18; P2 s7, s9; W07 P1 s19-22; W06 P1 s13",
+  "x": "Kafka partition",
+  "y": "Hive partition",
+  "rows": [
+   [
+    "What it is",
+    "Ordered append-only log, one of P splits of a topic, stored on a broker (leader + R-1 replicas)",
+    "HDFS sub-directory per value of the partition column"
+   ],
+   [
+    "Purpose",
+    "Parallelism: P producers and up to P consumers in a group; key-level ordering",
+    "Pruning: queries skip non-matching directories"
+   ],
+   [
+    "Assigned by",
+    "Producer: key hash or round-robin (same key -> same partition)",
+    "Column value (static or dynamic insert)"
+   ],
+   [
+    "Scaling note",
+    "Throughput scales linearly with partition count",
+    "High-cardinality key -> millions of directories crash NameNode"
+   ],
+   [
+    "Spark (for contrast)",
+    "Spark partition = slice of an RDD processed in parallel by one task on an executor",
+    "-"
+   ]
+  ],
+  "key": "A Kafka partition is an ordered log segment of a topic that gives parallelism and per-key ordering, while a Hive partition is a directory per column value that lets queries skip data; same word, different jobs.",
+  "cue": "If the question is about consumer parallelism or keeping one driver's GPS pings in order, it means Kafka partitions; if about skipping data in a WHERE clause, it means Hive partitions.",
+  "likelihood": "medium",
+  "card_id": null
+ },
+ {
+  "id": "w09-data-ink-vs-chartjunk",
+  "week": 9,
+  "slides": "P1 s8; P2 s5-6; P1 s26 (MCQ Q1), s29 (D1)",
+  "x": "Data-ink",
+  "y": "Chartjunk",
+  "rows": [
+   [
+    "Definition",
+    "Ink used to display data",
+    "Ink that does not convey data"
+   ],
+   [
+    "Examples",
+    "Bar lengths, data points",
+    "Decorative borders, 3-D effects, gradient fills, redundant legends, heavy gridlines, vibrations, ducks"
+   ],
+   [
+    "Erase rule",
+    "Erasing it reduces information",
+    "If erasing does not reduce information, erase it"
+   ],
+   [
+    "Effect",
+    "Raises data-ink ratio = data ink / total ink",
+    "Lowers the ratio; 3-D distorts quantitative comparison"
+   ],
+   [
+    "Trap",
+    "One thick bar encoding one value can have a high ratio",
+    "Ratio is about what ink encodes, not how much (not printing cost)"
+   ]
+  ],
+  "key": "Data-ink is ink that encodes actual values, while chartjunk is decoration that encodes nothing; Tufte says to maximise the share of data-ink by erasing anything whose removal loses no information.",
+  "cue": "If the question describes a bar chart with 3-D shading, gradient fills, heavy gridlines and a one-series legend, those are chartjunk - remove them to raise the data-ink ratio.",
+  "likelihood": "high",
+  "card_id": "tufte"
+ },
+ {
+  "id": "w09-small-multiples-vs-sparklines",
+  "week": 9,
+  "slides": "P1 s8-9; P2 s7, s11",
+  "x": "Small multiples",
+  "y": "Sparklines",
+  "rows": [
+   [
+    "What",
+    "Same chart structure repeated across subsets (districts, years) in a grid; trellis/facet chart",
+    "Word-sized data graphics embedded in text or table cells"
+   ],
+   [
+    "Scale",
+    "Same axis scale in every panel so magnitudes are comparable",
+    "Trend shape only, no separate figure"
+   ],
+   [
+    "Gives",
+    "Direct visual comparison across subsets",
+    "Temporal context next to a number"
+   ],
+   [
+    "Slide example",
+    "Dhaka/Ctg/Sylhet 2022 vs 2023 panels",
+    "District daily case count with an inline trend"
+   ],
+   [
+    "Modern tools",
+    "Tableau Pages shelf; ggplot2 facet_wrap / facet_grid",
+    "Grafana stat panel; Bloomberg terminal; GitHub contribution heatmap"
+   ]
+  ],
+  "key": "Small multiples repeat the same full chart, on the same scale, for each subset so subsets can be compared side by side, whereas a sparkline is a tiny word-sized trend line placed inline next to a number.",
+  "cue": "If the question wants to compare the trend of 50 states or 8 divisions at once, the answer is small multiples; if it wants a trend beside each number in a table, sparklines.",
+  "likelihood": "high",
+  "card_id": "tufte"
+ },
+ {
+  "id": "w09-small-multiples-vs-animation",
+  "week": 9,
+  "slides": "P2 s7, s14-15",
+  "x": "Small multiples",
+  "y": "Animation",
+  "rows": [
+   [
+    "Viewing",
+    "All panels visible at once",
+    "One frame at a time"
+   ],
+   [
+    "Memory load",
+    "Eye compares directly",
+    "Forces the viewer to remember the previous frame"
+   ],
+   [
+    "NYT COVID lesson",
+    "50-state grid was more actionable",
+    "Animated map of spreading cases was less actionable"
+   ],
+   [
+    "Slide example",
+    "12 monthly temperature charts in a 3 x 4 grid",
+    "-"
+   ]
+  ],
+  "key": "Small multiples show every subset at once so the eye can compare directly, whereas animation shows one frame at a time and makes the viewer remember earlier frames, so small multiples beat animation.",
+  "cue": "If the question asks whether to animate a spreading-disease map or show a grid of state charts, the answer is the small-multiples grid (NYT lesson).",
+  "likelihood": "high",
+  "card_id": "tufte"
+ },
+ {
+  "id": "w09-alpha-vs-hexbin",
+  "week": 9,
+  "slides": "P1 s17-18; P1 s28 (T/F 2), s29 (D2)",
+  "x": "Alpha transparency",
+  "y": "Hexbin aggregation",
+  "rows": [
+   [
+    "How",
+    "Each point drawn at low opacity (alpha = 0.02); dense regions look darker",
+    "2-D area split into hexagonal grid; count points per hex; colour by count"
+   ],
+   [
+    "Sophistication",
+    "Simplest",
+    "Middle"
+   ],
+   [
+    "Preserves",
+    "Relative density",
+    "Count per area; 10 M points -> ~10,000 hex cells"
+   ],
+   [
+    "Weakness",
+    "Still fails at very high densities",
+    "Individual points inside a cell are hidden (general knowledge)"
+   ],
+   [
+    "Interactive at scale",
+    "Still draws every point",
+    "Interactive and readable"
+   ]
+  ],
+  "key": "Alpha transparency keeps every point but makes each faint so density shows as darkness (and saturates at extreme density), while hexbin replaces points with hexagon counts, which scales to millions of points.",
+  "cue": "If the question has a 10-million-point scatter that is a solid blob and wants an interactive chart with counts, the answer is hexbin; a quick fix for moderate density is alpha.",
+  "likelihood": "high",
+  "card_id": "overplotting"
+ },
+ {
+  "id": "w09-hexbin-vs-kde",
+  "week": 9,
+  "slides": "P1 s17-18, s29 (D2)",
+  "x": "Hexbin",
+  "y": "KDE / 2-D density contour",
+  "rows": [
+   [
+    "Output",
+    "Grid of hexagons coloured by count",
+    "Contour lines or filled contours at probability levels"
+   ],
+   [
+    "Method",
+    "Counts points in each hex",
+    "Estimates the continuous probability density of the point cloud"
+   ],
+   [
+    "Reveals",
+    "Density visible; count per cell",
+    "Shape, modes and tails clearly"
+   ],
+   [
+    "Sophistication",
+    "Second of three",
+    "Most sophisticated of the three"
+   ]
+  ],
+  "key": "Hexbin counts points into discrete hexagonal cells, while KDE estimates a smooth continuous density and draws contours, revealing the shape, modes and tails of the cloud.",
+  "cue": "If the question asks which overplotting fix best shows the shape and number of peaks (modes) of a distribution, the answer is KDE contours; for counts per area, hexbin.",
+  "likelihood": "high",
+  "card_id": "overplotting"
+ },
+ {
+  "id": "w09-data-cube-vs-aqp",
+  "week": 9,
+  "slides": "P1 s19, s29 (D3)",
+  "x": "Data cube (pre-aggregation)",
+  "y": "Approximate query processing (AQP)",
+  "rows": [
+   [
+    "How",
+    "Materialise aggregate tables at all dimension combinations (district x date x product x channel) in advance",
+    "Return a statistically correct estimate by sampling the table"
+   ],
+   [
+    "Reads",
+    "Pre-computed cube (millions of rows), not 100 B-row fact table",
+    "A sample"
+   ],
+   [
+    "Latency",
+    "< 1 second",
+    "Milliseconds"
+   ],
+   [
+    "Trade-off",
+    "Staleness (up to 24 h; nightly Spark/Hive pre-agg job)",
+    "Accuracy traded for speed"
+   ],
+   [
+    "Fit",
+    "Interactive dashboards on yesterday's data",
+    "Dashboards, but not financial reconciliation"
+   ],
+   [
+    "Tools",
+    "Spark / Hive pre-aggregation job",
+    "Apache DataSketches, BlinkDB"
+   ]
+  ],
+  "key": "A data cube pre-computes exact aggregates in advance so dashboards answer in under a second but can be up to a day stale, whereas AQP samples the live table to give approximate answers in milliseconds.",
+  "cue": "If the question describes a Tableau filter over 100 billion Hive rows that must respond in < 1 s and yesterday's numbers are fine, the answer is a data cube; if a fast approximate answer is acceptable, AQP - but never AQP for financial reconciliation.",
+  "likelihood": "high",
+  "card_id": "latency"
+ },
+ {
+  "id": "w09-poll-vs-push",
+  "week": 9,
+  "slides": "P1 s20, s22, s27 (MCQ Q4 note)",
+  "x": "Poll (Grafana)",
+  "y": "Push (WebSocket + D3.js)",
+  "rows": [
+   [
+    "Mechanism",
+    "Grafana polls the TSDB on a schedule",
+    "Server pushes updates via WebSocket; browser chart re-renders on each push"
+   ],
+   [
+    "Refresh",
+    "5 s refresh",
+    "Sub-second"
+   ],
+   [
+    "Use case",
+    "Ops dashboards: live driver count every 5 s, server metrics",
+    "Stock tickers, live election counts"
+   ],
+   [
+    "Effort",
+    "Native integration with InfluxDB / Prometheus",
+    "Requires custom development"
+   ]
+  ],
+  "key": "Grafana pulls fresh data from the time-series database every few seconds, while a WebSocket + D3 setup has the server push each new value so the chart updates sub-second.",
+  "cue": "If the question needs second-level ops monitoring with little coding, the answer is Grafana polling; if it needs sub-second live updates like an election needle, WebSocket push to D3.js.",
+  "likelihood": "high",
+  "card_id": "streaming-tools"
+ },
+ {
+  "id": "w09-tableau-vs-grafana",
+  "week": 9,
+  "slides": "P1 s22-23, s27 (MCQ Q4); W08 P2 s22 (preview)",
+  "x": "Tableau",
+  "y": "Grafana",
+  "rows": [
+   [
+    "Best for",
+    "Business dashboards, drag-and-drop BI",
+    "Real-time metrics, ops dashboards"
+   ],
+   [
+    "Data source",
+    "Spreadsheets, SQL, Spark, Hive",
+    "InfluxDB, Prometheus, Elasticsearch"
+   ],
+   [
+    "Scale",
+    "Millions of rows",
+    "Millions of data points"
+   ],
+   [
+    "Real-time",
+    "Limited (scheduled refresh)",
+    "Yes (5 s poll)"
+   ],
+   [
+    "Audience",
+    "Business users",
+    "Operations / monitoring teams"
+   ]
+  ],
+  "key": "Tableau is drag-and-drop business BI with only limited scheduled refresh, whereas Grafana is built for real-time operational metrics, polling time-series databases every few seconds.",
+  "cue": "If the question describes monitoring server metrics and error rates with a 5-second refresh, the answer is Grafana; quarterly business dashboards for managers, Tableau (or Power BI).",
+  "likelihood": "high",
+  "card_id": "streaming-tools"
+ },
+ {
+  "id": "w09-tableau-vs-d3",
+  "week": 9,
+  "slides": "P1 s22-23, s28 (T/F 3); P2 s13",
+  "x": "Tableau / Power BI",
+  "y": "D3.js",
+  "rows": [
+   [
+    "Best for",
+    "Business dashboards / executive reports",
+    "Custom interactive web visualizations"
+   ],
+   [
+    "How built",
+    "Drag-and-drop",
+    "Code: binds data to DOM (SVG) elements"
+   ],
+   [
+    "Output",
+    "Dashboards",
+    "Interactive SVG in the browser, not static PNG/PDF"
+   ],
+   [
+    "Real-time",
+    "Limited",
+    "Yes (WebSocket)"
+   ],
+   [
+    "Known for",
+    "Microsoft ecosystem (Power BI)",
+    "NYT graphics, election needle; invented by Mike Bostock at NYT"
+   ]
+  ],
+  "key": "Tableau and Power BI are drag-and-drop tools for business users, whereas D3.js is a code library that binds data to SVG elements for fully custom interactive web graphics.",
+  "cue": "If the audience is business users, choose Tableau/Power BI; if a newsroom needs a custom interactive chart on the web, choose D3.js.",
+  "likelihood": "medium",
+  "card_id": "streaming-tools"
+ },
+ {
+  "id": "w09-pie-vs-bar",
+  "week": 9,
+  "slides": "P1 s14-15, s28 (T/F 1)",
+  "x": "Pie chart",
+  "y": "Bar chart",
+  "rows": [
+   [
+    "Use only when",
+    "<= 4 categories and the question is 'what fraction of the whole?'",
+    "Any comparison; > 5 categories (horizontal bar ordered by value)"
+   ],
+   [
+    "Perception",
+    "Humans judge angles and arc lengths poorly",
+    "Bar lengths judged accurately"
+   ],
+   [
+    "Time series",
+    "Avoid (pie listed under Avoid for temporal)",
+    "Line or bar chart always more readable"
+   ],
+   [
+    "3-D variant",
+    "3-D pie is listed under Avoid",
+    "Grouped bar for comparison across groups"
+   ]
+  ],
+  "key": "A pie chart only works for a few (<= 4) parts of a whole because people judge angles poorly, while a bar chart uses length, which people read accurately, so it wins for comparisons, many categories and time.",
+  "cue": "If the question shows a pie chart comparing 8 product categories or months, the answer is to replace it with a (horizontal) bar chart, or a line chart for time.",
+  "likelihood": "high",
+  "card_id": "shneiderman"
+ },
+ {
+  "id": "w09-choropleth-vs-bubble-map",
+  "week": 9,
+  "slides": "P1 s11, s14, s28 (T/F 4)",
+  "x": "Choropleth map",
+  "y": "Proportional bubble map",
+  "rows": [
+   [
+    "Encodes",
+    "Colour intensity on geographic polygons",
+    "Bubble size at locations"
+   ],
+   [
+    "Best for",
+    "Rate / proportion (e.g. dengue per 100,000)",
+    "Absolute count"
+   ],
+   [
+    "Data type",
+    "2-D map (Shneiderman)",
+    "2-D map (Shneiderman)"
+   ],
+   [
+    "NYT use",
+    "County-level case rates",
+    "-"
+   ]
+  ],
+  "key": "A choropleth colours regions to show a rate or proportion, while a proportional bubble map scales circles to show absolute counts.",
+  "cue": "If the question wants dengue incidence per 100,000 by district, the answer is a choropleth; total case numbers by city, a bubble map.",
+  "likelihood": "medium",
+  "card_id": "shneiderman"
+ },
+ {
+  "id": "w09-histogram-vs-boxplot",
+  "week": 9,
+  "slides": "P1 s14, s26 (MCQ Q2)",
+  "x": "Histogram",
+  "y": "Box plot (and violin)",
+  "rows": [
+   [
+    "Shows",
+    "Shape of the distribution",
+    "Quartiles + outliers (violin: density + quartiles)"
+   ],
+   [
+    "Question answered",
+    "What is the spread and shape of X?",
+    "What is the spread of X, where are the outliers?"
+   ],
+   [
+    "Shneiderman type",
+    "1-D linear: bar chart, histogram",
+    "-"
+   ],
+   [
+    "Avoid for distribution",
+    "Line chart",
+    "Line chart; pie (part-to-whole only)"
+   ]
+  ],
+  "key": "A histogram shows the full shape of a distribution, while a box plot summarises it by quartiles and flags outliers (a violin adds density to the quartiles).",
+  "cue": "If the question asks for the chart showing distribution and spread of a continuous variable, the answer is a histogram; to highlight quartiles and outliers, a box plot.",
+  "likelihood": "medium",
+  "card_id": "shneiderman"
+ },
+ {
+  "id": "w09-statistics-vs-visualisation",
+  "week": 9,
+  "slides": "P1 s5-6; P2 s24",
+  "x": "Summary statistics",
+  "y": "Visualisation",
+  "rows": [
+   [
+    "Anscombe's Quartet",
+    "Identical: mean x 9.0, mean y 7.5, var x 11.0, r 0.816, y = 3 + 0.5x",
+    "Four different stories: linear, curved, outlier, vertical cluster"
+   ],
+   [
+    "At petabyte scale",
+    "Opposite trends in sub-populations average out; means meaningless on log-scale data",
+    "First and most powerful quality check"
+   ],
+   [
+    "Streaming",
+    "Daily average hides sudden regime changes",
+    "Reveals the change"
+   ],
+   [
+    "Bangladesh example",
+    "DGHS monthly averages look stable year-over-year",
+    "Line chart reveals June-Aug cholera and October dengue peaks"
+   ]
+  ],
+  "key": "Summary statistics can be identical for very different data (Anscombe's Quartet), while a plot reveals the actual pattern, so visualise before trusting the numbers - more so at big-data scale.",
+  "cue": "If the question says annual averages look stable but asks what is being missed, the answer is to plot the time series (seasonal spikes hidden by the mean, Anscombe's lesson).",
+  "likelihood": "medium",
+  "card_id": null
+ },
+ {
+  "id": "w09-tufte-vs-shneiderman",
+  "week": 9,
+  "slides": "P1 s8, s11-12; P2 s4-11, s14, s19",
+  "x": "Tufte (1983)",
+  "y": "Shneiderman (1996)",
+  "rows": [
+   [
+    "Work",
+    "The Visual Display of Quantitative Information (book, self-published)",
+    "The Eyes Have It (IEEE Visual Languages paper)"
+   ],
+   [
+    "Focus",
+    "What to show and what to remove (static design)",
+    "How users interact: overview first, zoom and filter, then details on demand"
+   ],
+   [
+    "Key concepts",
+    "Data-ink ratio, chartjunk, lie factor, small multiples, sparklines",
+    "Mantra, seven data types, seven tasks, treemap (1991), dynamic queries"
+   ],
+   [
+    "Modern tools",
+    "Tableau 'Remove formatting', Grafana minimal theme, D3 no default axes",
+    "Tableau drill-down, Grafana time-range zoom, Google Maps zoom"
+   ],
+   [
+    "NYT COVID tracker",
+    "No gridlines; 50-state small multiples",
+    "National total first; state dropdown; hover tooltip"
+   ]
+  ],
+  "key": "Tufte tells you what ink belongs on a chart (maximise data-ink, remove chartjunk, avoid lies), while Shneiderman tells you how an interactive visualisation should behave (overview first, zoom and filter, then details on demand).",
+  "cue": "If the question is about removing 3-D effects or gridlines, cite Tufte; if it is about a dashboard's drill-down flow or tooltips, cite Shneiderman's mantra.",
+  "likelihood": "medium",
+  "card_id": null
+ },
+ {
+  "id": "w09-7day-vs-14day",
+  "week": 9,
+  "slides": "P2 s14-15",
+  "x": "7-day rolling average",
+  "y": "14-day rolling average",
+  "rows": [
+   [
+    "Day-of-week reporting artefacts",
+    "Removed (slide: reduces day-of-week artefacts)",
+    "Removed (general knowledge: any multiple of 7)"
+   ],
+   [
+    "Reacts to a real turn",
+    "Sooner (general knowledge)",
+    "Later (general knowledge)"
+   ],
+   [
+    "Noise",
+    "More (general knowledge)",
+    "Less (general knowledge)"
+   ],
+   [
+    "Slide point",
+    "NYT's choice: a data quality decision encoded in the visual design",
+    "Choosing 7 vs 14 changes the story - editorial decision with ethical weight"
+   ]
+  ],
+  "key": "Both smooth out the weekly reporting cycle, but a 7-day average reacts faster to real changes while a 14-day average is smoother and lags more; the choice changes the story the chart tells.",
+  "cue": "If the question asks why NYT used a 7-day average, the answer is to remove day-of-week reporting artefacts while staying responsive; the slide's point is that the window choice is an editorial decision.",
+  "likelihood": "medium",
+  "card_id": "nyt-case"
+ },
+ {
+  "id": "w10-louvain-vs-pagerank",
+  "week": 10,
+  "slides": "P1 s9-10, s31 (MCQ Q2 note); P2 s11",
+  "x": "Louvain (community detection)",
+  "y": "PageRank",
+  "rows": [
+   [
+    "Answers",
+    "Which community/group is a node in?",
+    "How important is a node?"
+   ],
+   [
+    "Method",
+    "Start each node alone; greedily merge to maximise modularity; aggregate super-nodes; stop when gain is zero",
+    "Node importance score (high-PageRank nodes)"
+   ],
+   [
+    "Output",
+    "Community labels",
+    "Score per node"
+   ],
+   [
+    "Complexity / scale",
+    "O(n log n); billion-node graphs in Spark GraphX",
+    "GraphX runs PageRank (W06 P1 s29)"
+   ],
+   [
+    "K-Means (third distractor)",
+    "K-Means clusters vectors, not graph topologies",
+    "ARIMA is a time-series method"
+   ]
+  ],
+  "key": "Louvain finds groups of densely connected nodes by maximising modularity, whereas PageRank scores how important each individual node is; K-Means clusters feature vectors, not graphs.",
+  "cue": "If the question asks to find political factions or coordinated bot networks in a follower graph, the answer is Louvain; to rank the most influential accounts, PageRank.",
+  "likelihood": "high",
+  "card_id": "social-graph"
+ },
+ {
+  "id": "w10-twitter-vs-facebook",
+  "week": 10,
+  "slides": "P1 s7; P2 s4-7, s19",
+  "x": "Twitter (Kwak et al. 2010)",
+  "y": "Facebook",
+  "rows": [
+   [
+    "Graph type",
+    "Directed, asymmetric",
+    "Mutual friendship required (undirected)"
+   ],
+   [
+    "Reciprocity",
+    "Only 22.1% mutual; 77.9% of users have a non-reciprocating follower",
+    "~100%"
+   ],
+   [
+    "Size",
+    "41.7 million users, 1.47 billion edges (2010)",
+    "3 billion users"
+   ],
+   [
+    "What it is",
+    "News medium: 85% of trending topics were headline news",
+    "Social network"
+   ],
+   [
+    "Cascades",
+    "Retweet cascades wide and shallow (one hop from a celebrity)",
+    "Friendship cascades deep (long chain)"
+   ],
+   [
+    "Other findings",
+    "Power-law in-degree alpha ~2.276; average path 4.12 hops",
+    "-"
+   ]
+  ],
+  "key": "Twitter is a directed, mostly non-reciprocal follower graph (22.1% mutual) that behaves like a news medium, while Facebook is a mutual-friendship social network (~100% reciprocal).",
+  "cue": "If the question describes one-to-many broadcasting where a celebrity's post spreads widely in one hop, the answer is Twitter as a news medium; mutual friendship ties spreading along long chains is Facebook.",
+  "likelihood": "high",
+  "card_id": "social-graph"
+ },
+ {
+  "id": "w10-community-vs-influence",
+  "week": 10,
+  "slides": "P1 s9-10, s12, s34 (D1)",
+  "x": "Community detection",
+  "y": "Influence maximisation",
+  "rows": [
+   [
+    "Question",
+    "Which nodes form a densely connected group?",
+    "Which k nodes to seed so information spreads to the most users?"
+   ],
+   [
+    "Algorithm",
+    "Louvain (Blondel 2008), maximise modularity",
+    "Kempe et al. (KDD 2003 Best Paper): NP-hard, greedy approximation with (1 - 1/e) guarantee"
+   ],
+   [
+    "Reveals",
+    "Interest groups, political factions, professional clusters, bot networks",
+    "Seed users for a product promotion or message"
+   ],
+   [
+    "Ethical risk at scale",
+    "Profiling group membership (general knowledge; D1 asks for one)",
+    "Manipulation / microtargeting vulnerable users (slide s12 mentions microtargeting)"
+   ]
+  ],
+  "key": "Community detection groups nodes that are densely linked to each other, whereas influence maximisation chooses a small set of seed nodes that will spread information furthest (NP-hard, greedy (1 - 1/e) approximation).",
+  "cue": "If the question describes a marketer choosing 50 accounts to start a campaign, the answer is influence maximisation; finding coordinated bot clusters is community detection.",
+  "likelihood": "medium",
+  "card_id": "sentiment-trend"
+ },
+ {
+  "id": "w10-arima-vs-prophet",
+  "week": 10,
+  "slides": "P1 s14-17, s31 (MCQ Q1), s34 (D2), s35 (A2); P2 s9-11",
+  "x": "ARIMA(p, d, q)",
+  "y": "Facebook Prophet",
+  "rows": [
+   [
+    "Kind",
+    "Classical statistical: AR(p) past values, I(d) differencing, MA(q) past errors",
+    "Additive decomposable model y(t) = g(t) + s(t) + h(t) + e(t)"
+   ],
+   [
+    "Stationarity",
+    "Assumes stationary input (difference d times)",
+    "Piecewise trend with automatic changepoints"
+   ],
+   [
+    "Seasonality",
+    "Struggles with complex multi-seasonal patterns",
+    "Fourier series; multiple seasonalities (annual, weekly, daily)"
+   ],
+   [
+    "Holidays",
+    "-",
+    "h(t): user-specified events (Eid, Puja, elections, cricket World Cup)"
+   ],
+   [
+    "Who tunes it",
+    "Expert parameter selection (p, d, q); cannot hand-fit 10,000 series",
+    "Analysts, not statisticians; interpretable parameters; robust to missing data/outliers"
+   ],
+   [
+    "Best for",
+    "Short stationary series, no strong seasonality, small datasets",
+    "Thousands of business series; one Spark partition per series via applyInPandas"
+   ]
+  ],
+  "key": "ARIMA is a classical model that needs a stationary series and expert-chosen (p, d, q), while Prophet decomposes a series into trend, multiple seasonalities and holidays with automatic changepoints, so analysts can fit thousands of series at scale.",
+  "cue": "If the question describes 5,000 SKUs with weekly and yearly seasonality and Eid spikes, the answer is Prophet; a short, stationary series with no strong seasonality can use ARIMA.",
+  "likelihood": "high",
+  "card_id": "forecasting"
+ },
+ {
+  "id": "w10-prophet-vs-blackbox-dl",
+  "week": 10,
+  "slides": "P1 s5, s16; P2 s14-15, s19",
+  "x": "Prophet (decomposable)",
+  "y": "Black-box deep learning (e.g. LSTM)",
+  "rows": [
+   [
+    "Interpretability",
+    "g + s + h structure lets epidemiologists inspect each component",
+    "Black-box"
+   ],
+   [
+    "Adjustment",
+    "Domain experts can audit and adjust each component (holidays, trend flexibility)",
+    "-"
+   ],
+   [
+    "Public-health outcome",
+    "Succeeded where black-box models failed",
+    "-"
+   ],
+   [
+    "FluSight",
+    "Strong component of ensembles",
+    "Also in the ensemble (Prophet, ARIMA, LSTM, human experts); no single model wins every season"
+   ]
+  ],
+  "key": "Prophet's additive trend + seasonality + holiday components can be inspected and adjusted by domain experts, while black-box deep learning forecasters like LSTM cannot, which is why the slides credit Prophet's trust in public health.",
+  "cue": "If the question asks why epidemiologists trusted Prophet over a deep-learning forecaster, the answer is decomposability/interpretability; if asked which single model is best, the answer is none - ensembles win.",
+  "likelihood": "medium",
+  "card_id": "forecasting"
+ },
+ {
+  "id": "w10-stl-vs-isolation-forest",
+  "week": 10,
+  "slides": "P1 s18",
+  "x": "STL decomposition",
+  "y": "Isolation Forest",
+  "rows": [
+   [
+    "Idea",
+    "Decompose into trend, seasonal, residual (LOESS)",
+    "Ensemble of random trees isolating points by partitioning feature space"
+   ],
+   [
+    "Anomaly rule",
+    "Residual whose |value| > k x IQR of residuals",
+    "Fewer splits to isolate -> shorter path length"
+   ],
+   [
+    "Assumption",
+    "Works well for regular seasonality",
+    "No assumption about data distribution"
+   ],
+   [
+    "Strength",
+    "Interpretable",
+    "Scales to millions of observations in Spark MLlib"
+   ],
+   [
+    "Slide example",
+    "-",
+    "bKash agent: 10 -> 10,000 transactions/hour flagged as possible money laundering"
+   ]
+  ],
+  "key": "STL flags points whose residual after removing trend and seasonality is unusually large, which is interpretable but needs regular seasonality, whereas Isolation Forest flags points that random trees isolate in few splits, with no distribution assumption and Spark-scale speed.",
+  "cue": "If the question describes millions of mobile agents with no clear seasonal pattern (bKash money laundering), the answer is Isolation Forest; a single seasonal series where you must explain the alert, STL.",
+  "likelihood": "high",
+  "card_id": "anomaly"
+ },
+ {
+  "id": "w10-sequential-vs-spark-forecasting",
+  "week": 10,
+  "slides": "P1 s16, s19, s35 (A2); P2 s11, s14",
+  "x": "Sequential Prophet on one machine",
+  "y": "Spark vectorised batch forecasting (applyInPandas)",
+  "rows": [
+   [
+    "Runtime (5,000 SKUs)",
+    "8+ hours",
+    "~12 minutes on a 20-executor cluster (40x)"
+   ],
+   [
+    "How",
+    "Fit 5,000 Prophet models one after another",
+    "Group by sku_id; applyInPandas sends each SKU to one partition; Prophet in a Pandas UDF"
+   ],
+   [
+    "Why it works",
+    "-",
+    "Each series independent -> embarrassingly parallel"
+   ],
+   [
+    "Output",
+    "-",
+    "Written to Hive/S3 as Parquet, served to dashboard"
+   ],
+   [
+    "CDC example",
+    "-",
+    "Prophet on 60 HHS regions simultaneously via applyInPandas"
+   ]
+  ],
+  "key": "Fitting thousands of independent forecasts one by one takes hours, but because each series is independent Spark can group by series and run Prophet in parallel with applyInPandas (8 h -> ~12 min).",
+  "cue": "If the question asks how to parallelise 5,000 store-product forecasts, the answer is groupBy(sku_id).applyInPandas(prophet_fit), one series per partition.",
+  "likelihood": "medium",
+  "card_id": null
+ },
+ {
+  "id": "w10-timeseries-vs-iid",
+  "week": 10,
+  "slides": "P1 s14, s33 (T/F 2)",
+  "x": "Time series data",
+  "y": "i.i.d. tabular data",
+  "rows": [
+   [
+    "Order",
+    "Order matters: shuffling rows destroys the signal; timestamps must be kept",
+    "Rows can be shuffled"
+   ],
+   [
+    "Dependence",
+    "Autocorrelation: today correlated with yesterday",
+    "Independent observations (standard regression assumption)"
+   ],
+   [
+    "Structure",
+    "Seasonality, trend must be modelled explicitly",
+    "-"
+   ],
+   [
+    "Stationarity",
+    "Mean/variance may change; most models need differencing",
+    "-"
+   ]
+  ],
+  "key": "Time series observations are ordered and autocorrelated with trend and seasonality, so shuffling them destroys the signal, whereas i.i.d. tabular rows are independent and order-free.",
+  "cue": "If a True/False says shuffling a time series does not change the analysis, it is False; standard regression is invalid because of autocorrelation.",
+  "likelihood": "medium",
+  "card_id": null
+ },
+ {
+  "id": "w10-traditional-vs-syndromic",
+  "week": 10,
+  "slides": "P1 s28-29; P2 s13-15; P1 s33 (T/F 1)",
+  "x": "Traditional surveillance (ILINet)",
+  "y": "Syndromic surveillance",
+  "rows": [
+   [
+    "Source",
+    ">3,000 sentinel physicians report weekly ILI counts",
+    "Social media, pharmacy OTC sales, ER chief complaints, search query volume"
+   ],
+   [
+    "Speed",
+    "1-2 weeks behind real time",
+    "Twitter peaks 7-10 days before ER visits; pharmacy 3-5 days before confirmation"
+   ],
+   [
+    "Accuracy",
+    "Ground truth",
+    "Early signal; Twitter ~30% higher error"
+   ],
+   [
+    "Role",
+    "Main record",
+    "Supplement, not replace"
+   ],
+   [
+    "Pipeline",
+    "Clinic -> state health dept -> CDC weekly report",
+    "Kafka -> Spark Streaming (NLP + aggregation) -> alert engine -> Grafana"
+   ]
+  ],
+  "key": "Traditional surveillance counts physician-reported cases (accurate but 1-2 weeks late), while syndromic surveillance watches non-clinical signals such as tweets, pharmacy sales and searches for earlier but noisier warnings - a supplement, not a replacement.",
+  "cue": "If the question describes detecting a flu or dengue outbreak days before hospitals report it, the answer is syndromic surveillance - validated against ILINet/DGHS ground truth.",
+  "likelihood": "high",
+  "card_id": "flu-surveillance"
+ },
+ {
+  "id": "w10-proxy-vs-direct-signal",
+  "week": 10,
+  "slides": "P1 s28-29; P2 s13-15, s19",
+  "x": "Proxy signal (Google Flu Trends)",
+  "y": "Direct signal (BioSense ED visits)",
+  "rows": [
+   [
+    "Data",
+    "45 flu-related search queries",
+    "Real-time ED data from 3,500+ emergency departments (38 M visits in 2019-20)"
+   ],
+   [
+    "What it measures",
+    "Health anxiety, not health incidence",
+    "Direct medical observation"
+   ],
+   [
+    "Track record",
+    "r = 0.97 on 2003-08, then over-predicted flu 2x in 2012-13; discontinued",
+    "Primary signal in post-GFT Prophet nowcasting"
+   ],
+   [
+    "Failure causes",
+    "Big data hubris; algorithm confounding (autocomplete changes); media amplification",
+    "-"
+   ],
+   [
+    "Correct role of proxies",
+    "Exogenous covariate (e.g. Twitter), not a replacement",
+    "-"
+   ]
+  ],
+  "key": "Google Flu Trends used search queries as a proxy for flu and failed (2x over-prediction) because searches track anxiety and media, while BioSense uses direct emergency-department observations as the primary signal, adding proxies only as covariates.",
+  "cue": "If the question asks why Google Flu Trends failed, the answer: a proxy signal with hubris, autocomplete confounding and media amplification; the fix is direct ED data with proxies as covariates.",
+  "likelihood": "medium",
+  "card_id": null
+ },
+ {
+  "id": "w10-hipaa-vs-gdpr",
+  "week": 10,
+  "slides": "P1 s24, s32 (MCQ Q3)",
+  "x": "HIPAA (USA)",
+  "y": "GDPR (EU)",
+  "rows": [
+   [
+    "Covers",
+    "Healthcare data: patient records, medical information",
+    "Personal data generally (general knowledge)"
+   ],
+   [
+    "Key requirement",
+    "De-identify 18 PHI identifiers before research use; consent required",
+    "Data minimisation; purpose limitation; right to erasure"
+   ],
+   [
+    "Bangladesh PDPA (third law)",
+    "-",
+    "PDPA: under development, based on GDPR principles; NID-linked records require explicit consent"
+   ],
+   [
+    "Distractor",
+    "Not financial data (that is GLBA / Basel III)",
+    "-"
+   ]
+  ],
+  "key": "HIPAA is the US healthcare-specific law requiring removal of 18 identifiers before research use, while GDPR is the EU's general data-protection law built on data minimisation, purpose limitation and the right to erasure; Bangladesh's PDPA is being modelled on GDPR.",
+  "cue": "If the question mentions removing 18 identifiers from US patient records, the answer is HIPAA; a user demanding their data be deleted, GDPR's right to erasure; NID-linked consent in Bangladesh, PDPA.",
+  "likelihood": "high",
+  "card_id": "health-data"
+ },
+ {
+  "id": "w10-safe-harbour-vs-expert",
+  "week": 10,
+  "slides": "P1 s24",
+  "x": "Safe harbour",
+  "y": "Expert determination",
+  "rows": [
+   [
+    "Method",
+    "Remove 18 specific identifiers",
+    "Statistical disclosure analysis by a qualified expert"
+   ],
+   [
+    "Examples",
+    "Name, DOB, zip, NID, phone, etc.",
+    "-"
+   ],
+   [
+    "Rule-based?",
+    "Fixed checklist",
+    "Case-by-case judgement"
+   ],
+   [
+    "Linked law",
+    "HIPAA's 18 PHI identifiers (slide s24)",
+    "HIPAA de-identification method (general knowledge; slide lists it only as a technique)"
+   ]
+  ],
+  "key": "Safe harbour de-identifies by deleting a fixed list of 18 identifiers, while expert determination relies on a qualified expert's statistical analysis that re-identification risk is acceptable.",
+  "cue": "If the question says 'remove name, DOB, zip, NID and phone before sharing', the answer is safe harbour; 'a statistician certifies the risk is low', expert determination.",
+  "likelihood": "medium",
+  "card_id": "health-data"
+ },
+ {
+  "id": "w10-dp-vs-federated",
+  "week": 10,
+  "slides": "P1 s24, s34 (D3)",
+  "x": "Differential privacy",
+  "y": "Federated learning",
+  "rows": [
+   [
+    "What it does",
+    "Adds calibrated noise to aggregate statistics",
+    "Trains models at each hospital without moving raw data"
+   ],
+   [
+    "Protects against",
+    "Inferring an individual record from statistics",
+    "Raw data leaving the hospital"
+   ],
+   [
+    "Data movement",
+    "Aggregates released",
+    "Model updates move; raw records stay"
+   ],
+   [
+    "Typical use",
+    "Publishing health statistics",
+    "Multi-hospital model training"
+   ]
+  ],
+  "key": "Differential privacy protects individuals by adding calibrated noise to released aggregates, whereas federated learning protects them by keeping raw data at each hospital and training the model where the data lives.",
+  "cue": "If the question says hospitals cannot share patient records but want one joint model, the answer is federated learning; publishing district counts so nobody can be singled out, differential privacy.",
+  "likelihood": "medium",
+  "card_id": "health-data"
+ },
+ {
+  "id": "w10-ehr-vs-dicom",
+  "week": 10,
+  "slides": "P1 s21-23, s33 (T/F 4)",
+  "x": "EHR records",
+  "y": "Medical imaging (DICOM)",
+  "rows": [
+   [
+    "Content",
+    "Diagnoses (ICD-10), medications, labs, vital signs, clinical notes",
+    "CT, MRI, X-ray, pathology slides"
+   ],
+   [
+    "Structure",
+    "Structured, plus semi-structured HL7 FHIR and free-text notes",
+    "Unstructured binary files (200 MB - 2 GB each)"
+   ],
+   [
+    "Stored in",
+    "Health data lake (FHIR)",
+    "PACS"
+   ],
+   [
+    "Analysed by",
+    "ML: random forest (ICU mortality AUROC > 0.90), gradient boosting (readmission)",
+    "Deep learning (CNN, ViT), not SQL"
+   ],
+   [
+    "Trap",
+    "-",
+    "Being stored in files does not make it structured (T/F 4 False)"
+   ]
+  ],
+  "key": "EHR data is mostly structured clinical fields (diagnoses, labs, vitals) suited to tabular ML, whereas DICOM images are large unstructured binary files analysed with deep learning, not SQL.",
+  "cue": "If the question asks how to classify MRI/CT scans, the answer is unstructured data, analysed with CNNs; ICU mortality from vitals and labs uses structured EHR with random forest.",
+  "likelihood": "medium",
+  "card_id": null
+ },
+ {
+  "id": "w10-experimental-vs-alphafold",
+  "week": 10,
+  "slides": "P1 s25-26, s32 (MCQ Q4)",
+  "x": "Experimental structure determination",
+  "y": "AlphaFold 2 (DeepMind, 2020)",
+  "rows": [
+   [
+    "Method",
+    "X-ray crystallography",
+    "Evoformer transformer on multiple sequence alignments (MSAs)"
+   ],
+   [
+    "Time / cost",
+    "Months per protein, thousands of dollars",
+    "Predicts 3-D fold from amino-acid sequence"
+   ],
+   [
+    "Data",
+    "170,000 solved structures in the Protein Data Bank (training set)",
+    "MSA search over UniProt's 250 M sequences; 128 TPU v3 cores for weeks"
+   ],
+   [
+    "Accuracy / output",
+    "Ground truth",
+    "Median GDT > 92%; 200 M predicted structures released (2022)"
+   ]
+  ],
+  "key": "Experimental methods like X-ray crystallography take months per protein, while AlphaFold predicts the 3-D structure from sequence alone by learning from 170,000 solved structures and alignments over 250 million sequences.",
+  "cue": "If the question asks what AlphaFold solved and why it is big data, the answer: protein structure prediction from sequence, using MSAs over 250 M UniProt sequences.",
+  "likelihood": "medium",
+  "card_id": null
+ }
+]

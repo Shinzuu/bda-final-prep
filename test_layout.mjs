@@ -1,5 +1,6 @@
 // Layout check: loads index.html at phone and desktop widths in headless Chrome, reports any
-// element wider than the viewport, opens every answer, and saves screenshots.
+// element wider than the viewport, shows every view, opens every answer and fold, and saves screenshots.
+// Diagrams pan inside their own .pan box on a phone, so .pan is skipped like .tw tables.
 //   node test_layout.mjs [outdir]
 import { spawn } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -32,11 +33,12 @@ const send = (method, params = {}) => new Promise((r) => { const i = ++id; pendi
 const evaluate = async (expr) => (await send("Runtime.evaluate", { expression: expr, returnByValue: true })).result.result.value;
 
 const CHECK = `(() => {
-  document.body.classList.add('all');
+  document.body.classList.add('all', 'showall');
   document.querySelectorAll('details').forEach(d => d.open = true);
+  document.querySelectorAll('.fold-b, .qa').forEach(d => d.classList.add('open'));
   const W = document.documentElement.clientWidth, bad = [];
   for (const el of document.querySelectorAll('main *')) {
-    if (el.closest('.tw, pre, .bar-in')) continue;
+    if (el.closest('.tw, pre, .bar-in, .pan')) continue;
     const r = el.getBoundingClientRect();
     if (r.width && (r.right > W + 1 || r.left < -1)) bad.push(el.tagName + '.' + el.className + ' ' + Math.round(r.right) + '>' + W + ' ' + (el.textContent||'').slice(0,50));
   }
