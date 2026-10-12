@@ -125,7 +125,8 @@
     "variants": [
      "Revenue 100 → 110 (+10%); bars drawn 40 px → 60 px (+50%). Lie factor = 50 ÷ 10 = <b>5</b> (overstates)",
      "400 data-ink + 600 decoration: ratio = 400 ÷ 1,000 = <b>0.4</b>; delete all decoration: 400 ÷ 400 = <b>1.0</b>",
-     "Data +20%, drawn +10%: lie factor = 10 ÷ 20 = <b>0.5</b> (understates)"
+     "Data +20%, drawn +10%: lie factor = 10 ÷ 20 = <b>0.5</b> (understates)",
+     "Lecturer's textbook (ch 9): revenue 82M &rarr; 90M (+8 &divide; 82 = 9.76%); the y-axis starts at 80M, so the bars are 2 and 10 units tall: 2023 looks 5&times; as tall (+400%). Lie factor = 400 &divide; 9.76 &asymp; <b>41</b>."
     ]
    },
    "traps": [
@@ -210,7 +211,7 @@
     "Ben Shneiderman, \"The Eyes Have It\" (1996). Mantra: <b>\"Overview first, zoom and filter, then details on demand.\"</b>",
     "<b>Seven data types</b>: 1-D (linear), 2-D (map), 3-D (world), temporal, multi-dimensional, tree, network.",
     "<b>Seven tasks</b> (P2 slide 9), the same for every data type: overview, zoom, filter, details-on-demand, relate, history, extract. P1 lists only the first five.",
-    "<b>Treemap</b> (Shneiderman, 1991): nested rectangles, area ∝ size. <b>Dynamic queries</b>: sliders and buttons that redraw the chart in under 100 ms (ancestor of Tableau's filter shelf).",
+    "<b>Treemap</b> (Shneiderman, 1991): nested rectangles, area ∝ size, colour = a second variable (e.g. modification date or growth rate). <b>Dynamic queries</b>: sliders and buttons that redraw the chart in under 100 ms (ancestor of Tableau's filter shelf).",
     "<b>Anscombe's Quartet</b> (1973): same mean x 9.0, mean y 7.5, variance x 11.0, r 0.816, fit y = 3 + 0.5x; four different shapes.",
     "<b>Pie chart</b>: only for ≤ 4 categories and the question \"what fraction of the whole?\" People judge angles worse than lengths.",
     "<b>Choropleth</b>: regions shaded by a rate or proportion. For absolute counts use a proportional bubble map."
@@ -662,7 +663,8 @@
     "variants": [
      "365 dates × 64 districts × 50 products × 4 channels = <b>4,672,000</b> rows at most",
      "100 billion ÷ 4,672,000 ≈ <b>21,404×</b> fewer rows",
-     "k = 4 dimensions → 2⁴ = <b>16</b> group-by combinations"
+     "k = 4 dimensions → 2⁴ = <b>16</b> group-by combinations",
+     "Lecturer's textbook (ch 9): 120 B meter readings, 4 dimensions (meter_id 10 M, hour 43,800, region 50, tariff 5) &rarr; 2&#8308; = <b>16</b> cuboids. Hour &times; region cuboid = 43,800 &times; 50 = 2,190,000 rows &times; 30 bytes &asymp; <b>65.7 MB</b>. Skip cuboids with meter_id: 10 M &times; 43,800 cells is more than the fact table itself."
     ]
    },
    "traps": [
@@ -1251,6 +1253,36 @@
    "code": "&lt;!DOCTYPE html&gt;\n&lt;meta charset=\"utf-8\"&gt;\n&lt;style&gt;\n  .bar { fill: steelblue; }\n  .bar:hover { fill: #b5651d; }\n  .axis path, .axis line {\n    stroke: #ccc; stroke-width: 0.5px; }\n  .tooltip {\n    position: absolute; background: #fff;\n    border: 1px solid #ccc; padding: 6px;\n    font-size: 11px; pointer-events: none; }\n&lt;/style&gt;\n&lt;body&gt;\n&lt;script src=\n  \"https://d3js.org/d3.v7.min.js\"&gt;&lt;/script&gt;\n&lt;script&gt;\nconst topics = [\"orders\",\"clicks\",\n                \"errors\",\"logins\",\"search\"];\nconst data = topics.map(t =&gt; ({\n  topic: t,\n  count: Math.floor(Math.random()*50000)\n         + 10000\n}));\nconst svg = d3.select(\"body\").append(\"svg\")\n  .attr(\"width\", 500).attr(\"height\", 300);\nconst x = d3.scaleBand()\n  .domain(data.map(d=&gt;d.topic))\n  .range([50,480]).padding(0.3);\nconst y = d3.scaleLinear()\n  .domain([0, d3.max(data,d=&gt;d.count)])\n  .range([260, 20]);\nsvg.append(\"g\").attr(\"transform\",\"translate(0,260)\")\n  .call(d3.axisBottom(x));\nsvg.append(\"g\").attr(\"transform\",\"translate(50,0)\")\n  .call(d3.axisLeft(y).ticks(4));\nsvg.selectAll(\".bar\").data(data).join(\"rect\")\n  .attr(\"class\",\"bar\")\n  .attr(\"x\",d=&gt;x(d.topic))\n  .attr(\"y\",d=&gt;y(d.count))\n  .attr(\"width\",x.bandwidth())\n  .attr(\"height\",d=&gt;260-y(d.count));\n&lt;/script&gt;",
    "topic": "tufte",
    "a": "<p><b>Key code</b> (added to the skeleton; 7 daily values per topic, bar = weekly sum; SVG height raised to 340 for the sparklines; CSS <code>.ref { stroke: #ddd; stroke-dasharray: 3 3; }</code>):</p><pre>const data = topics.map(t =&gt; { const days = d3.range(7)\n  .map(() =&gt; Math.floor(Math.random()*50000) + 10000);\n  return {topic: t, days, count: d3.sum(days)}; });\nsvg.selectAll(\"g\").attr(\"class\",\"axis\");   // skeleton forgot this\nconst mean = d3.mean(data, d =&gt; d.count);  // one light line at the mean\nsvg.append(\"line\").attr(\"class\",\"ref\").attr(\"x1\",50).attr(\"x2\",480).attr(\"y1\",y(mean)).attr(\"y2\",y(mean));\nconst tip = d3.select(\"body\").append(\"div\").attr(\"class\",\"tooltip\").style(\"opacity\",0);\nsvg.selectAll(\".bar\").on(\"mouseover\",(e,d)=&gt;tip.style(\"opacity\",1)\n      .style(\"left\",(e.pageX+8)+\"px\").style(\"top\",(e.pageY-28)+\"px\")\n      .html(d.topic+\": \"+d.count))\n    .on(\"mouseout\",()=&gt;tip.style(\"opacity\",0));\nconst sx = d3.scaleLinear().domain([0,6]).range([0,x.bandwidth()]);\ndata.forEach(d =&gt; { const sy = d3.scaleLinear()\n  .domain(d3.extent(d.days)).range([325,290]);\n  svg.append(\"path\").attr(\"fill\",\"none\").attr(\"stroke\",\"#555\").attr(\"transform\",`translate(${x(d.topic)},0)`)\n   .attr(\"d\", d3.line().x((v,i)=&gt;sx(i)).y(v=&gt;sy(v))(d.days)); });</pre><ol><li><b>Gridlines:</b> D3 axes draw none; add only one dashed light line at the mean.</li><li><b>y from 0:</b> domain <code>[0, max]</code>; a higher start would push the lie factor above 1.</li><li><b>Flat colour:</b> <code>fill: steelblue</code>, no gradient.</li><li><b>Tooltip:</b> mouseover shows topic and count; mouseout hides it. This is details on demand.</li><li><b>Sparkline:</b> 7-point line, no axes, under each bar, own min-max scale (shape, not size).</li></ol><p><b>Extension:</b> a <code>select</code> of the 5 topics; on change, fade other bars and draw that topic's 7-day line chart below.</p><p><b>Expected:</b> 5 flat bars; tallest reaches y = 20 (240 px); bar width ≈ 56.8 px (step 430 ÷ 5.3 ≈ 81.1); weekly totals between 70,000 and 419,993.</p>"
+  },
+  {
+   "src": "Discussion",
+   "n": "v1-1",
+   "q": "A Grafana dashboard shows daily API error counts for a Big Data pipeline. Identify three Tufte violations in a dashboard that uses: a 3-D bar chart with a y-axis starting at 500, a heavy grid, and gradient fill colours. Redesign the chart applying data-ink principles. [CLO3 — Apply]",
+   "topic": "tufte",
+   "a": "<table><tr><th>Violation</th><th>Principle broken</th><th>Fix</th></tr><tr><td>3-D bars</td><td>Chartjunk; depth and perspective distort bar heights</td><td>Flat 2-D bars (or a line, since daily counts are temporal)</td></tr><tr><td>y-axis starts at 500</td><td>Lie factor above 1: small differences look huge</td><td>Start y at 0</td></tr><tr><td>Heavy grid</td><td>Chartjunk competing with the data</td><td>No grid, or one light reference line (e.g. the error budget)</td></tr><tr><td>Gradient fill</td><td>Chartjunk: colour encodes nothing</td><td>One flat colour</td></tr></table><p><b>Example:</b> days with 600 and 700 errors are drawn 100 and 200 units tall (+100%) for a real +16.7%: lie factor = 100 &divide; 16.7 &asymp; <b>6</b>.</p><p><b>Redesign:</b> flat bars or line from 0, light axes, no legend for one series, label the axis directly, hover tooltip with the exact count (details on demand).</p>",
+   "gh": {
+    "src": [
+     "v1"
+    ],
+    "clo": "CLO3",
+    "vl": false,
+    "note": "This discussion question was in the old (v1) slides' Part 2 only; the current deck keeps just the lessons."
+   }
+  },
+  {
+   "src": "Discussion",
+   "n": "v1-3",
+   "q": "Design a Shneiderman-compliant interactive dashboard for a ride-sharing company's trip data (1M trips/day, 5 cities). Specify the overview view, the zoom/filter interactions, and the details-on-demand panel. Justify each design choice using the mantra. [CLO3 — Design]",
+   "topic": "shneiderman",
+   "a": "<p><b>Givens:</b> 1,000,000 &divide; 86,400 &asymp; <b>11.6 trips/s</b>; about 200,000 trips per city per day.</p><table><tr><th>Stage</th><th>Design</th><th>Why (mantra)</th></tr><tr><td>Overview</td><td>KPI row (trips today, completion rate, active drivers) with sparklines; 5-city small multiples of trips per hour on one scale; pickup map as a hexbin (1 M points would overplot)</td><td>The whole picture first, so the user sees which city or hour needs attention</td></tr><tr><td>Zoom and filter</td><td>City selector, date-range slider, hour brush, map zoom to a zone; served from a pre-aggregated cube (city &times; zone &times; hour) so each change returns in under 1 s</td><td>Narrow to the subset of interest only after seeing the overview; dynamic queries must feel instant</td></tr><tr><td>Details on demand</td><td>Hover a hex or bar for count, average wait and fare; click a zone or driver for a table of individual trips</td><td>Raw records only when asked, so the screen is not swamped</td></tr></table><p><b>Live numbers:</b> Kafka &rarr; Spark 1-min windows &rarr; time-series DB &rarr; Grafana 5 s refresh for the KPI row.</p>",
+   "gh": {
+    "src": [
+     "v1"
+    ],
+    "clo": "CLO3",
+    "vl": false,
+    "note": "This discussion question was in the old (v1) slides' Part 2 only; the current deck keeps just the lessons."
+   }
   }
  ],
  "formulas": [

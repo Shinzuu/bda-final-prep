@@ -538,7 +538,7 @@
         },
         {
          "q": "ii) Why did Google Flu Trends fail, and what lesson does that give this system? (1.5)",
-         "a": "GFT over-predicted flu by about 2x in 2012-13. Lazer et al. gave three causes: big data hubris (r = 0.97 on the training years did not generalise), algorithm confounding (Google's autocomplete changes shifted the search features), and media amplification (flu news drove searches even when incidence was low). Searches are a proxy for health anxiety, not incidence. Lesson: syndromic data gives early signals that supplement, not replace, clinical surveillance."
+         "a": "GFT over-predicted flu by about 2x in 2012-13. Lazer et al. gave three causes: big data hubris (r² = 0.97 on the training years did not generalise), algorithm confounding (Google's autocomplete changes shifted the search features), and media amplification (flu news drove searches even when incidence was low). Searches are a proxy for health anxiety, not incidence. Lesson: syndromic data gives early signals that supplement, not replace, clinical surveillance."
         },
         {
          "q": "iii) Compute the spike ratio. Is the phrase trending? (1)",
@@ -1209,7 +1209,7 @@
   "Paper citations, author lists, venues, citation counts and timelines (Vavilapalli, Zaharia, Thusoo, Kreps, Tufte, Shneiderman, Kwak, Taylor & Letham): know the idea each paper introduced, not the bibliography.",
   "Company scale trivia not used by any pool question: Spotify 1 M tables / 600 B events, Netflix 4,000 topics / 2,000 brokers, Facebook 7,500 queries/day, LinkedIn 30,000 jobs/day, NYT 6 M readers.",
   "Python/D3/PySpark live-exercise skeleton code line by line (know what each exercise demonstrates, not the syntax).",
-  "Spotify Discover Weekly details (Word2Vec, Annoy, CNN audio embeddings, Luigi) and the ALS model-size discussion.",
+  "Spotify Discover Weekly details (Word2Vec, Annoy, CNN audio embeddings).",
   "W6 P2 persistence levels beyond MEMORY_ONLY vs MEMORY_AND_DISK; GraySort hardware specs (i2.8xlarge, SSD totals).",
   "Hive 2010 paper extras: compact/bitmap indexes, LLAP, Iceberg REST catalog, AWS Glue; Kafka extras: ksqlDB, tiered storage, Schema Registry details.",
   "Netflix A/B-testing pipeline step list; Timeline Server REST details; DRF maths.",

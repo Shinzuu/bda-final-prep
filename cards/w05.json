@@ -652,6 +652,11 @@
      "format": "long",
      "q": "What is columnar storage? Explain Parquet's layout and predicate pushdown with numbers. (10 marks)",
      "a": "Use the 5-mark answer, the row vs columnar table, the score &gt; 90 walk-through and both calculations (300 GB / 97% / 33×; 50 GB of 10 TB = 200×)."
+    },
+    {
+     "format": "long",
+     "q": "(Old v1 slides, Harvard CS265 exam question) Show that for a query selecting k of c columns from a table of n rows, the I/O is Θ(n · c) in a row store but Θ(n · k) in a column store. Then apply it: n = 1 billion rows, c = 100, k = 3, 8 bytes per value.",
+     "a": "<b>Row store:</b> each record's c values sit together, so every page holds all columns of its rows. To get k columns of all n rows the reader must fetch every page: n × c values, so Θ(n · c), whatever k is.<br><b>Column store:</b> each column is stored on its own, so the reader fetches only the k needed columns (plus a small footer): n × k values, so Θ(n · k).<br><b>Ratio</b> = c / k.<br><b>Numbers:</b> row store 10<sup>9</sup> × 100 × 8 B = <b>800 GB</b>; column store 10<sup>9</sup> × 3 × 8 B = <b>24 GB</b>; 100 / 3 ≈ <b>33×</b> less, 97% saved. This is the slide's 10 TB → 300 GB result in general form."
     }
    ],
    "diagram": {

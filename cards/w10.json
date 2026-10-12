@@ -127,7 +127,8 @@
      "d = 30, h = 3: 30 + 900 + 27,000 = 27,930 users.",
      "d = 40, h = 2: 40 + 1,600 = 1,640 users.",
      "d = 45, h = 4: adds 45&#8308; = 4,100,625, total 4,193,820.",
-     "Greedy seeding, optimal reach 10,000: guaranteed at least 10,000 &times; (1 &minus; 1/e) &asymp; 6,321 users."
+     "Greedy seeding, optimal reach 10,000: guaranteed at least 10,000 &times; (1 &minus; 1/e) &asymp; 6,321 users.",
+     "Lecturer's textbook (ch 10): optimal seed set reaches 200,000 users. Greedy worst case = 200,000 &times; (1 &minus; 1/e) = 200,000 &times; 0.632 &asymp; 126,424 users."
     ]
    },
    "traps": [
@@ -292,11 +293,11 @@
     "variants": [
      "#QurbaniEid spike 1,200&times; on a baseline of 50 posts/hour: peak = 50 &times; 1,200 = 60,000 posts/hour.",
      "20/hour to 6,000/hour: 6,000 / 20 = 300&times;.",
-     "Compound exactly 0.05: not greater than 0.05, so neutral. &minus;0.06: negative."
+     "Compound exactly 0.05: not greater than 0.05, so neutral by the slide's rule (VADER's own docs, using &ge; 0.05, would call it positive). &minus;0.06: negative."
     ]
    },
    "traps": [
-    "The cut-offs are strict: 0.05 itself is neutral.",
+    "The slide's cut-offs are strict (&gt; 0.05, &lt; &minus;0.05), so 0.05 itself is neutral by the slide. VADER's own documentation uses &ge; 0.05 and &le; &minus;0.05, so if a boundary value is asked, state the slide's rule you are using.",
     "Trending depends on the ratio to baseline, not on absolute volume.",
     "VADER is rule-based, not a deep-learning classifier.",
     "LSH here is for detecting trends, not for sentiment."
@@ -345,8 +346,8 @@
     },
     {
      "format": "scenario",
-     "q": "During a flood, a hashtag about relief goods rises from 40 to 8,000 posts an hour. Analysts run VADER on it.<br>i) What is the spike ratio? ii) Is it trending? iii) A post scores 0.05. Class? iv) Name one ethical risk if the government uses this to find critics.",
-     "a": "i) 8,000 / 40 = 200&times;. ii) Yes, it jumped far above its baseline. iii) Neutral (not above 0.05). iv) Suppressing dissent."
+     "q": "During a flood, a hashtag about relief goods rises from 40 to 8,000 posts an hour. Analysts run VADER on it.<br>i) What is the spike ratio? ii) Is it trending? iii) A post scores 0.04. Class? iv) Name one ethical risk if the government uses this to find critics.",
+     "a": "i) 8,000 / 40 = 200&times;. ii) Yes, it jumped far above its baseline. iii) Neutral (between &minus;0.05 and 0.05). iv) Suppressing dissent."
     },
     {
      "format": "one_step",
@@ -468,7 +469,7 @@
     }
    ],
    "calculation": {
-    "example": "<p>P1 slide 19: 5,000 SKUs, 8 hours sequential, about 12 minutes on 20 executors.</p><table><tr><th>Quantity</th><th>Working</th><th>Result</th></tr><tr><td>Speedup</td><td>480 min / 12 min</td><td><b>40&times;</b></td></tr><tr><td>Time per model</td><td>28,800 s / 5,000</td><td><b>5.76 s</b></td></tr><tr><td>Models per executor</td><td>5,000 / 20</td><td><b>250</b></td></tr></table><p>Prophet sum: Eid week with g = 100, s = +15, h = +30, &epsilon; = &minus;2 gives y = <b>143</b>.</p>",
+    "example": "<p>P1 slide 19: 5,000 SKUs, 8 hours sequential, about 12 minutes on 20 executors.</p><table><tr><th>Quantity</th><th>Working</th><th>Result</th></tr><tr><td>Speedup</td><td>480 min / 12 min</td><td><b>40&times;</b></td></tr><tr><td>Time per model</td><td>28,800 s / 5,000</td><td><b>5.76 s</b></td></tr><tr><td>Models per executor</td><td>5,000 / 20</td><td><b>250</b></td></tr></table><p>Check: one model at a time, an executor would need 250 &times; 5.76 s = 1,440 s = 24 min. The slide's 12 min is half that, so about 2 models run at once per executor (40 in total, e.g. 2 cores each). That is why 20 executors give 40&times;, not 20&times;. (Inference; the slide does not state cores.)</p><p>Prophet sum: Eid week with g = 100, s = +15, h = +30, &epsilon; = &minus;2 gives y = <b>143</b>.</p>",
     "steps": [
      "Given 8 hours -> 8 &times; 60 = 480 minutes",
      "Given 480 min sequential and 12 min parallel -> speedup = 480 / 12 = 40&times;",
@@ -480,7 +481,8 @@
      "10,000 SKUs at 5.76 s, 40 models at once: sequential 57,600 s = 16 h; parallel 1,440 s = 24 min; speedup still 40&times;.",
      "400 wards at 2 s each, 20 in parallel: 800 s sequential, 40 s parallel, 20&times;.",
      "Non-holiday week, y = 120, g = 110, &epsilon; = 0: s = +10.",
-     "Changepoint at t = 10: k = 0.5, m = 1, &delta; = 0.3, &gamma; = &minus;3. g(10) = 6 both sides, g(20) = 0.8 &times; 20 + 1 &minus; 3 = 14."
+     "Changepoint at t = 10: k = 0.5, m = 1, &delta; = 0.3, &gamma; = &minus;3. g(10) = 6 both sides, g(20) = 0.8 &times; 20 + 1 &minus; 3 = 14.",
+     "Lecturer's textbook (ch 10): 6,000 towers at 2 s per Prophet fit. Sequential 12,000 s; one 8-core machine 12,000 / 8 = 1,500 s = 25 min; 20 executors &times; 8 cores = 160 slots: 6,000 / 160 = 37.5, so 38 rounds &times; 2 s = 76 s."
     ]
    },
    "traps": [
@@ -918,6 +920,7 @@
     "Other signals: ER chief complaints via NLP; search volume (1-week lead).",
     "BioSense: near real-time data from 3,500+ emergency departments; syndromes extracted automatically.",
     "Google Flu Trends: r&sup2; = 0.97 on 2003-2008 data, then over-predicted flu by 2&times; in 2012-2013 and was discontinued.",
+    "Lazer et al. (2014), three causes of the GFT failure (P2 s14): big data hubris (r&sup2; = 0.97 on 5 training years did not generalise); algorithm confounding (Google's autocomplete changes shifted the search features); media amplification (flu news drove searches while incidence was low).",
     "Post-GFT: BioSense ED visits as the main signal, Prophet for seasonality and season-start changepoints, Twitter as a covariate, ensembles (FluSight).",
     "Twitter adds lead time, not accuracy: its signal arrives about 2 weeks before ILINet but with about 30% higher error (latency vs precision)."
    ],
@@ -1222,7 +1225,7 @@
    "n": "A2",
    "q": "Retail Demand Forecasting Pipeline: A large Bangladeshi supermarket chain needs 90-day demand forecasts for 5,000 store–product SKU combinations. Design the end-to-end big data pipeline: (a) data ingestion from POS systems; (b) storage and partitioning strategy in HDFS/S3; (c) forecasting model choice (ARIMA vs. Prophet vs. LSTM) and justification; (d) how you parallelise model fitting across 5,000 SKUs using Spark; (e) how forecasts are served to the inventory management dashboard. Identify the primary bottleneck in your pipeline.",
    "topic": "forecasting",
-   "a": "<table><tr><th>Stage</th><th>Design</th></tr><tr><td>(a) Ingest</td><td>Tills send sale events to Kafka topic <code>pos_sales</code>; Sqoop bulk-loads history; Spark aggregates to (sku_id, date, units)</td></tr><tr><td>(b) Storage</td><td>Raw Parquet on HDFS/S3 partitioned by date; daily aggregate Hive table partitioned by date, bucketed by sku_id; forecasts partitioned by run_date</td></tr><tr><td>(c) Model</td><td><b>Prophet:</b> weekly and yearly seasonality, holidays (Eid, Puja, Pohela Boishakh), automatic changepoints, tolerates gaps. ARIMA needs hand tuning per series; LSTM needs much data, GPUs and is a black box</td></tr><tr><td>(d) Parallel fit</td><td><code>daily.groupBy(\"sku_id\").applyInPandas(fit, schema)</code>; each group goes to one task, Prophet fits inside the Pandas UDF</td></tr><tr><td>(e) Serve</td><td>Write Parquet to Hive/S3; load latest run into a serving table; dashboard (Superset/Grafana) shows yhat with bands and reorder alerts</td></tr></table><p><b>Numbers:</b> 8 h = 480 min sequential; 12 min on 20 executors; speedup = 480 / 12 = <b>40&times;</b>; 5.76 s per model; 250 models per executor.</p><p><b>Bottleneck:</b> model fitting (Prophet via Stan, the 8-hour step). Skewed SKUs with long histories finish last; cap history and add cores.</p>",
+   "a": "<table><tr><th>Stage</th><th>Design</th></tr><tr><td>(a) Ingest</td><td>Tills send sale events to Kafka topic <code>pos_sales</code>; Sqoop bulk-loads history; Spark aggregates to (sku_id, date, units)</td></tr><tr><td>(b) Storage</td><td>Raw Parquet on HDFS/S3 partitioned by date; daily aggregate Hive table partitioned by date, bucketed by sku_id; forecasts partitioned by run_date</td></tr><tr><td>(c) Model</td><td><b>Prophet:</b> weekly and yearly seasonality, holidays (Eid, Puja, Pohela Boishakh), automatic changepoints, tolerates gaps. ARIMA needs hand tuning per series; LSTM needs much data, GPUs and is a black box</td></tr><tr><td>(d) Parallel fit</td><td><code>daily.groupBy(\"sku_id\").applyInPandas(fit, schema)</code>; each group goes to one task, Prophet fits inside the Pandas UDF</td></tr><tr><td>(e) Serve</td><td>Write Parquet to Hive/S3; load latest run into a serving table; dashboard (Superset/Grafana) shows yhat with bands and reorder alerts</td></tr></table><p><b>Numbers:</b> 8 h = 480 min sequential; 12 min on 20 executors; speedup = 480 / 12 = <b>40&times;</b>; 5.76 s per model; 250 models per executor. One at a time that is 250 &times; 5.76 = 1,440 s = 24 min, so the slide's 12 min implies about 2 models at once per executor (40 slots).</p><p><b>Bottleneck:</b> model fitting (Prophet via Stan, the 8-hour step). Skewed SKUs with long histories finish last; cap history and add cores.</p>",
    "gh": {
     "src": [
      "plan"

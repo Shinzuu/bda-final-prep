@@ -2907,7 +2907,7 @@
    ],
    [
     "Track record",
-    "r = 0.97 on 2003-08, then over-predicted flu 2x in 2012-13; discontinued",
+    "r² = 0.97 on 2003-08, then over-predicted flu 2x in 2012-13; discontinued",
     "Primary signal in post-GFT Prophet nowcasting"
    ],
    [

@@ -820,6 +820,11 @@
      "format": "long",
      "q": "Explain narrow and wide dependencies, how they form stages, and their effect on fault recovery and performance.",
      "a": "Use the 5-mark answer, draw the 1-to-1 vs all-to-all partition diagram, and cite the GraySort lesson that shuffle is the bottleneck."
+    },
+    {
+     "format": "full_calc",
+     "q": "(Old v1 slides, Stanford CS246 exam question) A job reads a 1 TB input in 1,000 partitions: <code>textFile → filter</code> (keeps 50% of records) <code>→ map</code> to (key, value) <code>→ groupByKey → mapValues(sum) → sortByKey → saveAsTextFile</code>. i) Mark every stage boundary and count the stages. ii) Estimate the total shuffle volume. iii) How much does the first shuffle move if groupByKey + mapValues(sum) is replaced by reduceByKey and each partition holds at most 10,000 distinct keys, 100 bytes per record?",
+     "a": "i) textFile, filter, map are narrow: <b>Stage 1</b>. groupByKey is wide: boundary 1, <b>Stage 2</b> = groupByKey, mapValues. sortByKey is wide: boundary 2, <b>Stage 3</b> = sortByKey, saveAsTextFile. <b>3 stages, 2 boundaries.</b><br>ii) After the filter, 1 TB × 0.5 = 500 GB. groupByKey ships every pair: <b>500 GB</b>. mapValues(sum) leaves one row per key, so the sortByKey shuffle moves only those rows: much smaller than 500 GB. Total ≈ <b>500 GB plus the size of the per-key results</b>, dominated by groupByKey. (If no aggregation came before sortByKey, it would move another 500 GB, ≈ 1 TB in all.)<br>iii) reduceByKey combines inside each partition first: at most 1,000 × 10,000 = 10,000,000 partial sums × 100 B = <b>1 GB</b>, so 1 − 1/500 = 99.8% less than 500 GB."
     }
    ],
    "diagram": {

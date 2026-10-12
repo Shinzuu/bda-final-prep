@@ -179,7 +179,7 @@
   ],
   "why": {
    "q": "HDFS already stores the gzip file in blocks. Why can't each block get its own Mapper?",
-   "a": "Blocks split the bytes, not the compressed stream. A gzip stream can only be decoded from its beginning, so a Mapper given block 5 cannot decompress it without first decoding blocks 1-4. The fix is Parquet + Snappy (splittable at row groups) or bzip2 (natively splittable). The matrix marks CSV + Gzip as AVOID."
+   "a": "Blocks split the bytes, not the compressed stream. A gzip stream can only be decoded from its beginning, so a Mapper given block 5 cannot decompress it without first decoding blocks 1-4. The fix is Parquet + Snappy (splittable at row groups) or bzip2 (natively splittable). The slide’s best-practice box says: avoid raw gzip on large CSV files."
   },
   "rank": "very likely"
  },
@@ -377,9 +377,9 @@
   "solution_steps": [
    "Driver: the executor stops heartbeating and its tasks fail; the driver marks partitions 3 and 7 (and anything else cached there) lost.",
    "Lineage lookup: reducedRDD <- mappedRDD <- filteredRDD <- input (HDFS).",
-   "If all steps are narrow: recompute only partitions 3 and 7 of filteredRDD and mappedRDD from HDFS blocks 3 and 7: 2 input partitions, 2 x 3 = 6 partition computations.",
+   "If all steps are narrow: recompute only partitions 3 and 7 of filteredRDD and mappedRDD from HDFS blocks 3 and 7: 2 input partitions, 2 x 3 = 6 partition computations. (8 counting the 2 input reads, as the card does)",
    "If reducedRDD comes from groupByKey (wide): partition 3 of reducedRDD needs data from all 10 mappedRDD partitions.",
-   "Worst case (shuffle files lost with the executor and nothing cached): recompute all 10 partitions of filteredRDD and mappedRDD, re-shuffle, then rebuild partitions 3 and 7: 10 + 10 + 2 = 22 partition computations, plus re-reading all 10 HDFS blocks."
+   "Worst case (shuffle files lost with the executor and nothing cached): recompute all 10 partitions of filteredRDD and mappedRDD, re-shuffle, then rebuild partitions 3 and 7: 10 + 10 + 2 = 22 partition computations, plus re-reading all 10 HDFS blocks. (32 counting the 10 input reads)"
   ],
   "answer": "Narrow: 2 partitions per RDD (from 2 HDFS blocks). Wide (groupByKey) worst case: all 10 parent partitions recomputed and re-shuffled, 5x the input re-read.",
   "variants": [
@@ -642,7 +642,7 @@
   "slides": "W07 P1 s32 (Analytical A1)",
   "card": "w07/bucketing",
   "title": "Analytical A1: partition and bucket a 5 TB e-commerce table",
-  "given": "5 TB table (txn_id, user_id, product_id, amount, country, txn_date). Reports filter by country and txn_date; joins with a 10 M-row user profile table on user_id. Assume 1 year of data and 10 countries (assumption, not on slide).",
+  "given": "5 TB table (txn_id, user_id, product_id, amount, country, txn_date). Reports filter by country and txn_date; joins with a 10 M-row user profile table on user_id. Assume 1 year of data and 10 countries (assumption, not on slide). The topic card's A1 answer assumes 3 years, 5 countries and 8 buckets instead; both are valid, since the slide gives no dates or country count. In the exam, state your assumptions and the method carries the marks.",
   "solution_steps": [
    "Partition on txn_date and country (both low-cardinality and in every WHERE). Never on user_id.",
    "Partitions = 365 x 10 = 3,650; average partition = 5,000,000 MB / 3,650 = 1,370 MB.",
@@ -1063,14 +1063,14 @@
   "slides": "W08 P2 s11, s14, s17-s18",
   "card": "w08/kafka-speed",
   "title": "Events per second: Netflix 100 B/day vs 1.3 M/s peak; LinkedIn 1.8 trillion/day",
-  "given": "Netflix: 100 billion events/day, peak 1.3 M events/s, 7-day retention, Super Bowl spikes 5x. LinkedIn 2021: 1.8 trillion messages/day, 4,400 brokers, peak 13 M messages/s.",
+  "given": "Netflix (slides): 100 billion events/day, peak 1.3 M events/s, 7-day retention, Super Bowl spikes 5x. LinkedIn (textbook ch 8, not on the slides): 1.8 trillion messages/day, 4,400 brokers.",
   "solution_steps": [
    "Netflix average = 100e9 / 86,400 = 1,157,407 events/s; the 1.3 M/s peak is 1.12x average.",
    "Netflix messages in 7-day retention = 7 x 100 B = 700 billion.",
-   "LinkedIn average = 1.8e12 / 86,400 = 20,833,333 msgs/s, which is above the stated 13 M/s peak; the slide's numbers are inconsistent (a peak cannot be below the average).",
-   "LinkedIn per broker = 1.8e12 / 4,400 = 409,090,909 msgs/day."
+   "LinkedIn (textbook ch 8) average = 1.8e12 / 86,400 = 20,833,333 msgs/s.",
+   "LinkedIn per broker = 1.8e12 / 4,400 = 409,090,909 msgs/day (about 4,735 msgs/s per broker)."
   ],
-  "answer": "Netflix about 1,157,407 events/s average; 700 billion events retained. LinkedIn's 1.8 T/day averages 20,833,333/s, which contradicts its 13 M/s peak.",
+  "answer": "Netflix about 1,157,407 events/s average; 700 billion events retained. LinkedIn (textbook ch 8) 1.8 T/day averages 20,833,333 msgs/s, about 409 million per broker per day.",
   "variants": [
    {
     "q": "A platform logs 43.2 billion events per day. Given: per second = daily / 86,400. Average rate?",
@@ -1775,15 +1775,15 @@
   "week": 10,
   "slides": "W10 P1 s29; W10 P2 s14-s15",
   "card": "w10/flu-surveillance",
-  "title": "Google Flu Trends: r = 0.97 in training, then over-predicted by 2x",
-  "given": "GFT correlated 45 search queries with ILINet; initial r = 0.97 on 2003-2008 data. In 2012-13 it over-predicted flu by 2x. Twitter signals arrive 2 weeks earlier than ILINet but with 30% higher error.",
+  "title": "Google Flu Trends: r² = 0.97 in training, then over-predicted by 2x",
+  "given": "GFT correlated 45 search queries with ILINet; initial r² = 0.97 on 2003-2008 data. In 2012-13 it over-predicted flu by 2x. Twitter signals arrive 2 weeks earlier than ILINet but with 30% higher error.",
   "solution_steps": [
-   "r^2 = 0.97^2 = 0.9409: 94.1% of variance explained in training.",
+   "r² = 0.97: 97% of variance explained in training (r ≈ 0.985).",
    "Over-prediction by 2x: true ILI rate 3% -> GFT predicted 6%.",
    "Twitter error: if ILINet-based error is 10%, Twitter's is 10 x 1.3 = 13% (30% higher), but 2 weeks sooner.",
    "Three causes (Lazer 2014): big-data hubris, autocomplete changed the features, media coverage drove searches."
   ],
-  "answer": "r^2 = 0.94 in-sample, yet a 2x over-prediction out of sample.",
+  "answer": "r^2 = 0.97 in-sample, yet a 2x over-prediction out of sample.",
   "variants": [
    {
     "q": "True ILI in a week was 2.4%. GFT over-predicted by 2x. Given: predicted = 2 x true. What did GFT report?",
@@ -1839,7 +1839,7 @@
   "solution_steps": [
    "IQR = Q3 - Q1 = 1.25 - (-0.65) = 1.9.",
    "Threshold = 3 x 1.9 = 5.7.",
-   "Residuals [1.2, -0.8, 0.5, 2.0, -1.5, 9.4, 0.3, -0.2]: only 9.4 has |r| > 5.7, so that hour is the anomaly."
+   "New residuals to check (quartiles come from the agent's history): Residuals [1.2, -0.8, 0.5, 2.0, -1.5, 9.4, 0.3, -0.2]: only 9.4 has |r| > 5.7, so that hour is the anomaly."
   ],
   "answer": "IQR 1.9, threshold 5.7; the residual 9.4 is flagged.",
   "variants": [

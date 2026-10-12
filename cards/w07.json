@@ -336,7 +336,7 @@
       "traps": [
         "Schema-on-read does not mean the schema is inferred. You still write CREATE TABLE (MCQ 2 option d).",
         "The schema is stored separately under both models. The key word is <i>when</i> it is applied.",
-        "HiveQL looks like SQL but runs as batch jobs: minutes, not milliseconds. A <code>COUNT(*)</code> on 1 TB can take 5&ndash;10 min on MapReduce; use Presto or Spark SQL for interactive speed. <span class=\"ghbs\"><span class=\"ghb gs\">Exam Tip (old slides v1); still on current slide 16</span><span class=\"ghb vl\">Very likely</span></span>",
+        "HiveQL looks like SQL but runs as batch jobs: minutes, not milliseconds. A <code>COUNT(*)</code> on 1 TB can take 5&ndash;10 min on MapReduce; use Presto or Spark SQL for interactive speed. <span class=\"ghbs\"><span class=\"ghb gs\">Exam Tip (old slides v1); still on current slide 17</span><span class=\"ghb vl\">Very likely</span></span>",
         "Hive ACID is not on all tables, only transactional ORC tables."
       ],
       "answers": {
@@ -478,7 +478,7 @@
         }
       ],
       "calculation": {
-        "example": "<p>P2 slide 11: <code>play_events</code> partitioned by dt (365 days) and country (200). P_total = 365 &times; 200 = 73,000. The query reads dt='2024-10-01' for BD, IN, US: P_read = 3. Fraction read = 3 / 73,000 &asymp; <b>0.0041%</b>; 72,997 partitions skipped. P1 slide 20: one month of 36 = 1/36 &asymp; 2.78%.</p>",
+        "example": "<p>P2 slide 11: <code>play_events</code> partitioned by dt (365 days) and country (200). P_total = 365 &times; 200 = 73,000. The query reads dt='2024-10-01' for BD, IN, US: P_read = 3. Fraction read = 3 / 73,000 &asymp; <b>0.0041%</b>; 72,997 partitions skipped. P1 slide 19: one month of 36 = 1/36 &asymp; 2.78%.</p>",
         "steps": [
           "Given 365 dates and 200 countries &rarr; P_total = 365 &times; 200 = 73,000",
           "Given dt = one day and country IN (BD, IN, US) &rarr; P_read = 1 &times; 3 = 3",
@@ -651,7 +651,7 @@
         }
       ],
       "calculation": {
-        "example": "<p><b>Bucket number</b> (P1 slide 24, 4 buckets on user_id): user_id 98 &rarr; 98 % 4 = <b>2</b>, in both sales and users.</p><p><b>File size</b> (A1, assume 3 years and 5 countries): P = 3 &times; 365 &times; 5 = 5,475 partitions; 5 TB / 5,475 &asymp; 0.913 GB each; with 8 buckets &asymp; <b>114 MB</b> per file (near a 128 MB block), 5,475 &times; 8 = 43,800 files.</p>",
+        "example": "<p><b>Bucket number</b> (4 buckets on user_id, as in the P1 slide 24 diagram; user_id 98 is our own example): 98 % 4 = <b>2</b>, in both sales and users.</p><p><b>File size</b> (A1, assume 3 years and 5 countries): P = 3 &times; 365 &times; 5 = 5,475 partitions; 5 TB / 5,475 &asymp; 0.913 GB each; with 8 buckets &asymp; <b>114 MB</b> per file (near a 128 MB block), 5,475 &times; 8 = 43,800 files.</p>",
         "steps": [
           "Given user_id = 98, N = 4 &rarr; bucket = 98 % 4 = 2",
           "Given 3 years, 365 days, 5 countries &rarr; P = 1,095 &times; 5 = 5,475",
@@ -1218,7 +1218,7 @@
       "n": "1",
       "q": "Spotify&#x27;s co-occurrence query runs GROUP BY song_a, song_b over 2 billion playlist rows. Estimate the output size if there are 30M songs. Propose a partitioning + bucketing scheme for the playlist_songs Hive table that would reduce the shuffle size for this query. [CLO4 &#8211; Apply]",
       "topic": "spotify",
-      "a": "<p><b>Claim:</b> output is far below the 30M-song bound. Bound: 30M &times; (30M &minus; 1) / 2 &asymp; 4.5 &times; 10^14 pairs. Realistic (assume 20 songs per playlist): 10^8 playlists &times; 190 = 1.9 &times; 10^10 pairs, &le; 304 GB at 16 B/row, much less after HAVING &gt; 5.</p><p><b>Scheme:</b> <code>PARTITIONED BY (week)</code>, <code>CLUSTERED BY (playlist_id) SORTED BY (playlist_id, song_id) INTO 1024 BUCKETS</code>. <b>For:</b> the self-join runs inside each bucket with no shuffle, and weekly partitions cut 8 h to 2 h. <b>Against:</b> it does not shrink the GROUP BY shuffle on song pairs; rely on map-side aggregation there.</p>",
+      "a": "<p><b>Claim:</b> output is far below the 30M-song bound. Bound: 30M &times; (30M &minus; 1) / 2 &asymp; 4.5 &times; 10^14 pairs. Realistic (assume 20 songs per playlist): 10^8 playlists &times; 190 = 1.9 &times; 10^10 pairs, &le; 304 GB at 16 B/row, much less after HAVING &gt; 5. (If you read it as 2 billion playlists of 20 songs: 2 &times; 10^9 &times; 190 = 3.8 &times; 10^11 pairs, &asymp; 6.1 TB at 16 B; state which reading you use.)</p><p><b>Scheme:</b> <code>PARTITIONED BY (week)</code>, <code>CLUSTERED BY (playlist_id) SORTED BY (playlist_id, song_id) INTO 1024 BUCKETS</code>. <b>For:</b> the self-join runs inside each bucket with no shuffle, and weekly partitions cut 8 h to 2 h. <b>Against:</b> it does not shrink the GROUP BY shuffle on song pairs; rely on map-side aggregation there.</p>",
       "gh": {
         "src": [
           "v1"
