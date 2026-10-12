@@ -38,15 +38,15 @@ SRC_GROUP = {"MCQ": "Multiple choice", "True/False": "True or false", "Descripti
 SESSION_TARGET = 21  # minutes; sessions land between ~15 and ~25
 
 CSS = r"""
-:root{--bg:#f4f5f2;--panel:#fff;--ink:#1e2320;--mute:#5d6560;--faint:#8b928d;--line:#e1e4df;--accent:#6a3d7a;
+:root{--bg:#f4f5f2;--panel:#fff;--ink:#1e2320;--mute:#5d6560;--faint:#687069;--line:#e1e4df;--accent:#6a3d7a;
 --acc-soft:#f3ecf5;--green:#2f7d4f;--green-soft:#e8f3eb;--red:#b3372f;--red-soft:#fbeeec;
 --blue:#2457a6;--blue-soft:#ecf1fa;--yel:#fbe6a0;--code:#eceee9;--violet:#6a3d7a;--violet-soft:#f3ecf5;
 --serif:Newsreader,"Iowan Old Style",Georgia,serif;--sans:"Atkinson Hyperlegible",system-ui,"Segoe UI",sans-serif}
 @media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#161816;--panel:#1e211f;--ink:#e6e9e5;
---mute:#a3aba6;--faint:#7d847f;--line:#303531;--accent:#d3aae2;--acc-soft:#2d2233;--green:#72cf98;--green-soft:#15281c;
+--mute:#a3aba6;--faint:#8d948f;--line:#303531;--accent:#d3aae2;--acc-soft:#2d2233;--green:#72cf98;--green-soft:#15281c;
 --red:#f08b80;--red-soft:#2e1816;--blue:#94b6f0;--blue-soft:#16213a;--yel:#5a4812;--code:#262a27;
 --violet:#d3aae2;--violet-soft:#2d2233}}
-:root[data-theme=dark]{--bg:#161816;--panel:#1e211f;--ink:#e6e9e5;--mute:#a3aba6;--faint:#7d847f;--line:#303531;--accent:#d3aae2;
+:root[data-theme=dark]{--bg:#161816;--panel:#1e211f;--ink:#e6e9e5;--mute:#a3aba6;--faint:#8d948f;--line:#303531;--accent:#d3aae2;
 --acc-soft:#2d2233;--green:#72cf98;--green-soft:#15281c;--red:#f08b80;--red-soft:#2e1816;--blue:#94b6f0;
 --blue-soft:#16213a;--yel:#5a4812;--code:#262a27;--violet:#d3aae2;--violet-soft:#2d2233}
 *{box-sizing:border-box}html{-webkit-text-size-adjust:100%}
@@ -57,7 +57,7 @@ a{color:var(--accent);text-underline-offset:.18em;text-decoration-thickness:1px}
 button{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
 h1,h2,h3{font-family:var(--serif);font-weight:600;letter-spacing:-.005em}
-code,pre{font-family:ui-monospace,"JetBrains Mono",monospace;font-size:.84em}
+code,pre{font-family:ui-monospace,"JetBrains Mono",monospace;font-size:.84em;font-variant-ligatures:none}
 pre{background:var(--code);padding:10px 12px;border-radius:8px;overflow-x:auto;white-space:pre-wrap;line-height:1.45}
 code{background:var(--code);padding:0 4px;border-radius:4px;overflow-wrap:anywhere}pre code{background:none;padding:0}
 table{border-collapse:collapse;width:100%;font-size:.9rem;margin:8px 0;line-height:1.45}
@@ -483,6 +483,73 @@ border-radius:12px;font-size:.92rem;z-index:60;display:none}
 }
 @page{size:A4;margin:11mm 10mm}
 body.poolonly .cards-sec,body.poolonly #mock,body.poolonly #cmp,body.poolonly #probs,body.poolonly #sheet,body.poolonly .summary{display:none!important}
+
+/* ---------- lecturer's files: provenance badges ---------- */
+.ghbs{display:flex;flex-wrap:wrap;gap:5px;margin:6px 0 0;line-height:1.2}
+.ct .tm .ghbs{margin-top:5px}
+.ghb{display:inline-flex;align-items:center;gap:4px;font:700 .76rem/1.25 var(--sans);letter-spacing:.01em;border-radius:6px;
+padding:3px 7px 3px 6px;color:var(--accent);background:var(--acc-soft);border:1px solid color-mix(in srgb,var(--accent) 45%,transparent);white-space:normal}
+.ghb::before{content:"";flex:none;width:.95em;height:.95em;background:currentColor;
+-webkit-mask:var(--ic) center/contain no-repeat;mask:var(--ic) center/contain no-repeat}
+.ghb.gs{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linejoin='round'%3E%3Cpath d='M6 2h9l5 5v15H6z'/%3E%3Cpath d='M14 2v6h6M9 13h7M9 17h5'/%3E%3C/svg%3E")}
+.ghb.vl{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2l3 6.6 7.2.8-5.4 4.9 1.5 7.1L12 17.8 5.7 21.4l1.5-7.1L1.8 9.4 9 8.6z'/%3E%3C/svg%3E");
+background:var(--accent);color:#fff;border-color:var(--accent)}
+:root[data-theme=dark] .ghb.vl{color:#1d1420}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]) .ghb.vl{color:#1d1420}}
+.ghb.gc{background:transparent;color:var(--mute);border-color:var(--line)}
+.ghb.gc::before{display:none}
+.lay.trap li .ghbs{margin-top:4px}
+.ghn{margin:14px 0 0;border-left:3px solid var(--accent);background:var(--acc-soft);border-radius:0 10px 10px 0;padding:8px 14px;font-size:.95rem}
+.ghn b.l{display:block;font-size:.85rem;color:var(--accent);margin-bottom:2px}
+.ghn p{margin:.3em 0}
+/* ---------- lecturer's files: home entry + section ---------- */
+.chnav li.lnav{border-top:0;margin:8px 0;background:var(--acc-soft);border-radius:14px;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 35%,transparent)}
+.chnav li.lnav+li{border-top:0}
+.chnav li.lnav a{padding:14px 16px}
+.chnav li.lnav b{color:var(--accent)}
+.chnav li.lnav .chev{color:var(--accent);font-size:1.4rem;line-height:1}
+.lect{margin-top:64px;padding-top:8px;border-top:3px solid var(--accent)}
+.lhead small{color:var(--accent);font-size:.95rem;display:block;font-weight:700}
+.lhead h2{font-size:1.75rem;line-height:1.15;margin:2px 0 8px}
+.lhead p{margin:0;color:var(--mute);font-size:.95rem;max-width:62ch}
+.lhead p .ghb{vertical-align:1px}
+h3.lw{font-size:1.2rem;margin:30px 0 4px}
+h3.lw span{font:400 .88rem var(--sans);color:var(--mute);margin-left:6px}
+.lects{list-style:none;margin:0;padding:0}
+.lects li{border-top:1px solid var(--line)}
+.lects li:last-child{border-bottom:1px solid var(--line)}
+.lects a{display:block;padding:11px 0;min-height:44px;text-decoration:none;color:var(--ink)}
+.lects a:hover b{color:var(--accent)}
+.lects .lt{display:block}
+.lects .lt b{display:block;font-weight:700;line-height:1.35}
+.lects .lk2{display:block;font-size:.85rem;color:var(--mute);margin-top:1px}
+:root[data-theme=dark] .btn.ghost,:root[data-theme=dark] .btn.warn{color:var(--accent)}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]) .btn.ghost,:root:not([data-theme=light]) .btn.warn{color:var(--accent)}}
+:root[data-theme=dark] .btn.warn{color:var(--red)}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]) .btn.warn{color:var(--red)}}
+h4.ghh{margin:22px 0 2px;font-size:.95rem}
+h4.ghh.plain{font-family:var(--serif);font-size:1.1rem;font-weight:600}
+/* ---------- tap targets (44 px) and readability ---------- */
+.chip{min-height:44px;min-width:44px;display:inline-flex;align-items:center;justify-content:center}
+.chip.ico{font-size:1.15rem}
+.tick{width:44px;height:44px;margin:3px -9px 0 -9px;border:0;background:none;position:relative;border-radius:10px}
+.tick::before{content:"";position:absolute;inset:9px;border-radius:8px;border:1.5px solid var(--faint);background:var(--panel)}
+.ci.on .tick{background:none}
+.ci.on .tick::before{background:var(--green);border-color:var(--green)}
+.ci.on .tick::after{position:relative;color:#fff}
+:root[data-theme=dark] .ci.on .tick::after{color:#0c1a11}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]) .ci.on .tick::after{color:#0c1a11}}
+.ci[data-st=a]:not(.on) .tick{background:none}
+.ci[data-st=a]:not(.on) .tick::before{border-color:var(--red);background:var(--red-soft)}
+.ct{min-height:44px}
+.mk button,.btn.sm{min-height:44px;padding-top:0;padding-bottom:0;display:inline-flex;align-items:center;justify-content:center}
+.link.show{min-height:44px;display:inline-flex;align-items:center}
+.afoot>a,.cb .more a,.brand{min-height:44px;display:inline-flex;align-items:center}
+.cb .more{margin-top:8px}
+.cb .fq,.cb .pans,.cb .given{max-width:68ch}
+.cb .pans ol,.cb .pans ul{padding-left:1.25em}
+.cb .pans li+li{margin-top:4px}
+.cb .pans .fine,.ghn .fine{margin-top:10px}
 """
 
 JS = r"""
@@ -745,6 +812,38 @@ def marks_btns():
     return '<span class="mk"><button data-m="a">Review again</button><button data-m="k">Got it</button></span>'
 
 
+# ---------------------------------------------------------------- lecturer's GitHub provenance
+GH_LABEL = {"plan": "Lecturer's plan", "topic": "Lecturer: important exam topic", "v1": "Old slides (v1)"}
+GH = {"items": [], "list": []}  # new items (extra/gh_sweep.json) and the index for the home-screen list
+
+
+def gh_label(s):
+    return GH_LABEL.get(s) or (f"Lecturer's textbook ch {s[4:]}" if s.startswith("book") else s)
+
+
+def gh_badges(g):
+    """Small provenance badges: Very likely first, then each source, then the CLO."""
+    if not g:
+        return ""
+    out = ['<span class="ghb vl">Very likely</span>'] if g.get("vl") else []
+    out += [f'<span class="ghb gs">{esc(gh_label(x))}</span>' for x in g.get("src", [])]
+    if g.get("clo"):
+        out.append(f'<span class="ghb gc">{esc(g["clo"])}</span>')
+    return f'<span class="ghbs">{"".join(out)}</span>'
+
+
+def gh_extra(g):
+    """The note or old-slides model justification that an enriched item gains, shown under its answer."""
+    if not g:
+        return ""
+    parts = []
+    if g.get("just"):
+        parts.append(f'<p><b>Model justification (old slides):</b> {g["just"]}</p>')
+    if g.get("note"):
+        parts.append(f'<p>{g["note"]}</p>')
+    return f'<div class="ghn"><b class="l">From the lecturer&rsquo;s files</b>{"".join(parts)}</div>' if parts else ""
+
+
 def pool_code(p):
     """How a pool question is named in the interface: Q2, TF1, D1, A2, Discussion 1, L1."""
     n = str(p.get("n", ""))
@@ -794,8 +893,8 @@ def pool_item(d, p, tops):
     link = f'<a class="tocard" href="#{t["id"]}">Topic: {esc(t["title"])}</a>' if t else "<span></span>"
     return (f'<article class="qa pool" id="{pid}" data-id="{pid}" data-w="{w}" data-lab="{esc(pool_label(w, p))}">'
             f'<div class="q" tabindex="0"><span class="st8"></span><span class="num">{esc(p.get("n", ""))}</span>'
-            f'<div class="txt">{p["q"]}{opts}{cd}</div></div>'
-            f'<div class="ans">{pool_answer(p, t)}<div class="afoot">{link}{marks_btns()}</div></div></article>')
+            f'<div class="txt">{p["q"]}{opts}{cd}{gh_badges(p.get("gh"))}</div></div>'
+            f'<div class="ans">{pool_answer(p, t)}{gh_extra(p.get("gh"))}<div class="afoot">{link}{marks_btns()}</div></div></article>')
 
 
 def pool_items_sorted(d):
@@ -1204,6 +1303,7 @@ def load_extras():
     def rd(n):
         f = ROOT / "extra" / n
         return json.loads(f.read_text()) if f.exists() else None
+    GH["items"] = rd("gh_sweep.json") or []
     return rd("predicted.json") or {}, rd("comparisons.json") or [], rd("slide_problems.json") or []
 
 
@@ -1441,8 +1541,8 @@ def cmp_view(cmps, cards):
                 if c.get("card_id") in cards else '<span></span>')
         out.append(f'<article class="qa cmpc bitem" id="c-{cid}" data-id="c-{cid}" data-w="{c["week"]}" data-l="{lik}" data-lab="Week {c["week"]} compare">'
                    f'<div class="q" tabindex="0"><span class="st8"></span><div class="txt"><h4>{esc(cmp_title(c))}</h4>'
-                   f'<div class="one"><b class="l">Key difference</b>{esc(c["key"])}</div></div></div>'
-                   f'<div class="ans">{tbl}'
+                   f'<div class="one"><b class="l">Key difference</b>{esc(c["key"])}</div>{gh_badges(c.get("gh"))}</div></div>'
+                   f'<div class="ans">{tbl}{gh_extra(c.get("gh"))}'
                    f'<div class="cue"><b>Spot it in a scenario</b>{esc(c["cue"])}</div>'
                    f'<span class="meta">Week {c["week"]}, slides {esc(c.get("slides", ""))}</span>'
                    f'<div class="afoot">{link}{marks_btns()}</div></div></article>')
@@ -1612,7 +1712,7 @@ def checklist_view(chs, cmps, probs, pred, ctx, morning):
     chap_html, nav = [], []
     for d in chs:
         w = d["week"]
-        rows_l, rows_p, rows_t = [], [], []
+        rows_l, rows_p, rows_t, rows_gt, rows_gp = [], [], [], [], []
         words_n, prac_n = 0, 0
         # ---- learn: topics
         for t in d["topics"]:
@@ -1627,14 +1727,22 @@ def checklist_view(chs, cmps, probs, pred, ctx, morning):
                     + f'<p class="more"><a href="#{t["id"]}">More detail: the full topic, scenarios and longer answers</a></p>')
             words_n += words(t["answers"]["1"]) + sum(words(x) for x in kp) + sum(words(x) for x in t["traps"])
             rows_l.append(ck_row(f"ck-{t['id']}", "card", t["id"], esc(t["title"]), "", body))
+            for x in t["traps"]:
+                if 'class="ghb' in x:
+                    GH["list"].append(dict(week=w, vl='ghb vl' in x, new=False, href=f"#ck-{t['id']}",
+                                           title=f"Trap in &ldquo;{esc(t['title'])}&rdquo;: {_plain_short(x, 70)}", kind="Trap",
+                                           g={"src": ["v1"], "vl": 'ghb vl' in x}))
         # ---- learn: high-likelihood comparisons
         for c in [c for c in cmps if c["week"] == w and c.get("likelihood") == "high"]:
             rows = c.get("rows", [])[:4]
             tbl = stack_table(["", c["x"], c["y"]], rows, cell=esc)
-            body = (f'<div class="one"><b class="l">Key difference</b>{esc(c["key"])}</div>{tbl}'
+            body = (f'<div class="one"><b class="l">Key difference</b>{esc(c["key"])}</div>{tbl}{gh_extra(c.get("gh"))}'
                     + f'<div class="afoot"><a href="#c-{c["id"]}">More detail: full table and scenario cue</a>{marks_btns()}</div>')
             words_n += words(c["key"]) + sum(words(x) for r in rows for x in r)
-            rows_l.append(ck_row(f"ck-c-{c['id']}", "m", f"c-{c['id']}", esc(cmp_title(c)), "Compare", body))
+            rows_l.append(ck_row(f"ck-c-{c['id']}", "m", f"c-{c['id']}", esc(cmp_title(c)), "Compare" + gh_badges(c.get("gh")), body))
+            if c.get("gh"):
+                GH["list"].append(dict(week=w, vl=c["gh"].get("vl"), new=False, href=f"#ck-c-{c['id']}",
+                                       title=esc(cmp_title(c)), kind="Compare", g=c["gh"]))
             report.append(("cmp", c["id"]))
         # ---- learn: formulas
         fs = d.get("formulas", [])
@@ -1662,6 +1770,20 @@ def checklist_view(chs, cmps, probs, pred, ctx, morning):
             prac_n += 1
             meta = "Very likely" if x.get("rank") == "very likely" else ""
             rows_p.append(ck_row(f"ck-x-{x['id']}", "m" if v else "s", key, esc(x["title"]), meta, body))
+        nslide = len(rows_p)
+        gh_p = sorted([g for g in GH["items"] if g["week"] == w and g["list"] == "practise"], key=lambda g: not g.get("vl"))
+        gh_t = sorted([g for g in GH["items"] if g["week"] == w and g["list"] == "test"], key=lambda g: not g.get("vl"))
+        for g in gh_p + gh_t:
+            body = (f'<div class="fq">{g["q"]}</div>'
+                    f'<button class="btn sm ghost show" data-show>Show the answer</button>'
+                    f'<div class="fa"><div class="pans">{g["a"]}</div><div class="afoot"><span></span>{marks_btns()}</div></div>')
+            words_n += words(g["q"]) + words(g["a"])
+            if g["list"] == "practise":
+                prac_n += 1
+            row = ck_row(f"ck-{g['id']}", "m", g["id"], esc(g["title"]), f'{esc(g["kind"])}{gh_badges(g)}', body)
+            (rows_gp if g["list"] == "practise" else rows_gt).append(row)
+            GH["list"].append(dict(week=w, vl=g.get("vl"), new=True, href=f"#ck-{g['id']}", title=esc(g["title"]),
+                                   kind=g["kind"], g=g))
         # ---- test: exam questions, flashcard style
         tops = {t["id"]: t for t in d["topics"]}
         for p in pool_items_sorted(d):
@@ -1671,13 +1793,17 @@ def checklist_view(chs, cmps, probs, pred, ctx, morning):
             ans = pool_answer(p, tops.get(p.get("topic")))
             body = (f'<div class="fq">{p["q"]}{opts}{cd}</div>'
                     f'<button class="btn sm ghost show" data-show>Show the answer</button>'
-                    f'<div class="fa"><div class="pans">{ans}</div><div class="afoot"><span></span>{marks_btns()}</div></div>')
+                    f'<div class="fa"><div class="pans">{ans}</div>{gh_extra(p.get("gh"))}<div class="afoot"><span></span>{marks_btns()}</div></div>')
             words_n += words(p["q"]) + words(p["a"]) + words(" ".join(p.get("options") or [])) + words(p.get("code"))
             src = p["src"]
             meta = f'{esc(pool_code(p))}, {SRC_KIND[src]}' if src not in ("Discussion", "Live Exercise") else (
                 f"Discussion {esc(p.get('n', ''))}" if src == "Discussion" else f"Live exercise {esc(p.get('n', ''))}")
-            rows_t.append(ck_row(f"ck-{pid}", "m", pid, _plain_short(p["q"]), meta, body))
+            rows_t.append(ck_row(f"ck-{pid}", "m", pid, _plain_short(p["q"]), meta + gh_badges(p.get("gh")), body))
             report.append(("pool", pid))
+            if p.get("gh"):
+                GH["list"].append(dict(week=w, vl=p["gh"].get("vl"), new=False, href=f"#ck-{pid}",
+                                       title=f'{esc(pool_code(p))}: {_plain_short(p["q"], 70)}', kind=SRC_SHORT[src], g=p["gh"]))
+        npool_rows = len(rows_t)
         # ---- test: the chapter's predicted-paper questions
         for pi, pp in enumerate(papers):
             P = "AB"[pi] if pi < 2 else str(pi + 1)
@@ -1697,8 +1823,8 @@ def checklist_view(chs, cmps, probs, pred, ctx, morning):
                     words_n += sum(words(pt.get("scenario")) + sum(words(sb["q"]) + words(sb["a"]) for sb in pt.get("subs", [])) for pt in parts)
                     rows_t.append(ck_row(f"ck-{qid}", "s", f"ck-{qid}", f"Predicted p{lab[1:]}", f"{tot:g} marks", body))
         mins = round(words_n / 200 + 2 * prac_n)
-        nitems = len(rows_l) + len(rows_p) + len(rows_t)
-        ctx["ck_report"].append(dict(week=w, learn=len(rows_l), practise=len(rows_p), test=len(rows_t), items=nitems,
+        nitems = len(rows_l) + len(rows_p) + len(rows_gp) + len(rows_t) + len(rows_gt)
+        ctx["ck_report"].append(dict(week=w, learn=len(rows_l), practise=len(rows_p) + len(rows_gp), test=len(rows_t) + len(rows_gt), items=nitems,
                                      words=words_n, prac=prac_n, minutes=mins))
         ntop = len(d["topics"])
         ncm = len(rows_l) - ntop - (1 if fs else 0)
@@ -1708,10 +1834,17 @@ def checklist_view(chs, cmps, probs, pred, ctx, morning):
             f'<section class="chap" id="ch{w}" data-cw="{w}"><header class="chead"><small>Week {w}</small><h2>{esc(d["title"])}</h2>'
             f'<div class="prog"><div class="pbar"><i></i></div><span class="ptxt" data-mins="{mins}"></span></div></header>'
             f'<h3 class="step">Learn <span>{ntop} topics, {ncm} comparisons and the formulas</span></h3><ol class="ck">{"".join(rows_l)}</ol>'
-            f'<h3 class="step">Practise <span>{len(rows_p)} worked examples from the slides</span></h3><ol class="ck">{"".join(rows_p)}</ol>'
-            f'<h3 class="step">Test <span>{len(d["pool"])} exam questions, then the predicted paper</span></h3>'
+            f'<h3 class="step">Practise <span>{nslide} worked examples from the slides'
+            + (f', then {len(gh_p)} from the lecturer&rsquo;s own files' if gh_p else "") + '</span></h3>'
+            f'<ol class="ck">{"".join(rows_p)}</ol>'
+            + (f'<h4 class="ghh"><span class="ghb gs">From the lecturer&rsquo;s own files</span></h4><ol class="ck">{"".join(rows_gp)}</ol>' if rows_gp else "")
+            + f'<h3 class="step">Test <span>{len(d["pool"])} exam questions'
+            + (f', {len(gh_t)} from the lecturer&rsquo;s own files' if gh_t else "") + ', then the predicted paper</span></h3>'
             f'<p class="quiet"><button class="link" data-focus="pool:{w}">Quiz me on all {len(d["pool"])} exam questions in focus mode</button></p>'
-            f'<ol class="ck">{"".join(rows_t)}</ol></section>')
+            f'<ol class="ck">{"".join(rows_t[:npool_rows])}</ol>'
+            + (f'<h4 class="ghh"><span class="ghb gs">From the lecturer&rsquo;s own files</span></h4><ol class="ck">{"".join(rows_gt)}</ol>' if rows_gt else "")
+            + (f'<h4 class="ghh plain">Predicted paper</h4><ol class="ck">{"".join(rows_t[npool_rows:])}</ol>' if rows_t[npool_rows:] else "")
+            + '</section>')
     # ---- exam morning: the three morning blocks of the old plan (their ticks are the same keys)
     mk = pred.get("must_know", [])
     mrows = []
@@ -1728,6 +1861,27 @@ def checklist_view(chs, cmps, probs, pred, ctx, morning):
             title = "Go through your review pile"
             body = f'<p>{esc(b["task"])}</p><p><button class="btn sm ghost" data-focus="again">Quiz me on the review pile</button></p>'
         mrows.append(ck_row(f"ck-m{j + 1}", "s", sid, title, f'{b["minutes"]} min', body))
+    # ---- the lecturer's own files: every new or enriched item, by week, Very likely first
+    gl = GH["list"]
+    nnew, nenr, nvl = sum(1 for x in gl if x["new"]), sum(1 for x in gl if not x["new"]), sum(1 for x in gl if x["vl"])
+    lect = []
+    for wk in sorted({x["week"] for x in gl}):
+        its = sorted([x for x in gl if x["week"] == wk], key=lambda x: (not x["vl"], not x["new"]))
+        lis = "".join(
+            f'<li><a href="{x["href"]}"><span class="lt"><b>{x["title"]}</b>'
+            f'<span class="lk2">{"New: " if x["new"] else "Added note: "}{esc(x["kind"])}</span>{gh_badges(x["g"])}</span></a></li>'
+            for x in its)
+        lect.append(f'<h3 class="lw">Week {wk} <span>{len(its)} items</span></h3><ul class="lects">{lis}</ul>')
+    lect_html = (
+        '<section class="lect" id="lect"><header class="lhead"><small>Extra, from the lecturer&rsquo;s public GitHub</small>'
+        '<h2>From the lecturer&rsquo;s own files</h2>'
+        f'<p>{nnew} new questions with model answers and {nenr} existing items with an added note, taken from his course plan, '
+        'the first (v1) version of the slides, and his textbook. Items marked <span class="ghb vl">Very likely</span> are ones his '
+        'files flag: the &ldquo;important exam topic&rdquo; label, the CLO4 design questions in weeks 7, 8 and 10, and plan questions '
+        'that the slides repeat.</p></header>' + "".join(lect) + "</section>") if gl else ""
+    lect_nav = (f'<li class="lnav"><a href="#lect"><span class="t"><b>From the lecturer&rsquo;s own files</b>'
+                f'<span>{nnew} new questions, {nenr} added notes, {nvl} marked very likely</span></span>'
+                '<span class="chev" aria-hidden="true">&rsaquo;</span></a></li>') if gl else ""
     html_out = (
         '<section class="view" id="start" data-title="Checklist">'
         '<header class="hero"><h1 id="greet">Two days to go.</h1>'
@@ -1738,9 +1892,9 @@ def checklist_view(chs, cmps, probs, pred, ctx, morning):
         '<p class="resume" id="resume" hidden>Or go back to <a href="#start"></a></p>'
         '<div class="complete" hidden><h2>Preparation complete</h2><p>Every item is ticked. Read the must-know list once more, then rest.</p></div>'
         '</header>'
-        f'<ul class="rows chnav">{"".join(nav)}<li><a href="#exam-morning"><span class="t"><b>Exam morning</b>'
+        f'<ul class="rows chnav">{"".join(nav)}{lect_nav}<li><a href="#exam-morning"><span class="t"><b>Exam morning</b>'
         '<span>Must-know list, six figures, review pile</span></span><span class="cpct" data-cw="m"></span></a></li></ul>'
-        + "".join(chap_html)
+        + "".join(chap_html) + lect_html
         + f'<section class="chap" id="exam-morning" data-cw="m"><header class="chead"><small>13 October</small><h2>Exam morning</h2>'
           '<div class="prog"><div class="pbar"><i></i></div><span class="ptxt" data-mins="45"></span></div></header>'
           f'<ol class="ck">{"".join(mrows)}</ol>'
@@ -1828,7 +1982,7 @@ def main():
     (ROOT / "index.html").write_text(page)
     for out, q in (("bda-final-guide.pdf", ""), ("bda-exam-pool.pdf", "?pool")):
         subprocess.run(
-            ["google-chrome-stable", "--headless=new", "--disable-gpu", "--no-pdf-header-footer", "--virtual-time-budget=3000",
+            ["nice", "-n", "10", "google-chrome-stable", "--headless=new", "--disable-gpu", "--mute-audio", "--no-pdf-header-footer", "--virtual-time-budget=3000",
              f"--user-data-dir=/tmp/claude-1000/bda-pdf-profile", f"--print-to-pdf={ROOT / out}",
              (ROOT / "index.html").as_uri() + q],
             check=True, capture_output=True)

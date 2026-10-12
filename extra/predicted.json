@@ -105,8 +105,8 @@
   {
    "week": 7,
    "topic": "Schema-on-read vs schema-on-write; HiveQL vs SQL [card schema-on-read]",
-   "score": 7,
-   "evidence": "P1 s13-14 (9-row comparison table plus advantage/risk boxes), s16-17 ('The Most Common Misconception' box). Pool MCQ Q2, TF1, D3."
+   "score": 9,
+   "evidence": "P1 s13-14 (9-row comparison table plus advantage/risk boxes), s16-17 ('The Most Common Misconception' box). Pool MCQ Q2, TF1, D3. The lecturer's course plan labels Hive vs SQL differences &ldquo;important exam topics&rdquo;."
   },
   {
    "week": 7,
@@ -1182,7 +1182,7 @@
   "reduceByKey > groupByKey: it combines locally before the shuffle. Hash partitioner = key.hashCode() % numPartitions.",
   "DataFrame = named columns + schema, Catalyst optimiser. HBase is NOT part of the Spark ecosystem.",
   "Hive: HiveServer2 (JDBC/ODBC) -> Driver (parse -> semantic -> logical -> optimise -> physical) -> engine MR/Tez/Spark; Metastore (MySQL/PostgreSQL) holds schemas, partitions + HDFS paths, SerDe, stats.",
-  "Schema-on-read (Hive): schema applied at query, bad value -> NULL, fast load. Schema-on-write (RDBMS): rejected at INSERT. HiveQL: limited ACID (ORC transactional only), minutes of latency.",
+  "Schema-on-read (Hive): schema applied at query, bad value -> NULL, fast load. Schema-on-write (RDBMS): rejected at INSERT. HiveQL: limited ACID (ORC transactional only), minutes of latency. Lecturer's plan: Hive vs SQL is an important exam topic.",
   "Partitioning = HDFS sub-directory per value, prunes scans; low-cardinality columns only (user_id -> partition explosion). Dynamic insert: partition columns last in SELECT.",
   "Bucketing = hash(col) % N files; bucket map join (same key, same N) avoids a shuffle. Fraction read = partitions read / total.",
   "Map-side aggregation: 50 M rows, 200 countries -> 250,000x less shuffle.",

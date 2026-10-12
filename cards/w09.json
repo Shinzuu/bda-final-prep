@@ -1130,7 +1130,14 @@
    "n": "1",
    "q": "A pie chart is a recommended choice for comparing more than 5 categories.",
    "topic": "shneiderman",
-   "a": "<b>False.</b> People judge angles poorly. Corrected: use a horizontal bar chart; pies only for ≤ 4 categories."
+   "a": "<b>False.</b> People judge angles poorly. Corrected: use a horizontal bar chart; pies only for ≤ 4 categories.",
+   "gh": {
+    "src": [
+     "v1"
+    ],
+    "vl": false,
+    "just": "With more than 5 categories, people judge arc angles poorly; a horizontal bar chart sorted by value reads better."
+   }
   },
   {
    "src": "True/False",
@@ -1144,14 +1151,28 @@
    "n": "3",
    "q": "D3.js generates static PNG or PDF image files as its primary output format.",
    "topic": "streaming-tools",
-   "a": "<b>False.</b> Corrected: D3.js binds data to DOM elements and produces interactive SVG in the browser."
+   "a": "<b>False.</b> Corrected: D3.js binds data to DOM elements and produces interactive SVG in the browser.",
+   "gh": {
+    "src": [
+     "v1"
+    ],
+    "vl": false,
+    "just": "D3.js binds data to SVG DOM elements in the browser; the output is interactive, scalable vector graphics, not static image files."
+   }
   },
   {
    "src": "True/False",
    "n": "4",
    "q": "Choropleth maps are used to visualise the geographic distribution of a quantitative variable.",
    "topic": "shneiderman",
-   "a": "<b>True.</b> Regions are shaded by a value, best a rate such as cases per 100,000."
+   "a": "<b>True.</b> Regions are shaded by a value, best a rate such as cases per 100,000.",
+   "gh": {
+    "src": [
+     "v1"
+    ],
+    "vl": false,
+    "just": "A choropleth encodes a quantitative variable (e.g. dengue incidence per 100,000) as colour intensity on geographic polygons."
+   }
   },
   {
    "src": "Descriptive",

@@ -1057,7 +1057,14 @@
    "n": "1",
    "q": "Apache Sqoop is designed for real-time streaming ingestion from transactional systems.",
    "topic": "sqoop-flume",
-   "a": "<b>False.</b> Sqoop runs batch MapReduce imports. Corrected: Sqoop is designed for bulk batch transfer between an RDBMS and HDFS; real-time ingestion uses Kafka."
+   "a": "<b>False.</b> Sqoop runs batch MapReduce imports. Corrected: Sqoop is designed for bulk batch transfer between an RDBMS and HDFS; real-time ingestion uses Kafka.",
+   "gh": {
+    "src": [
+     "v1"
+    ],
+    "vl": false,
+    "just": "Sqoop is a batch tool that launches MapReduce jobs for bulk RDBMS&harr;HDFS transfers, usually nightly; real-time ingestion is Kafka's job."
+   }
   },
   {
    "src": "True/False",
@@ -1071,7 +1078,14 @@
    "n": "3",
    "q": "The Lambda architecture requires maintaining two separate code paths implementing the same business logic.",
    "topic": "lambda-kappa",
-   "a": "<b>True.</b> The same logic is written for the batch layer (Spark/Hive) and the speed layer (Spark Streaming) and must be kept in sync."
+   "a": "<b>True.</b> The same logic is written for the batch layer (Spark/Hive) and the speed layer (Spark Streaming) and must be kept in sync.",
+   "gh": {
+    "src": [
+     "v1"
+    ],
+    "vl": false,
+    "just": "Both layers implement the same aggregation (e.g. daily transaction count), once in batch (Spark/HiveQL) and once in streaming (Spark Streaming/Flink); this dual maintenance is the main engineering cost."
+   }
   },
   {
    "src": "True/False",
@@ -1106,14 +1120,31 @@
    "n": "A1",
    "q": "<b>Pipeline Design for a Bank:</b> Design a data integration pipeline for a Bangladeshi commercial bank that must:<ul><li>(a) Synchronise 10 million customer records nightly from Oracle to Hadoop for analytics</li><li>(b) Detect fraudulent card-swipe events in real time with a decision within 200 ms</li><li>(c) Power a risk management dashboard with data no older than 5 minutes</li></ul>Specify which tool (Sqoop, Flume, Kafka, Spark Streaming) you would use at each stage. Justify each choice with reference to latency, throughput, and fault-tolerance requirements. Which architecture (Lambda or Kappa) fits best, and why?",
    "topic": "pipelines",
-   "a": "<table><tr><th>Need</th><th>Tool</th><th>Latency</th><th>Throughput</th><th>Fault tolerance</th></tr><tr><td>(a) 10 M rows nightly</td><td>Sqoop (incremental import)</td><td>Hours is fine: batch</td><td>Parallel map tasks by key range, GB&#8211;TB/h</td><td>Failed map task retried; HDFS replicated</td></tr><tr><td>(b) Fraud &lt; 200 ms</td><td>Kafka topic (keyed by card no.) + Spark Streaming</td><td>Milliseconds</td><td>Partitions scale consumers</td><td>RF = 3; restart from last offset</td></tr><tr><td>(c) Dashboard &lt; 5 min</td><td>Second consumer group on same topic + Spark Streaming aggregates</td><td>Minutes</td><td>Same topic, no extra ingest</td><td>Replay from offset</td></tr></table><p>Flume is not used: it is for logs, not tables or card events.</p><p><b>Architecture: Lambda.</b> The bank has a real batch need (nightly sync, regulatory batch reports), which the slide lists as a reason Kappa is not suitable. Batch = Sqoop + HDFS + Hive; Speed = Kafka + Spark Streaming; Serving = dashboard. Cut the dual-path cost by making Kafka the single source both layers read.</p>"
+   "a": "<table><tr><th>Need</th><th>Tool</th><th>Latency</th><th>Throughput</th><th>Fault tolerance</th></tr><tr><td>(a) 10 M rows nightly</td><td>Sqoop (incremental import)</td><td>Hours is fine: batch</td><td>Parallel map tasks by key range, GB&#8211;TB/h</td><td>Failed map task retried; HDFS replicated</td></tr><tr><td>(b) Fraud &lt; 200 ms</td><td>Kafka topic (keyed by card no.) + Spark Streaming</td><td>Milliseconds</td><td>Partitions scale consumers</td><td>RF = 3; restart from last offset</td></tr><tr><td>(c) Dashboard &lt; 5 min</td><td>Second consumer group on same topic + Spark Streaming aggregates</td><td>Minutes</td><td>Same topic, no extra ingest</td><td>Replay from offset</td></tr></table><p>Flume is not used: it is for logs, not tables or card events.</p><p><b>Architecture: Lambda.</b> The bank has a real batch need (nightly sync, regulatory batch reports), which the slide lists as a reason Kappa is not suitable. Batch = Sqoop + HDFS + Hive; Speed = Kafka + Spark Streaming; Serving = dashboard. Cut the dual-path cost by making Kafka the single source both layers read.</p>",
+   "gh": {
+    "src": [
+     "plan"
+    ],
+    "clo": "CLO4",
+    "vl": true
+   }
   },
   {
    "src": "Analytical",
    "n": "A2",
    "q": "<b>Lambda to Kappa Migration:</b> A team using Lambda architecture complains that maintaining two code paths (batch + stream) doubles development cost. Their CTO suggests migrating to Kappa. Analyse: (a) what must be true about the stream processing engine for Kappa to be viable; (b) what are the risks of migrating; (c) under what conditions is Kappa <b>not suitable</b> (give at least two concrete scenarios from the Bangladesh financial or healthcare sector)?",
    "topic": "lambda-kappa",
-   "a": "<p><b>(a) Conditions:</b> the engine reprocesses history about as fast as live data; full history sits in a replayable log (long Kafka retention or Iceberg on S3; default is only 7 days); the logic fits a stream job; exactly-once processing so replays match.</p><p><b>(b) Risks:</b> TB+ replay may take days; batch throughput falls to stream-engine speed; storage cost of long retention; every Hive/Spark batch job must be rewritten and run in parallel during the switch; staff must learn stream SQL.</p><p><b>(c) Not suitable:</b></p><ol><li><b>Regulatory reconciliation:</b> Bangladesh Bank requires a daily end-of-day batch reconciliation; the batch layer must stay.</li><li><b>TB+ history:</b> a national health-records system recomputing 10 years of disease statistics after a coding change; one Spark batch job is far faster than replay.</li><li><b>Batch SQL preferred:</b> yearly credit-risk model training written in Hive/Spark SQL over full history.</li></ol><p><b>Verdict:</b> move streaming workloads to one Kappa path; keep batch where regulation or huge history demands it.</p>"
+   "a": "<p><b>(a) Conditions:</b> the engine reprocesses history about as fast as live data; full history sits in a replayable log (long Kafka retention or Iceberg on S3; default is only 7 days); the logic fits a stream job; exactly-once processing so replays match.</p><p><b>(b) Risks:</b> TB+ replay may take days; batch throughput falls to stream-engine speed; storage cost of long retention; every Hive/Spark batch job must be rewritten and run in parallel during the switch; staff must learn stream SQL.</p><p><b>(c) Not suitable:</b></p><ol><li><b>Regulatory reconciliation:</b> Bangladesh Bank requires a daily end-of-day batch reconciliation; the batch layer must stay.</li><li><b>TB+ history:</b> a national health-records system recomputing 10 years of disease statistics after a coding change; one Spark batch job is far faster than replay.</li><li><b>Batch SQL preferred:</b> yearly credit-risk model training written in Hive/Spark SQL over full history.</li></ol><p><b>Verdict:</b> move streaming workloads to one Kappa path; keep batch where regulation or huge history demands it.</p>",
+   "gh": {
+    "src": [
+     "plan",
+     "v1",
+     "book8"
+    ],
+    "clo": "CLO4",
+    "vl": true,
+    "note": "The old (v1) slides asked the same thing: name two workloads where Lambda beats Kappa. Textbook (ch 8) numbers: replaying 5 PB of Kafka history at 1 GB/s = 5,000,000 GB &divide; 1 GB/s = 5,000,000 s &asymp; 58 days, while a Spark batch job on 200 nodes finishes in hours. Payment rules (e.g. EU PSD2) also demand a separate batch reconciliation."
+   }
   },
   {
    "src": "Discussion",

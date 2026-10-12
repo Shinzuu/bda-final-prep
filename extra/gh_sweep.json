@@ -1,0 +1,213 @@
+[
+ {
+  "id": "gh-w05-1",
+  "week": 5,
+  "list": "practise",
+  "kind": "Scenario",
+  "src": [
+   "v1"
+  ],
+  "clo": "CLO3",
+  "vl": false,
+  "title": "One Spark job wants 2,000 containers, 1,250 are free: Capacity vs Fair vs FIFO",
+  "q": "LinkedIn's Capacity Scheduler gives 40% of its 5,000 nodes to the production queue. A Spark job in the spark queue needs 2,000 containers, but only 1,250 are available. Describe what happens to the job under (a) the Capacity, (b) the Fair and (c) the FIFO scheduler.",
+  "a": "<ol><li><b>Setting:</b> spark queue = 25% &times; 5,000 = 1,250 nodes, which hold about min(64/8, 16/4) = 4 executors each, so about 5,000 executors. Nodes are not containers.</li><li>So 2,000 containers is <b>within</b> the queue's guarantee. Only 1,250 are free because other queues have borrowed spark's idle capacity (or spark's own jobs hold it). The job is short by 2,000 &minus; 1,250 = 750.</li><li><b>(a) Capacity:</b> the job gets the 1,250 free containers at once.</li><li>The other 750 come back by <b>pre-emption</b>: the borrowing queues get a warning (LinkedIn: 30 seconds), then their containers are killed and handed to spark. If spark itself is full, the tasks wait.</li><li>Production keeps its 40% (2,000 nodes) whatever this job does: the SLA holds.</li><li><b>(b) Fair:</b> resources are split equally among running jobs; the job gets its fair share, not all 1,250, and grows as other jobs finish.</li><li>Short jobs submitted later still finish quickly beside it.</li><li><b>(c) FIFO:</b> if it is first in line it takes every free container (1,250) and its last 750 tasks wait for containers to free up.</li><li>Every job behind it waits too: one big job starves the cluster, which is why FIFO does not suit multi-tenant clusters.</li></ol><p class='fine'>Based on Week 5 Part 1 (schedulers) and Part 2 (LinkedIn queues, pre-emption).</p>"
+ },
+ {
+  "id": "gh-w05-2",
+  "week": 5,
+  "list": "practise",
+  "kind": "Numeric",
+  "src": [
+   "v1"
+  ],
+  "clo": "CLO4",
+  "vl": false,
+  "title": "PYMK: 600 executors of 8 GB, total memory and dominant resource",
+  "q": "LinkedIn's PYMK Spark job runs on a 300-million-node social graph using 600 executors, each with 8 GB RAM. Calculate the total memory requested as YARN containers and identify the dominant resource if each node has 64 GB RAM and 16 vCPUs.",
+  "a": "<p>The question gives no vCPU figure; use the slide's Spark executor size {8 GB, 4 vCPU} (Week 5 Part 2 live exercise) and say so.</p><ol><li>Total memory = 600 &times; 8 GB = <b>4,800 GB</b> (4.8 TB).</li><li>Total vCPU = 600 &times; 4 = <b>2,400 vCPU</b>.</li><li>Share of one node per executor: RAM 8 / 64 = 12.5%; CPU 4 / 16 = 25%.</li><li>CPU share is larger, so the <b>dominant resource is CPU</b>; DRF schedules on that share.</li><li>Executors per node = min(64 / 8, 16 / 4) = min(8, 4) = 4 (CPU-bound).</li><li>Nodes needed = 600 / 4 = <b>150 nodes</b>; on each, 32 of 64 GB RAM stays idle.</li><li>Cluster share: RAM 4,800 / (5,000 &times; 64 = 320,000 GB) = 1.5%; CPU 2,400 / (5,000 &times; 16 = 80,000) = 3%. CPU again dominates.</li><li>It fits the spark queue easily (5,000 executors; see the live exercise).</li></ol><p class='fine'>Beyond the slides: in practice Spark adds memory overhead to each container (max(384 MB, 10%)), so YARN would see about 8.8 GB &times; 600 = 5,280 GB.</p>"
+ },
+ {
+  "id": "gh-w05-3",
+  "week": 5,
+  "list": "practise",
+  "kind": "Scenario",
+  "src": [
+   "v1"
+  ],
+  "clo": "CLO3",
+  "vl": false,
+  "title": "YARN two-level scheduling vs Kubernetes one-level scheduling",
+  "q": "Compare YARN's two-level scheduling (the ResourceManager allocates containers; each ApplicationMaster places its tasks) with Kubernetes's one-level scheduling (kube-scheduler places pods directly). Under what workloads does two-level scheduling do better?",
+  "a": "<div class='tw'><table><tr><th></th><th>YARN (two-level)</th><th>Kubernetes (one-level)</th></tr><tr><td>Who places work</td><td>RM grants containers; the framework's AM decides which task runs where</td><td>One central scheduler places every pod</td></tr><tr><td>Framework knowledge</td><td>In the AM (Spark stages, MapReduce data locality)</td><td>Generic: CPU, RAM, labels</td></tr><tr><td>Best fit</td><td>Data-heavy batch on HDFS</td><td>Long-running services, mixed apps</td></tr></table></div><ol><li><b>Many short tasks:</b> the AM schedules its own tasks, so the RM only grants containers. Spark and Tez AMs keep long-lived containers (executors) and reuse them, and YARN ran 100,000 concurrent tasks on 6,000 nodes.</li><li><b>Data locality:</b> the AM knows which HDFS blocks each task needs and asks for containers on those nodes.</li><li><b>Many frameworks on one cluster:</b> MapReduce, Spark, Tez and Samza each bring their own AM and policy while the RM only shares resources.</li><li><b>Scale and isolation:</b> the RM does less work per job, and an AM crash affects only its own application.</li><li><b>One-level wins</b> for long-running services and microservices, where placing a pod once is enough (beyond the slides). The slides say Kubernetes inherited YARN's container idea, while Spark on YARN is still the main on-premise set-up.</li></ol><p class='fine'>The slides give the YARN numbers and say Kubernetes inherited YARN's container idea. The one-level vs two-level framing, and where each wins, come from the old slides' question and go beyond the current deck.</p>"
+ },
+ {
+  "id": "gh-w06-1",
+  "week": 6,
+  "list": "practise",
+  "kind": "Numeric",
+  "src": [
+   "plan"
+  ],
+  "clo": "CLO3",
+  "vl": true,
+  "title": "K-Means, 50 GB, 100 iterations at 100 ms per 128 MB block, then an executor crash",
+  "q": "K-Means runs over 50 GB for 100 iterations. Reading or writing one 128 MB HDFS block takes 100 ms. (i) Compare the HDFS I/O time of MapReduce and Spark. (ii) An executor holding cached partitions crashes. How does Spark recover, and what is the worst-case cost?",
+  "a": "<ol><li>Blocks = 50 &times; 1,024 MB / 128 MB = 51,200 / 128 = <b>400 blocks</b>.</li><li>One full pass = 400 &times; 0.1 s = <b>40 s</b>.</li><li><b>MapReduce</b> (slide model: each iteration reads its input from HDFS and writes its output back): 2 &times; 40 = 80 s per iteration.</li><li>100 iterations &times; 80 s = <b>8,000 s &asymp; 2.2 h</b> (reads alone: 4,000 s &asymp; 67 min).</li><li><b>Spark:</b> reads the 400 blocks once (40 s) and caches them; iterations 2 to 100 read RAM, not HDFS.</li><li>HDFS I/O time: 8,000 s / 40 s = <b>200&times; less</b> (100&times; if you count reads only).</li><li><b>Crash:</b> the Driver sees the lost executor and its tasks fail; it looks up the lineage textFile &rarr; parse &rarr; cache.</li><li>Only the lost partitions are rebuilt: with 10 executors, about 40 blocks &times; 0.1 s = 4 s of re-reading, then the current iteration's lost tasks rerun.</li><li>The 99 earlier iterations are not redone: the centroids live in the Driver, and the points come from the input.</li><li><b>Worst case</b> (all cache lost): re-read the whole input, 40 s, and rerun one iteration. That is still less than one MapReduce iteration (80 s).</li></ol><p class='fine'>With 1 GB = 1,000 MB: 391 blocks, 39.1 s per pass; the ratios are the same. This is the lecturer's plan's version of slide question A1, which uses MB/s instead.</p>"
+ },
+ {
+  "id": "gh-w06-2",
+  "week": 6,
+  "list": "practise",
+  "kind": "Numeric",
+  "src": [
+   "v1"
+  ],
+  "clo": "CLO3",
+  "vl": false,
+  "title": "Logistic regression on 50 GB: MEMORY_ONLY? Which StorageLevel? When does caching pay?",
+  "q": "A Spark job runs logistic regression over 50 GB on a 10-node cluster with 32 GB RAM per node. (a) Can the full dataset be cached at MEMORY_ONLY? (b) If not, which StorageLevel would you choose and why? (c) Estimate how many iterations are needed before the cached speedup (130&times;) pays for the caching cost (1 extra HDFS read).",
+  "a": "<ol><li><b>(a)</b> Cluster RAM = 10 &times; 32 = 320 GB, so 50 GB of raw bytes would fit.</li><li>It is not safe, though. The OS, the NodeManager and shuffle (execution) memory also need RAM, and Java objects in memory are usually 2&ndash;5&times; larger than the file. At 3&times;, 50 GB becomes 150 GB, about half the cluster.</li><li>Under MEMORY_ONLY, partitions that do not fit are dropped (LRU) and <b>recomputed from HDFS</b> every iteration, so the speedup disappears.</li><li><b>(b) MEMORY_AND_DISK:</b> partitions that overflow go to local disk and are read back from there, not rebuilt from HDFS. Choose MEMORY_ONLY_SER (Kryo bytes, smaller but slower) if there is spare CPU.</li><li><b>(c)</b> Let T = one HDFS pass. A cached iteration costs T / 130, and caching costs one extra T.</li><li>Uncached, n iterations: nT. Cached: first pass T + caching T + (n &minus; 1) &times; T/130.</li><li>Break-even: n = 2 + (n &minus; 1)/130, so 130n = 260 + n &minus; 1, 129n = 259, <b>n &asymp; 2.01</b>.</li><li>Check: n = 2 costs 2T uncached vs 2.008T cached (not yet); n = 3 costs 3T vs 2.015T. <b>Caching pays from the 3rd iteration.</b></li><li>At 10 iterations: 10T vs 2T + 9T/130 = 2.07T, about 4.8&times; faster overall.</li></ol><p class='fine'>Slides: StorageLevels, LRU eviction, LR 127 s vs 0.96 s per iteration (slide: 132&times;; the question rounds to 130&times;). Beyond the slides: the object-size blow-up and the memory set aside for the OS and shuffles.</p>"
+ },
+ {
+  "id": "gh-w06-3",
+  "week": 6,
+  "list": "practise",
+  "kind": "Scenario",
+  "src": [
+   "v1",
+   "book6"
+  ],
+  "clo": "CLO4",
+  "vl": false,
+  "title": "groupByKey on 1 billion records, 500 keys: two skew cases that cause OOM",
+  "q": "A groupByKey on an RDD with 1 billion records and 500 distinct keys produces 500 shuffle partitions. Identify two data-skew scenarios that would cause out-of-memory errors and propose a fix for each.",
+  "a": "<ol><li>Even spread: 1,000,000,000 / 500 = 2,000,000 records per key. groupByKey ships every value and holds all of a key's values in one task's memory.</li><li><b>Skew 1, a hot key:</b> one key (for example a default value such as \"unknown\") has 30% of the rows, 300 M records. That is 150&times; the average, all in one task, so it runs out of memory while the other tasks sit idle.</li><li><b>Fix 1:</b> if the goal is an aggregate, use <code>reduceByKey</code> or <code>aggregateByKey</code>, which combine on each partition before the shuffle.</li><li>Textbook numbers: 10<sup>8</sup> values of 16 B for one key = 1.6 GB shuffled by groupByKey. With reduceByKey over 200 partitions only 200 partial sums move.</li><li>If all the raw values really are needed (for example a median), <b>salt</b> the key: key + \"_\" + random(0..N&minus;1), group in two phases, then merge.</li><li><b>Skew 2, hash collisions:</b> the hash partitioner (key.hashCode() % 500) can send several heavy keys to the same partition. Three keys of 100 M each put 300 M records in one partition.</li><li><b>Fix 2:</b> a custom partitioner that gives each heavy key its own partition, or more partitions (repartition) or a range partitioner, plus salting.</li><li>Check in the Spark UI: one task's shuffle read is far above the median.</li></ol><p class='fine'>Slides: reduceByKey vs groupByKey, and the hash partitioner &ldquo;can hot-spot on skewed data&rdquo;. Salting and the 1.6 GB example come from the lecturer's textbook (ch 6).</p>"
+ },
+ {
+  "id": "gh-w06-4",
+  "week": 6,
+  "list": "practise",
+  "kind": "Numeric",
+  "src": [
+   "v1"
+  ],
+  "clo": "CLO3",
+  "vl": false,
+  "title": "Lineage vs 3x replication for a 10-iteration ML job: at what failure rate does lineage lose?",
+  "q": "Compare RDD lineage fault tolerance with HDFS-style 3&times; replication for a 10-iteration ML job. Under what failure rate does lineage become slower than replication?",
+  "a": "<ol><li><b>Replication</b> pays on every iteration, failure or not: two extra copies of each output cross the network.</li><li><b>Lineage</b> pays nothing until a failure, and then recomputes only the lost partitions.</li><li>Rule: lineage is slower when <b>failures &times; recompute cost &gt; iterations &times; replication overhead</b>.</li><li>Assume an iteration takes 60 s and replication adds 20%: 12 s &times; 10 = <b>120 s per job</b>.</li><li>Assume 10 executors, so one failure loses 1/10 of the partitions.</li><li><b>Narrow chain or cached input:</b> recompute about 1/10 of one iteration = 6 s. Break-even 120 / 6 = <b>20 failures per job</b>; lineage wins easily.</li><li><b>Wide chain, no checkpoint, shuffle files lost</b> (worst case): recompute back to the input, on average 5 iterations &times; 60 s = 300 s. Break-even 120 / 300 = <b>0.4 failures per 10-minute job</b>, that is one failure per 25 minutes of run time.</li><li>Conclusion: lineage is slower only when failures are frequent and chains are long and wide. <b>Checkpoint</b> every few iterations to cap the recompute cost.</li></ol><p class='fine'>The slides give the principle (lineage has no replication overhead and is expensive for wide dependencies, so checkpoint long chains). The 60 s, 20% and 10 executors are assumed numbers, beyond the slides.</p>"
+ },
+ {
+  "id": "gh-w06-t1",
+  "week": 6,
+  "list": "test",
+  "kind": "T/F",
+  "src": [
+   "book6"
+  ],
+  "clo": "",
+  "vl": false,
+  "title": "collect() on a 300 GB result",
+  "q": "True or false, with a one-line justification: calling <code>rdd.collect()</code> is a safe way to look at a 300 GB result.",
+  "a": "<p><b>False.</b> collect() sends every partition to the Driver's memory. On hundreds of GB the Driver runs out of memory, which ends the whole application.</p><p>Use <code>take(n)</code>, <code>sample(False, 0.01)</code> or <code>saveAsTextFile(path)</code>; keep collect() for small final aggregates.</p><p class='fine'>Slides: collect() returns all elements to the Driver. The out-of-memory warning is the lecturer's textbook &ldquo;Driver memory trap&rdquo; (ch 6).</p>"
+ },
+ {
+  "id": "gh-w07-1",
+  "week": 7,
+  "list": "practise",
+  "kind": "Scenario",
+  "src": [
+   "plan"
+  ],
+  "clo": "CLO4",
+  "vl": true,
+  "title": "HiveQL: monthly average per country for Q1 2024, and its MapReduce stages",
+  "q": "Using the 5 TB transactions table (txn_id, user_id, product_id, amount, country, txn_date), partitioned by (txn_date, country) as in A1 (assume 3 years and 5 countries, as in the A1 answer), write HiveQL for the monthly average transaction amount per country in Q1 2024. Explain how many partitions it reads and the MapReduce stages Hive generates.",
+  "a": "<pre><code>SELECT country, MONTH(txn_date) AS mon, AVG(amount) AS avg_amount\nFROM transactions\nWHERE txn_date &gt;= '2024-01-01' AND txn_date &lt;= '2024-03-31'\nGROUP BY country, MONTH(txn_date)\nORDER BY country, mon;</code></pre><ol><li><b>Pruning:</b> Q1 2024 = 31 + 29 (leap year) + 31 = 91 days; 91 &times; 5 countries = 455 of 5,475 partitions (the A1 count, 3 &times; 365 &times; 5). Counting 2024's extra day gives 5,480; the share is still 8.3%.</li><li>455 / 5,475 = 8.3%, about 5,000 GB &times; 0.083 &asymp; 416 GB read instead of 5 TB. A plain range on the partition column makes pruning certain.</li><li><b>Job 1, Map:</b> emits key (country, month) and value (amount, 1).</li><li><b>Combiner:</b> partial (sum, count) per key. Never partial averages: an average of averages is wrong.</li><li><b>Shuffle key:</b> (country, month), so 5 &times; 3 = 15 keys.</li><li><b>Reduce:</b> AVG = total sum / total count, giving 15 rows.</li><li><b>Job 2:</b> ORDER BY uses one reducer to sort the 15 rows. On Tez the two jobs become one DAG with no HDFS write in between.</li><li><b>Tiny check:</b> BD, January. Mapper 1 sees 100 and 300, giving (400, 2); mapper 2 sees 500, giving (500, 1). AVG = 900 / 3 = 300. The wrong average of averages is (200 + 500) / 2 = 350.</li></ol><p class='fine'>If &ldquo;monthly average&rdquo; means average monthly revenue, first SUM(amount) per (country, month) in a sub-query, then AVG over the three months per country. This is the lecturer's plan question; the slides' A2 asks only for the 2023 top 5.</p>"
+ },
+ {
+  "id": "gh-w07-t1",
+  "week": 7,
+  "list": "test",
+  "kind": "T/F",
+  "src": [
+   "book7"
+  ],
+  "clo": "",
+  "vl": false,
+  "title": "Presto is 10x faster than Hive+MR, so move the 50 TB nightly ETL to it?",
+  "q": "True or false, with a justification: Presto is about 10&times; faster than Hive+MapReduce, so a 50 TB nightly ETL pipeline should be moved from Hive to Presto.",
+  "a": "<p><b>False.</b> Presto is fast because it keeps intermediate data in memory with no disk writes. A multi-hour job that outgrows RAM, or loses a worker, fails and must start again.</p><p>Hive on Tez or Spark writes to disk and HDFS, so failed tasks are simply retried. Use Hive for large batch ETL and Presto for interactive queries that finish in seconds.</p><p class='fine'>Slides: Presto has an in-memory pipeline with no intermediate disk; Hive is for large ETL jobs and relies on MapReduce/HDFS for fault tolerance. The ETL warning is from the lecturer's textbook (ch 7).</p>"
+ },
+ {
+  "id": "gh-w08-1",
+  "week": 8,
+  "list": "practise",
+  "kind": "Numeric",
+  "src": [
+   "v1"
+  ],
+  "clo": "CLO4",
+  "vl": true,
+  "title": "Netflix Kafka: 4,000 topics x 12 partitions, RF 3: minimum brokers",
+  "q": "Netflix's Kafka cluster handles 1.3 M events/s at peak across 4,000 topics. If each topic has 12 partitions, calculate the minimum number of brokers needed, assuming each broker handles 50,000 partitions and the replication factor is 3.",
+  "a": "<ol><li>Partitions = 4,000 &times; 12 = <b>48,000</b>.</li><li>Replicas = 48,000 &times; 3 = <b>144,000</b> partition copies to host.</li><li>Brokers = 144,000 / 50,000 = 2.88, round up to <b>3 brokers</b>.</li><li>Check: RF = 3 needs at least 3 brokers anyway, since each copy must sit on a different broker. 3 is consistent.</li><li>Load: 1,300,000 / 3 &asymp; <b>433,333 events/s per broker</b>; per partition 1,300,000 / 48,000 &asymp; 27 events/s.</li><li>3 brokers survive only R &minus; 1 = 2 broker failures, with no headroom for peaks (5&times; spikes) or 7 days of retention (100 B &times; 7 = 700 B events).</li><li>That is why Netflix runs <b>2,000+ brokers</b> (slide): throughput, disk and fault tolerance set the count, not the partition limit. With 2,000: 144,000 / 2,000 = 72 replicas and about 650 events/s per broker.</li></ol><p class='fine'>Slides: 4,000+ topics, 2,000+ brokers, 1.3 M events/s peak, 7-day retention, RF = R survives R &minus; 1 failures.</p>"
+ },
+ {
+  "id": "gh-w08-2",
+  "week": 8,
+  "list": "practise",
+  "kind": "Scenario",
+  "src": [
+   "v1"
+  ],
+  "clo": "CLO4",
+  "vl": true,
+  "title": "Flink join of assignments, exposures and outcomes with 30 s out-of-order events",
+  "q": "A Flink job joins three Kafka streams (assignments, exposures and outcomes) on user_id. Events may arrive up to 30 seconds out of order. Design an event-time window strategy (window size, watermark lag, allowed lateness) and justify each choice.",
+  "a": "<ol><li><b>Event time, not processing time:</b> phones and TVs send late, so windows must use the time stamped on the event.</li><li><b>Window:</b> 5-minute tumbling windows on event time. This matches the slide's 5-minute experiment-result latency; a sliding 5-minute window every 1 minute is an option for smoother counters.</li><li><b>Join:</b> key all three streams by user_id; join exposure to its assignment, then outcomes within, say, 30 minutes after the exposure (an interval join). Assignments are also kept in Cassandra and can be looked up.</li><li><b>Watermark lag = 30 s</b> (bounded out-of-orderness): the window closes 30 s after its end time. Less would drop on-time but delayed events; more only delays results.</li><li><b>Allowed lateness = about 1&ndash;2 min:</b> stragglers past the watermark (a phone briefly offline) still update the window, which re-emits a corrected count.</li><li><b>Later than that:</b> send events to a side output and let the hourly S3 + Spark batch layer correct the totals, which is Netflix's Lambda set-up.</li><li>Keep state small: expire per-user state after the join interval (state TTL), and use exactly-once checkpoints so replays from Kafka offsets give the same counts.</li></ol><p class='fine'>Slides: Netflix speed layer Kafka &rarr; Flink (event-time windowing), A/B test assignment &bowtie; exposure &bowtie; outcome, results in 5 minutes, hourly S3 batch. Watermarks, allowed lateness and side outputs go beyond the slides.</p>"
+ },
+ {
+  "id": "gh-w08-t1",
+  "week": 8,
+  "list": "test",
+  "kind": "Short",
+  "src": [
+   "book8"
+  ],
+  "clo": "",
+  "vl": false,
+  "title": "Flume rolls a new HDFS file every 10 seconds",
+  "q": "A Flume HDFS sink rolls a new file every 10 seconds. What goes wrong, and what fixes it?",
+  "a": "<ol><li>86,400 / 10 = <b>8,640 small files per day</b> per agent, each far below one 128 MB block.</li><li>Every file is a NameNode metadata entry, so NameNode heap fills, and each file later becomes its own small map task.</li><li>Fix: roll every 300&ndash;600 s or at 128 MB (one block per file); at 600 s that is 144 files a day.</li><li>Or compact nightly: <code>INSERT OVERWRITE ... SELECT</code> into large Parquet/ORC files.</li></ol><p class='fine'>Beyond the slides: from the lecturer's textbook (ch 8). The slides cover Flume's Source &rarr; Channel &rarr; Sink, and the small-files problem from partitioning.</p>"
+ },
+ {
+  "id": "gh-w09-1",
+  "week": 9,
+  "list": "practise",
+  "kind": "Scenario",
+  "src": [
+   "v1"
+  ],
+  "clo": "CLO3",
+  "vl": false,
+  "title": "NYT tracker: what a 7-day average removes, and what it hides that a 3-day one shows",
+  "q": "The NYT COVID tracker uses a 7-day rolling average instead of raw daily counts. (a) What reporting artefact does this remove? (b) What real signal might a 7-day window mask that a 3-day window would reveal? Relate your answer to Shneiderman's &ldquo;zoom and filter&rdquo;.",
+  "a": "<ol><li><b>(a)</b> It removes <b>day-of-week reporting artefacts</b>: low counts at weekends, catch-up spikes on Monday, and one-day data dumps. Any 7-day window holds exactly one of each weekday.</li><li><b>(b)</b> A trailing average lags a real change by about half its window: 7-day &asymp; (7 &minus; 1)/2 = <b>3 days</b>, 3-day &asymp; 1 day.</li><li>So a 7-day line shows the <b>start of a surge or a turning point</b> about 2 days later than a 3-day line, and makes it look gentler.</li><li>Example: cases jump from 100 to 400 a day. On day 1 the 3-day mean is (100 + 100 + 400)/3 = 200, but the 7-day mean is (6 &times; 100 + 400)/7 &asymp; 143.</li><li>The cost of the 3-day window is that it keeps part of the weekly cycle, so it is noisier.</li><li><b>Shneiderman:</b> the 7-day line is the overview. Zoom and filter lets the reader narrow to the last few weeks and switch to raw or 3-day bars to see the onset. Details on demand shows the exact daily count on hover.</li></ol><p class='fine'>Slides: the 7-day average reduces day-of-week artefacts, and the window choice is an editorial decision. The lag arithmetic and the 3-day comparison go beyond the slides.</p>"
+ },
+ {
+  "id": "gh-w09-t1",
+  "week": 9,
+  "list": "test",
+  "kind": "T/F",
+  "src": [
+   "book9"
+  ],
+  "clo": "",
+  "vl": false,
+  "title": "Auto-scaled y-axis on an availability panel",
+  "q": "True or false, with a justification: a Grafana availability panel with an auto-scaled y-axis is fine, because the tick labels show the true values.",
+  "a": "<p><b>False.</b> Readers judge bar and line height, not tick labels. Auto-scaling to 99.975&ndash;99.995% makes a 0.01-point wobble span half the chart's height.</p><p>Example: 99.98% is drawn at 25% of the height and 99.99% at 75%, a 200% visual rise for a real change of 0.01 / 99.98 &asymp; 0.010%. The lie factor is 200 / 0.010 &asymp; 20,000.</p><p>Start availability and ratio charts at zero, or label the zoomed axis clearly.</p><p class='fine'>Slides: lie factor, and the y-axis should start at 0. The auto-scaling dashboard case is from the lecturer's textbook (ch 9).</p>"
+ }
+]

@@ -10,7 +10,7 @@ const out = resolve(process.argv[2] || "/tmp/claude-1000/layout");
 mkdirSync(out, { recursive: true });
 const url = "file://" + resolve(new URL(".", import.meta.url).pathname, "index.html");
 const port = 9333;
-const chrome = spawn("google-chrome-stable", ["--headless=new", "--disable-gpu", `--remote-debugging-port=${port}`,
+const chrome = spawn("nice", ["-n", "10", "google-chrome-stable", "--headless=new", "--disable-gpu", "--mute-audio", `--remote-debugging-port=${port}`,
   "--user-data-dir=/tmp/claude-1000/layout-profile", "about:blank"], { stdio: "ignore" });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 

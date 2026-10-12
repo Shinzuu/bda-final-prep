@@ -1024,7 +1024,14 @@
     "(d) Spark skips the shuffle phase entirely"
    ],
    "topic": "mr-vs-spark",
-   "a": "<p><b>(c) Spark caches intermediate data as RDDs in memory</b></p><p>Later iterations read from RAM instead of re-reading and re-writing HDFS; the hardware is the same.</p>"
+   "a": "<p><b>(c) Spark caches intermediate data as RDDs in memory</b></p><p>Later iterations read from RAM instead of re-reading and re-writing HDFS; the hardware is the same.</p>",
+   "gh": {
+    "src": [
+     "plan"
+    ],
+    "clo": "CLO3",
+    "vl": true
+   }
   },
   {
    "src": "MCQ",
@@ -1037,7 +1044,14 @@
     "(d) Using a write-ahead log on the Driver node"
    ],
    "topic": "rdd",
-   "a": "<p><b>(b) Tracking lineage and recomputing lost partitions from parent RDDs</b></p><p>The recipe is kept, not copies; (c) is replication.</p>"
+   "a": "<p><b>(b) Tracking lineage and recomputing lost partitions from parent RDDs</b></p><p>The recipe is kept, not copies; (c) is replication.</p>",
+   "gh": {
+    "src": [
+     "plan"
+    ],
+    "clo": "CLO3",
+    "vl": true
+   }
   },
   {
    "src": "MCQ",
@@ -1050,7 +1064,14 @@
     "(d) HBase"
    ],
    "topic": "dataframes",
-   "a": "<p><b>(d) HBase</b></p><p>HBase is a separate NoSQL database on HDFS; Spark can only read it as a data source.</p>"
+   "a": "<p><b>(d) HBase</b></p><p>HBase is a separate NoSQL database on HDFS; Spark can only read it as a data source.</p>",
+   "gh": {
+    "src": [
+     "plan"
+    ],
+    "clo": "CLO3",
+    "vl": true
+   }
   },
   {
    "src": "MCQ",
@@ -1063,35 +1084,76 @@
     "(d) Only available in the Scala API, not in PySpark"
    ],
    "topic": "lazy-eval",
-   "a": "<p><b>(b) Lazily evaluated — only executed when a subsequent action is called</b></p><p><code>rdd.filter(f)</code> alone does nothing; <code>rdd.filter(f).count()</code> runs it.</p>"
+   "a": "<p><b>(b) Lazily evaluated — only executed when a subsequent action is called</b></p><p><code>rdd.filter(f)</code> alone does nothing; <code>rdd.filter(f).count()</code> runs it.</p>",
+   "gh": {
+    "src": [
+     "plan"
+    ],
+    "clo": "CLO3",
+    "vl": true
+   }
   },
   {
    "src": "True/False",
    "n": "1",
    "q": "Spark can only run on top of Hadoop YARN and has no other deployment option.",
    "topic": "spark-arch",
-   "a": "<p><b>False.</b> The Cluster Manager can be YARN, Kubernetes, Mesos or Spark Standalone.</p>"
+   "a": "<p><b>False.</b> The Cluster Manager can be YARN, Kubernetes, Mesos or Spark Standalone.</p>",
+   "gh": {
+    "src": [
+     "plan",
+     "v1"
+    ],
+    "clo": "CLO3",
+    "vl": true,
+    "just": "Spark runs on YARN, Kubernetes, Apache Mesos or its own Standalone manager."
+   }
   },
   {
    "src": "True/False",
    "n": "2",
    "q": "RDDs are mutable — individual elements can be modified in place after creation.",
    "topic": "rdd",
-   "a": "<p><b>False.</b> RDDs are immutable; every transformation creates a new RDD.</p>"
+   "a": "<p><b>False.</b> RDDs are immutable; every transformation creates a new RDD.</p>",
+   "gh": {
+    "src": [
+     "plan",
+     "v1"
+    ],
+    "clo": "CLO3",
+    "vl": true,
+    "just": "RDDs are immutable; a transformation creates a new RDD and never changes the original."
+   }
   },
   {
    "src": "True/False",
    "n": "3",
    "q": "Spark's DataFrame API provides schema-aware, named-column operations similar to SQL tables.",
    "topic": "dataframes",
-   "a": "<p><b>True.</b> A DataFrame has named columns and a schema, like a relational table, and accepts SQL.</p>"
+   "a": "<p><b>True.</b> A DataFrame has named columns and a schema, like a relational table, and accepts SQL.</p>",
+   "gh": {
+    "src": [
+     "plan"
+    ],
+    "clo": "CLO3",
+    "vl": true
+   }
   },
   {
    "src": "True/False",
    "n": "4",
    "q": "MapReduce is generally better than Spark for machine learning workloads that require many iterations over the same dataset.",
    "topic": "mr-vs-spark",
-   "a": "<p><b>False.</b> Spark is better: it caches the data in RAM and is 10–100× faster on iterative work, while MapReduce hits disk every iteration.</p>"
+   "a": "<p><b>False.</b> Spark is better: it caches the data in RAM and is 10–100× faster on iterative work, while MapReduce hits disk every iteration.</p>",
+   "gh": {
+    "src": [
+     "plan",
+     "v1"
+    ],
+    "clo": "CLO3",
+    "vl": true,
+    "just": "For iterative ML Spark is 10&ndash;100&times; faster because it caches the training data in memory; MapReduce re-reads HDFS on every iteration."
+   }
   },
   {
    "src": "Descriptive",
@@ -1119,14 +1181,30 @@
    "n": "A1",
    "q": "<b>Iterative I/O Cost Analysis:</b> You need to train a K-Means clustering model over <b>50 GB</b> of bKash transaction data with <b>100 iterations</b>. Assume HDFS read speed = 500 MB/s and RAM cache read speed = 5,000 MB/s.<ul><li>Calculate the total HDFS I/O for MapReduce (all 100 iterations)</li><li>Calculate the total I/O for Spark (50 GB fits in cluster RAM)</li><li>Estimate the wall-clock time for each approach</li><li>Under what conditions would Spark NOT outperform MapReduce?</li></ul>",
    "topic": "mr-vs-spark",
-   "a": "<p><b>Given:</b> D = 50 GB = 50,000 MB, k = 100, HDFS 500 MB/s (write assumed = read), RAM 5,000 MB/s.</p><table><tr><th></th><th>MapReduce</th><th>Spark</th></tr><tr><td>HDFS I/O</td><td>100 × (50 + 50) = <b>10 TB</b></td><td><b>50 GB</b> (read once); RAM reads 99 × 50 = 4,950 GB</td></tr><tr><td>Per pass</td><td>50,000/500 = 100 s read + 100 s write = 200 s</td><td>100 s first, then 50,000/5,000 = 10 s</td></tr><tr><td>Total time</td><td>100 × 200 = <b>20,000 s ≈ 5.56 h</b></td><td>100 + 99 × 10 = <b>1,090 s ≈ 18.2 min</b></td></tr></table><p>Disk I/O 200× less; time speedup 20,000 / 1,090 ≈ <b>18.3×</b>.</p><p><b>Spark does not win when:</b> the job is single-pass (nothing to reuse); the data does not fit in RAM (spill or evict and recompute); Executor memory (~8 GB minimum) is too costly; stable MapReduce code is already fast enough.</p>"
+   "a": "<p><b>Given:</b> D = 50 GB = 50,000 MB, k = 100, HDFS 500 MB/s (write assumed = read), RAM 5,000 MB/s.</p><table><tr><th></th><th>MapReduce</th><th>Spark</th></tr><tr><td>HDFS I/O</td><td>100 × (50 + 50) = <b>10 TB</b></td><td><b>50 GB</b> (read once); RAM reads 99 × 50 = 4,950 GB</td></tr><tr><td>Per pass</td><td>50,000/500 = 100 s read + 100 s write = 200 s</td><td>100 s first, then 50,000/5,000 = 10 s</td></tr><tr><td>Total time</td><td>100 × 200 = <b>20,000 s ≈ 5.56 h</b></td><td>100 + 99 × 10 = <b>1,090 s ≈ 18.2 min</b></td></tr></table><p>Disk I/O 200× less; time speedup 20,000 / 1,090 ≈ <b>18.3×</b>.</p><p><b>Spark does not win when:</b> the job is single-pass (nothing to reuse); the data does not fit in RAM (spill or evict and recompute); Executor memory (~8 GB minimum) is too costly; stable MapReduce code is already fast enough.</p>",
+   "gh": {
+    "src": [
+     "plan"
+    ],
+    "clo": "CLO3",
+    "vl": true,
+    "note": "The lecturer's plan words this with 100 ms per 128 MB block instead of MB/s; see the worked version &ldquo;K-Means, 50 GB, 100 iterations at 100 ms per 128 MB block&rdquo; in Practise."
+   }
   },
   {
    "src": "Analytical",
    "n": "A2",
    "q": "<b>RDD Failure Recovery Trace:</b> A Spark job computes <code>input</code> &rarr; <code>filteredRDD</code> &rarr; <code>mappedRDD</code> &rarr; <code>reducedRDD</code> over 10 partitions. Mid-execution, the Executor holding partitions 3 and 7 of <code>reducedRDD</code> crashes. Trace the complete recovery sequence: what does the Driver detect, which partitions of which RDDs need to be recomputed, and what is the worst-case recovery cost if <code>reducedRDD</code> involves a <b>wide</b> dependency (<code>groupByKey</code>)?",
    "topic": "narrow-wide",
-   "a": "<p><b>Stages:</b> filter, map narrow → Stage 1 (input → filteredRDD → mappedRDD). groupByKey wide → Stage 2 (reducedRDD).</p><p><b>Driver detects:</b> the Executor is lost; tasks for reducedRDD partitions 3 and 7 failed. The other 8 partitions are fine.</p><p><b>Lineage:</b> reducedRDD ← groupByKey ← mappedRDD ← map ← filteredRDD ← filter ← input.</p><table><tr><th>Case</th><th>Recomputed</th></tr><tr><td>If all narrow</td><td>Partitions 3 and 7 at each level: 2 × 4 = 8 computations (20%)</td></tr><tr><td>Wide, shuffle files survive</td><td>Only reducedRDD 3 and 7, re-fetching from all 10 mappedRDD outputs</td></tr><tr><td>Wide, worst case</td><td>Shuffle output lost too: all 10 input, filteredRDD and mappedRDD partitions (30) + reshuffle + reducedRDD 3, 7 (2) ≈ the whole job</td></tr></table><p><b>Limit the cost:</b> reduceByKey instead of groupByKey, cache mappedRDD, checkpoint long chains.</p>"
+   "a": "<p><b>Stages:</b> filter, map narrow → Stage 1 (input → filteredRDD → mappedRDD). groupByKey wide → Stage 2 (reducedRDD).</p><p><b>Driver detects:</b> the Executor is lost; tasks for reducedRDD partitions 3 and 7 failed. The other 8 partitions are fine.</p><p><b>Lineage:</b> reducedRDD ← groupByKey ← mappedRDD ← map ← filteredRDD ← filter ← input.</p><table><tr><th>Case</th><th>Recomputed</th></tr><tr><td>If all narrow</td><td>Partitions 3 and 7 at each level: 2 × 4 = 8 computations (20%)</td></tr><tr><td>Wide, shuffle files survive</td><td>Only reducedRDD 3 and 7, re-fetching from all 10 mappedRDD outputs</td></tr><tr><td>Wide, worst case</td><td>Shuffle output lost too: all 10 input, filteredRDD and mappedRDD partitions (30) + reshuffle + reducedRDD 3, 7 (2) ≈ the whole job</td></tr></table><p><b>Limit the cost:</b> reduceByKey instead of groupByKey, cache mappedRDD, checkpoint long chains.</p>",
+   "gh": {
+    "src": [
+     "plan"
+    ],
+    "clo": "CLO3",
+    "vl": true,
+    "note": "The lecturer's plan pairs this with the K-Means question: executor crash recovery via lineage, and its worst-case cost."
+   }
   },
   {
    "src": "Discussion",

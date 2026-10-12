@@ -1077,7 +1077,14 @@
    "n": "1",
    "q": "Parquet is a row-oriented file format optimised for write-heavy workloads.",
    "topic": "columnar",
-   "a": "<b>False.</b> Parquet is column-oriented and optimised for read-heavy analytics; the row-oriented, append-friendly format is Avro."
+   "a": "<b>False.</b> Parquet is column-oriented and optimised for read-heavy analytics; the row-oriented, append-friendly format is Avro.",
+   "gh": {
+    "src": [
+     "v1"
+    ],
+    "vl": false,
+    "just": "Parquet is column-oriented and built for read-heavy analytical queries, not for row-by-row writes."
+   }
   },
   {
    "src": "True/False",
@@ -1091,7 +1098,14 @@
    "n": "3",
    "q": "Gzip-compressed files are natively splittable in Hadoop, allowing multiple Mappers to process them in parallel.",
    "topic": "compression",
-   "a": "<b>False.</b> Gzip files are not splittable, so one Mapper reads the whole file; use bzip2 or Parquet + Snappy for parallel reads."
+   "a": "<b>False.</b> Gzip files are not splittable, so one Mapper reads the whole file; use bzip2 or Parquet + Snappy for parallel reads.",
+   "gh": {
+    "src": [
+     "v1"
+    ],
+    "vl": false,
+    "just": "Gzip is a streaming format with no internal block boundaries, so it must be decompressed from the start and cannot be split."
+   }
   },
   {
    "src": "True/False",
@@ -1126,7 +1140,15 @@
    "n": "A1",
    "q": "Data Lake Performance Migration:\nA Dhaka-based telecom company stores 10 TB of daily call-detail records (CDR) on HDFS as gzip-compressed CSV files. Their data engineers report that a Hive query selecting 4 of 80 columns takes 6 hours.\n– Identify two specific reasons why this configuration is slow\n– Propose a migration strategy: new format, compression codec, and partitioning scheme\n– Estimate the expected I/O reduction (show your calculation)\n– What YARN scheduler would you use and why, given that multiple teams share the cluster?",
    "topic": "columnar",
-   "a": "<p><b>i) Why slow</b></p><ol><li>Gzip is not splittable: one Mapper per file, the cluster idles.</li><li>CSV is a row store: reading 4 columns parses all 80; no stats to skip data.</li></ol><p><b>ii) Migration:</b> ORC (Hive) or Parquet (if Spark reads it too); Snappy for hot data (Zlib for ORC in Hive, Zstd for archive); partition by date and region, e.g. <code>dt=YYYY-MM-DD/region=</code>; convert once, then nightly.</p><p><b>iii) I/O estimate</b></p><table><tr><td>Fraction read</td><td>4/80 = 0.05</td></tr><tr><td>Data read</td><td>10 TB × 0.05 = 500 GB</td></tr><tr><td>Reduction</td><td><b>95%</b> (20× less)</td></tr><tr><td>Time if I/O-bound</td><td>360 min × 0.05 ≈ <b>18 min</b></td></tr></table><p><b>iv) Scheduler:</b> Capacity: guaranteed queues per team (ETL, analysts, data science), idle capacity borrowed, so no team starves another. FIFO lets one long job block all.</p>"
+   "a": "<p><b>i) Why slow</b></p><ol><li>Gzip is not splittable: one Mapper per file, the cluster idles.</li><li>CSV is a row store: reading 4 columns parses all 80; no stats to skip data.</li></ol><p><b>ii) Migration:</b> ORC (Hive) or Parquet (if Spark reads it too); Snappy for hot data (Zlib for ORC in Hive, Zstd for archive); partition by date and region, e.g. <code>dt=YYYY-MM-DD/region=</code>; convert once, then nightly.</p><p><b>iii) I/O estimate</b></p><table><tr><td>Fraction read</td><td>4/80 = 0.05</td></tr><tr><td>Data read</td><td>10 TB × 0.05 = 500 GB</td></tr><tr><td>Reduction</td><td><b>95%</b> (20× less)</td></tr><tr><td>Time if I/O-bound</td><td>360 min × 0.05 ≈ <b>18 min</b></td></tr></table><p><b>iv) Scheduler:</b> Capacity: guaranteed queues per team (ETL, analysts, data science), idle capacity borrowed, so no team starves another. FIFO lets one long job block all.</p>",
+   "gh": {
+    "src": [
+     "plan"
+    ],
+    "clo": "CLO3",
+    "vl": true,
+    "note": "The lecturer's plan seeds this as 10 TB of web click data stored as gzip CSV; the same answer applies."
+   }
   },
   {
    "src": "Analytical",

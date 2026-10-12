@@ -336,7 +336,7 @@
       "traps": [
         "Schema-on-read does not mean the schema is inferred. You still write CREATE TABLE (MCQ 2 option d).",
         "The schema is stored separately under both models. The key word is <i>when</i> it is applied.",
-        "HiveQL looks like SQL but runs as batch jobs: minutes, not milliseconds.",
+        "HiveQL looks like SQL but runs as batch jobs: minutes, not milliseconds. A <code>COUNT(*)</code> on 1 TB can take 5&ndash;10 min on MapReduce; use Presto or Spark SQL for interactive speed. <span class=\"ghbs\"><span class=\"ghb gs\">Exam Tip (old slides v1); still on current slide 16</span><span class=\"ghb vl\">Very likely</span></span>",
         "Hive ACID is not on all tables, only transactional ORC tables."
       ],
       "answers": {
@@ -1119,7 +1119,14 @@
       "n": "1",
       "q": "HiveQL supports full ACID transactions on all table types, just like MySQL.",
       "topic": "schema-on-read",
-      "a": "<b>False.</b> Corrected: HiveQL supports ACID only on ACID-enabled transactional ORC tables; MySQL (InnoDB engine) gives full ACID: INSERT, UPDATE, DELETE and ROLLBACK on any row."
+      "a": "<b>False.</b> Corrected: HiveQL supports ACID only on ACID-enabled transactional ORC tables; MySQL (InnoDB engine) gives full ACID: INSERT, UPDATE, DELETE and ROLLBACK on any row.",
+      "gh": {
+        "src": [
+          "v1"
+        ],
+        "vl": false,
+        "just": "ACID exists only on ORC-backed transactional tables created with TBLPROPERTIES ('transactional'='true')."
+      }
     },
     {
       "src": "True/False",
@@ -1133,14 +1140,28 @@
       "n": "3",
       "q": "Hive directly executes a HiveQL query on HDFS without any intermediate translation step.",
       "topic": "hive-arch",
-      "a": "<b>False.</b> Corrected: Hive compiles HiveQL (parse, analyse, plan, optimise) into MapReduce, Tez or Spark jobs, which then read HDFS."
+      "a": "<b>False.</b> Corrected: Hive compiles HiveQL (parse, analyse, plan, optimise) into MapReduce, Tez or Spark jobs, which then read HDFS.",
+      "gh": {
+        "src": [
+          "v1"
+        ],
+        "vl": false,
+        "just": "The Driver parses HiveQL, builds and optimises a logical plan, and compiles it into a DAG of MapReduce, Tez or Spark jobs before any data is touched."
+      }
     },
     {
       "src": "True/False",
       "n": "4",
       "q": "Bucketing in Hive is particularly useful for optimising JOIN operations between two large tables.",
       "topic": "bucketing",
-      "a": "<b>True.</b> Both tables bucketed on the join key with the same N let Hive join bucket i with bucket i, with no full shuffle."
+      "a": "<b>True.</b> Both tables bucketed on the join key with the same N let Hive join bucket i with bucket i, with no full shuffle.",
+      "gh": {
+        "src": [
+          "v1"
+        ],
+        "vl": false,
+        "just": "A bucket map join pairs matching bucket numbers (same hash), so the full shuffle-sort phase is skipped."
+      }
     },
     {
       "src": "Descriptive",
@@ -1168,35 +1189,74 @@
       "n": "A1",
       "q": "Partitioning &amp; Bucketing Design: You have a 5 TB e-commerce transaction table with columns: (txn_id, user_id, product_id, amount, country, txn_date). Design a complete partitioning and bucketing strategy to optimise: &#8211; Daily revenue reports filtered by country and txn_date &#8211; JOINs between this table and a 10 M-row user profile table (keyed on user_id). Write the complete CREATE TABLE DDL. Justify why you chose a specific number of buckets and which column(s) you partitioned on.",
       "topic": "bucketing",
-      "a": "<p><b>Partition</b> on <code>txn_date, country</code> (low cardinality, used in report filters). <b>Bucket</b> on <code>user_id</code> (high-cardinality join key), same N on both tables for a bucket map join. Never partition on user_id or txn_id.</p><p><b>Bucket count</b> (assume 3 years, 5 countries):</p><table><tr><td>Partitions</td><td>3 &times; 365 &times; 5 = 5,475</td></tr><tr><td>Per partition</td><td>5,000 GB / 5,475 &asymp; 0.913 GB</td></tr><tr><td>8 buckets</td><td>&asymp; 114 MB/file (near 128 MB block), 43,800 files</td></tr><tr><td>32 buckets</td><td>&asymp; 28.5 MB/file, 175,200 files: too small</td></tr></table><pre><code>CREATE TABLE transactions (\n  txn_id BIGINT, user_id BIGINT,\n  product_id BIGINT, amount DOUBLE)\nPARTITIONED BY (txn_date STRING, country STRING)\nCLUSTERED BY (user_id) SORTED BY (user_id) INTO 8 BUCKETS\nSTORED AS ORC;\n\nCREATE TABLE user_profile (\n  user_id BIGINT, name STRING, city STRING)\nCLUSTERED BY (user_id) SORTED BY (user_id) INTO 8 BUCKETS\nSTORED AS ORC;</code></pre><p><b>Result:</b> a one-day, one-country report reads 1 of 5,475 partitions (&asymp; 0.018%); the join pairs bucket i with i.</p>"
+      "a": "<p><b>Partition</b> on <code>txn_date, country</code> (low cardinality, used in report filters). <b>Bucket</b> on <code>user_id</code> (high-cardinality join key), same N on both tables for a bucket map join. Never partition on user_id or txn_id.</p><p><b>Bucket count</b> (assume 3 years, 5 countries):</p><table><tr><td>Partitions</td><td>3 &times; 365 &times; 5 = 5,475</td></tr><tr><td>Per partition</td><td>5,000 GB / 5,475 &asymp; 0.913 GB</td></tr><tr><td>8 buckets</td><td>&asymp; 114 MB/file (near 128 MB block), 43,800 files</td></tr><tr><td>32 buckets</td><td>&asymp; 28.5 MB/file, 175,200 files: too small</td></tr></table><pre><code>CREATE TABLE transactions (\n  txn_id BIGINT, user_id BIGINT,\n  product_id BIGINT, amount DOUBLE)\nPARTITIONED BY (txn_date STRING, country STRING)\nCLUSTERED BY (user_id) SORTED BY (user_id) INTO 8 BUCKETS\nSTORED AS ORC;\n\nCREATE TABLE user_profile (\n  user_id BIGINT, name STRING, city STRING)\nCLUSTERED BY (user_id) SORTED BY (user_id) INTO 8 BUCKETS\nSTORED AS ORC;</code></pre><p><b>Result:</b> a one-day, one-country report reads 1 of 5,475 partitions (&asymp; 0.018%); the join pairs bucket i with i.</p>",
+      "gh": {
+        "src": [
+          "plan"
+        ],
+        "clo": "CLO4",
+        "vl": true
+      }
     },
     {
       "src": "Analytical",
       "n": "A2",
       "q": "Query Compilation to MapReduce: Write HiveQL to find the top 5 products by total revenue in 2023. Then trace how Hive compiles this query into MapReduce stages: what is emitted by the Map phase, what is the shuffle key, and what does the Reduce phase compute? How would switching the execution engine from MapReduce to Tez change the execution plan?",
       "topic": "hive-arch",
-      "a": "<pre><code>SELECT product_id, SUM(amount) AS total_revenue\nFROM transactions\nWHERE YEAR(txn_date) = 2023\nGROUP BY product_id\nORDER BY total_revenue DESC\nLIMIT 5;</code></pre><table><tr><th></th><th>Job 1: aggregate</th><th>Job 2: sort + limit</th></tr><tr><td>Map emits</td><td>(product_id, amount) for 2023 rows; combiner gives partial sums</td><td>(total_revenue, product_id); each mapper keeps its top 5</td></tr><tr><td>Shuffle key</td><td>product_id</td><td>total_revenue DESC, to one reducer</td></tr><tr><td>Reduce</td><td>SUM(amount) per product, written to HDFS</td><td>First 5 rows</td></tr></table><p><b>Tiny check:</b> (P1,100), (P2,50), (P1,30), (P3,80), (P2,20) &rarr; P1 130, P3 80, P2 70.</p><p><b>Tez:</b> one DAG, Map 1 &rarr; Reducer 2 &rarr; Reducer 3. No HDFS write between the jobs, one submission, container reuse. Same result, faster.</p>"
+      "a": "<pre><code>SELECT product_id, SUM(amount) AS total_revenue\nFROM transactions\nWHERE YEAR(txn_date) = 2023\nGROUP BY product_id\nORDER BY total_revenue DESC\nLIMIT 5;</code></pre><table><tr><th></th><th>Job 1: aggregate</th><th>Job 2: sort + limit</th></tr><tr><td>Map emits</td><td>(product_id, amount) for 2023 rows; combiner gives partial sums</td><td>(total_revenue, product_id); each mapper keeps its top 5</td></tr><tr><td>Shuffle key</td><td>product_id</td><td>total_revenue DESC, to one reducer</td></tr><tr><td>Reduce</td><td>SUM(amount) per product, written to HDFS</td><td>First 5 rows</td></tr></table><p><b>Tiny check:</b> (P1,100), (P2,50), (P1,30), (P3,80), (P2,20) &rarr; P1 130, P3 80, P2 70.</p><p><b>Tez:</b> one DAG, Map 1 &rarr; Reducer 2 &rarr; Reducer 3. No HDFS write between the jobs, one submission, container reuse. Same result, faster.</p>",
+      "gh": {
+        "src": [
+          "plan"
+        ],
+        "clo": "CLO4",
+        "vl": true,
+        "note": "The plan also asks for the monthly average per country in Q1 2024; see that worked query in Practise."
+      }
     },
     {
       "src": "Discussion",
       "n": "1",
       "q": "Spotify&#x27;s co-occurrence query runs GROUP BY song_a, song_b over 2 billion playlist rows. Estimate the output size if there are 30M songs. Propose a partitioning + bucketing scheme for the playlist_songs Hive table that would reduce the shuffle size for this query. [CLO4 &#8211; Apply]",
       "topic": "spotify",
-      "a": "<p><b>Claim:</b> output is far below the 30M-song bound. Bound: 30M &times; (30M &minus; 1) / 2 &asymp; 4.5 &times; 10^14 pairs. Realistic (assume 20 songs per playlist): 10^8 playlists &times; 190 = 1.9 &times; 10^10 pairs, &le; 304 GB at 16 B/row, much less after HAVING &gt; 5.</p><p><b>Scheme:</b> <code>PARTITIONED BY (week)</code>, <code>CLUSTERED BY (playlist_id) SORTED BY (playlist_id, song_id) INTO 1024 BUCKETS</code>. <b>For:</b> the self-join runs inside each bucket with no shuffle, and weekly partitions cut 8 h to 2 h. <b>Against:</b> it does not shrink the GROUP BY shuffle on song pairs; rely on map-side aggregation there.</p>"
+      "a": "<p><b>Claim:</b> output is far below the 30M-song bound. Bound: 30M &times; (30M &minus; 1) / 2 &asymp; 4.5 &times; 10^14 pairs. Realistic (assume 20 songs per playlist): 10^8 playlists &times; 190 = 1.9 &times; 10^10 pairs, &le; 304 GB at 16 B/row, much less after HAVING &gt; 5.</p><p><b>Scheme:</b> <code>PARTITIONED BY (week)</code>, <code>CLUSTERED BY (playlist_id) SORTED BY (playlist_id, song_id) INTO 1024 BUCKETS</code>. <b>For:</b> the self-join runs inside each bucket with no shuffle, and weekly partitions cut 8 h to 2 h. <b>Against:</b> it does not shrink the GROUP BY shuffle on song pairs; rely on map-side aggregation there.</p>",
+      "gh": {
+        "src": [
+          "v1"
+        ],
+        "clo": "CLO4",
+        "vl": true,
+        "note": "This discussion question appeared in the old (v1) slides' Part 2 too, with the same CLO tag."
+      }
     },
     {
       "src": "Discussion",
       "n": "2",
       "q": "The ALS collaborative filtering model is a matrix factorisation over a 75M-user &times; 30M-song matrix. At 4 bytes per float and rank k = 50, calculate the model size and explain whether it fits in a 5,000-node YARN cluster&#x27;s aggregate RAM. [CLO4 &#8211; Analyse]",
       "topic": "spotify",
-      "a": "<p><b>Size:</b> (75M + 30M) &times; 50 &times; 4 B = <b>21 GB</b> (users 15 GB + songs 6 GB).</p><p><b>Fits?</b> Assume 64 GB/node: 5,000 &times; 64 GB = 320 TB; 21 GB &asymp; 0.0066%, about 4.2 MB per node. <b>For:</b> it fits easily, even on one large server; the dense 9 PB matrix would not. <b>Against:</b> training also holds the interaction data, shuffled factor blocks and JVM overhead, several times the model size, but still well within the cluster.</p>"
+      "a": "<p><b>Size:</b> (75M + 30M) &times; 50 &times; 4 B = <b>21 GB</b> (users 15 GB + songs 6 GB).</p><p><b>Fits?</b> Assume 64 GB/node: 5,000 &times; 64 GB = 320 TB; 21 GB &asymp; 0.0066%, about 4.2 MB per node. <b>For:</b> it fits easily, even on one large server; the dense 9 PB matrix would not. <b>Against:</b> training also holds the interaction data, shuffled factor blocks and JVM overhead, several times the model size, but still well within the cluster.</p>",
+      "gh": {
+        "src": [
+          "v1"
+        ],
+        "clo": "CLO4",
+        "vl": true,
+        "note": "This discussion question appeared in the old (v1) slides' Part 2 too, with the same CLO tag."
+      }
     },
     {
       "src": "Discussion",
       "n": "3",
       "q": "Spotify uses Luigi while other companies use Apache Airflow. Compare the two on: dependency declaration style, backfill capability, and UI/observability. Which would you choose for a 100-step daily pipeline? [CLO3 &#8211; Evaluate]",
       "topic": "spotify",
-      "a": "<p><b>Claim:</b> choose Airflow for a 100-step daily pipeline. Luigi: target-based <code>requires()/output()</code>, skips finished outputs, backfill by date parameters, simple UI. Airflow: DAG with a scheduler, built-in catchup/backfill, rich UI with logs, retries and alerts.</p><p><b>For:</b> at 100 steps you need to see which step failed, read its logs and re-run past days, which Airflow gives out of the box. <b>Against:</b> Luigi is lighter and its skip-if-output-exists model fits file-based Hadoop pipelines like Spotify's.</p>"
+      "a": "<p><b>Claim:</b> choose Airflow for a 100-step daily pipeline. Luigi: target-based <code>requires()/output()</code>, skips finished outputs, backfill by date parameters, simple UI. Airflow: DAG with a scheduler, built-in catchup/backfill, rich UI with logs, retries and alerts.</p><p><b>For:</b> at 100 steps you need to see which step failed, read its logs and re-run past days, which Airflow gives out of the box. <b>Against:</b> Luigi is lighter and its skip-if-output-exists model fits file-based Hadoop pipelines like Spotify's.</p>",
+      "gh": {
+        "src": [
+          "v1"
+        ],
+        "clo": "CLO3",
+        "vl": false,
+        "note": "This discussion question appeared in the old (v1) slides' Part 2 too, with the same CLO tag."
+      }
     },
     {
       "src": "Live Exercise",

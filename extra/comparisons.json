@@ -990,7 +990,15 @@
   "key": "Schema-on-write validates data against the table schema when it is loaded and rejects bad rows, while schema-on-read stores raw files as-is and applies the schema only when queried, so bad values silently become NULL.",
   "cue": "If the question describes loading raw web logs immediately and defining several tables over them later, or a corrupt column quietly returning NULL, the answer is schema-on-read; if an INSERT is rejected for a type error, it is schema-on-write.",
   "likelihood": "high",
-  "card_id": "schema-on-read"
+  "card_id": "schema-on-read",
+  "gh": {
+   "src": [
+    "topic"
+   ],
+   "vl": true,
+   "note": "Schema on write vs on read is the first row of the lecturer's &ldquo;important exam topics&rdquo; table.",
+   "clo": "CLO3"
+  }
  },
  {
   "id": "w07-sql-vs-hiveql",
@@ -999,6 +1007,11 @@
   "x": "SQL (RDBMS)",
   "y": "HiveQL",
   "rows": [
+   [
+    "Schema",
+    "On write (checked at INSERT)",
+    "On read (applied at SELECT)"
+   ],
    [
     "ACID / UPDATE / DELETE",
     "Full; any row, any time",
@@ -1033,7 +1046,15 @@
   "key": "HiveQL looks like SQL but compiles to distributed batch jobs over HDFS, so it scales to petabytes yet has minute-level latency, limited ACID/UPDATE and no traditional indexes, unlike an RDBMS's millisecond OLTP SQL.",
   "cue": "If the question expects millisecond response or row-level UPDATEs from Hive, the answer is the misconception 'HiveQL = SQL'; a COUNT(*) on 1 TB can take 5-10 minutes - use Presto or Spark SQL for interactive latency.",
   "likelihood": "high",
-  "card_id": "schema-on-read"
+  "card_id": "schema-on-read",
+  "gh": {
+   "src": [
+    "topic"
+   ],
+   "clo": "CLO3",
+   "vl": true,
+   "note": "The lecturer's course plan lists this table (schema, ACID, UPDATE/DELETE, indexes vs partitions + buckets, latency) as &ldquo;important exam topics&rdquo;."
+  }
  },
  {
   "id": "w07-partitioning-vs-bucketing",

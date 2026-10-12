@@ -1064,7 +1064,14 @@
     "(d) Text sentiment classification using deep learning"
    ],
    "topic": "forecasting",
-   "a": "<b>(c) Time series forecasting with decomposable trend, seasonality, and holiday components</b><br>Prophet fits y(t) = g(t) + s(t) + h(t) + &epsilon;(t)."
+   "a": "<b>(c) Time series forecasting with decomposable trend, seasonality, and holiday components</b><br>Prophet fits y(t) = g(t) + s(t) + h(t) + &epsilon;(t).",
+   "gh": {
+    "src": [
+     "plan"
+    ],
+    "clo": "CLO4",
+    "vl": true
+   }
   },
   {
    "src": "MCQ",
@@ -1077,7 +1084,14 @@
     "(d) ARIMA"
    ],
    "topic": "social-graph",
-   "a": "<b>(c) Louvain algorithm</b><br>It maximises modularity in O(n log n); PageRank ranks importance, not groups."
+   "a": "<b>(c) Louvain algorithm</b><br>It maximises modularity in O(n log n); PageRank ranks importance, not groups.",
+   "gh": {
+    "src": [
+     "plan"
+    ],
+    "clo": "CLO4",
+    "vl": true
+   }
   },
   {
    "src": "MCQ",
@@ -1090,7 +1104,14 @@
     "(d) Government data retention and public records"
    ],
    "topic": "health-data",
-   "a": "<b>(b) Healthcare data including patient records and medical information</b><br>HIPAA is the Health Insurance Portability and Accountability Act; financial data falls under GLBA."
+   "a": "<b>(b) Healthcare data including patient records and medical information</b><br>HIPAA is the Health Insurance Portability and Accountability Act; financial data falls under GLBA.",
+   "gh": {
+    "src": [
+     "plan"
+    ],
+    "clo": "CLO4",
+    "vl": true
+   }
   },
   {
    "src": "MCQ",
@@ -1103,14 +1124,28 @@
     "(d) Time series anomaly detection in IoT sensor streams"
    ],
    "topic": "health-data",
-   "a": "<b>(c) The protein structure prediction problem, predicting 3D structure from amino acid sequence</b><br>Trained on 170,000 PDB structures with MSAs from 250M sequences; 2024 Nobel Prize in Chemistry."
+   "a": "<b>(c) The protein structure prediction problem, predicting 3D structure from amino acid sequence</b><br>Trained on 170,000 PDB structures with MSAs from 250M sequences; 2024 Nobel Prize in Chemistry.",
+   "gh": {
+    "src": [
+     "plan"
+    ],
+    "clo": "CLO4",
+    "vl": true
+   }
   },
   {
    "src": "True/False",
    "n": "1",
    "q": "Google Flu Trends successfully replaced traditional CDC flu surveillance and has been used as the primary source ever since.",
    "topic": "flu-surveillance",
-   "a": "<b>False.</b> GFT over-predicted flu by 2&times; in 2012-2013 and was discontinued.<br><b>Corrected:</b> Google Flu Trends failed, and CDC still relies on clinical reporting, with big data signals only as a supplement."
+   "a": "<b>False.</b> GFT over-predicted flu by 2&times; in 2012-2013 and was discontinued.<br><b>Corrected:</b> Google Flu Trends failed, and CDC still relies on clinical reporting, with big data signals only as a supplement.",
+   "gh": {
+    "src": [
+     "v1"
+    ],
+    "vl": false,
+    "just": "Google Flu Trends over-predicted flu by about 2&times; in 2013 (over-fitted to search terms) and was dropped as a primary source; it only supplements traditional surveillance."
+   }
   },
   {
    "src": "True/False",
@@ -1124,14 +1159,28 @@
    "n": "3",
    "q": "Social network graphs are typically sparse, with most nodes connected to only a small fraction of all possible neighbours.",
    "topic": "social-graph",
-   "a": "<b>True.</b> Real social networks are scale-free (power-law degrees): most nodes have few links and a few hubs have millions. Twitter had 1.47B edges among 41.7M users, about 35 follows each out of millions possible."
+   "a": "<b>True.</b> Real social networks are scale-free (power-law degrees): most nodes have few links and a few hubs have millions. Twitter had 1.47B edges among 41.7M users, about 35 follows each out of millions possible.",
+   "gh": {
+    "src": [
+     "v1"
+    ],
+    "vl": false,
+    "just": "Real social networks are scale-free (power-law degrees): most nodes have few links while a few hubs have millions. So the average degree (about 35 follows among 41.7 M users) is tiny: the graph is sparse."
+   }
   },
   {
    "src": "True/False",
    "n": "4",
    "q": "Medical imaging data such as MRI and CT scans is classified as structured data because it is stored in files.",
    "topic": "health-data",
-   "a": "<b>False.</b> Being in a file does not make data structured.<br><b>Corrected:</b> MRI and CT scans are unstructured binary DICOM files (200 MB to 2 GB), analysed by deep learning, not SQL."
+   "a": "<b>False.</b> Being in a file does not make data structured.<br><b>Corrected:</b> MRI and CT scans are unstructured binary DICOM files (200 MB to 2 GB), analysed by deep learning, not SQL.",
+   "gh": {
+    "src": [
+     "v1"
+    ],
+    "vl": false,
+    "just": "MRI/CT images are unstructured binary DICOM files with no row-column schema; they need computer-vision models, not SQL."
+   }
   },
   {
    "src": "Descriptive",
@@ -1159,35 +1208,73 @@
    "n": "A1",
    "q": "Flu Outbreak Early-Warning System for Bangladesh: Design a big data system to detect flu outbreaks in Bangladesh using Twitter/Facebook posts and pharmacy purchase records from major pharmacy chains. (a) How would you collect and ingest these two data sources? (Specify tools: Kafka, Sqoop, Flume, REST API) (b) What features would you extract from each source for a prediction model? (Name specific NLP features and pharmacy signal metrics) (c) What model would you use, and how would you validate it against ground-truth CDC/DGHS surveillance data? (d) What are the ethical risks of this system? How would you mitigate them?",
    "topic": "flu-surveillance",
-   "a": "<p><b>Design:</b> sources &rarr; Kafka &rarr; Spark Streaming &rarr; alert engine + Grafana (the CDC pattern).</p><table><tr><th>Part</th><th>Social posts</th><th>Pharmacy sales</th></tr><tr><td>(a) Ingest</td><td>REST APIs (X API v2, Facebook Pages), keyword filter in Bangla and English, producer writes to Kafka topic <code>social_raw</code></td><td>Sqoop for nightly bulk import from the chains' databases; Flume ships POS logs to Kafka topic <code>pharmacy_sales</code></td></tr><tr><td>(b) Features</td><td>Daily flu-keyword post count per district; share of symptom terms (fever, cough, 'jor'); first-person illness flag; VADER/Bangla sentiment; ratio to 4-week baseline</td><td>Daily paracetamol and cough-syrup units per district; week-on-week % change; z-score vs same week last year</td></tr></table><p><b>(c) Model:</b> Prophet per district on DGHS weekly ILI counts, yearly seasonality, Eid holidays, social and pharmacy features as extra regressors; run districts in parallel with applyInPandas. <b>Validate</b> with a rolling backtest against DGHS counts: error (MAE), lead time, hit rate, false alarms, and test on an unseen season (GFT had r&sup2; = 0.97 in-sample and still failed).</p><p><b>(d) Ethics:</b> privacy (keep district counts only, drop user IDs, add differential-privacy noise); panic from false alarms (an officer confirms before any announcement); bias against rural and older people who post less (weight with pharmacy and DGHS data); misuse for watching individuals (purpose limitation, access logs, PDPA consent).</p>"
+   "a": "<p><b>Design:</b> sources &rarr; Kafka &rarr; Spark Streaming &rarr; alert engine + Grafana (the CDC pattern).</p><table><tr><th>Part</th><th>Social posts</th><th>Pharmacy sales</th></tr><tr><td>(a) Ingest</td><td>REST APIs (X API v2, Facebook Pages), keyword filter in Bangla and English, producer writes to Kafka topic <code>social_raw</code></td><td>Sqoop for nightly bulk import from the chains' databases; Flume ships POS logs to Kafka topic <code>pharmacy_sales</code></td></tr><tr><td>(b) Features</td><td>Daily flu-keyword post count per district; share of symptom terms (fever, cough, 'jor'); first-person illness flag; VADER/Bangla sentiment; ratio to 4-week baseline</td><td>Daily paracetamol and cough-syrup units per district; week-on-week % change; z-score vs same week last year</td></tr></table><p><b>(c) Model:</b> Prophet per district on DGHS weekly ILI counts, yearly seasonality, Eid holidays, social and pharmacy features as extra regressors; run districts in parallel with applyInPandas. <b>Validate</b> with a rolling backtest against DGHS counts: error (MAE), lead time, hit rate, false alarms, and test on an unseen season (GFT had r&sup2; = 0.97 in-sample and still failed).</p><p><b>(d) Ethics:</b> privacy (keep district counts only, drop user IDs, add differential-privacy noise); panic from false alarms (an officer confirms before any announcement); bias against rural and older people who post less (weight with pharmacy and DGHS data); misuse for watching individuals (purpose limitation, access logs, PDPA consent).</p>",
+   "gh": {
+    "src": [
+     "plan"
+    ],
+    "clo": "CLO4",
+    "vl": true
+   }
   },
   {
    "src": "Analytical",
    "n": "A2",
    "q": "Retail Demand Forecasting Pipeline: A large Bangladeshi supermarket chain needs 90-day demand forecasts for 5,000 store–product SKU combinations. Design the end-to-end big data pipeline: (a) data ingestion from POS systems; (b) storage and partitioning strategy in HDFS/S3; (c) forecasting model choice (ARIMA vs. Prophet vs. LSTM) and justification; (d) how you parallelise model fitting across 5,000 SKUs using Spark; (e) how forecasts are served to the inventory management dashboard. Identify the primary bottleneck in your pipeline.",
    "topic": "forecasting",
-   "a": "<table><tr><th>Stage</th><th>Design</th></tr><tr><td>(a) Ingest</td><td>Tills send sale events to Kafka topic <code>pos_sales</code>; Sqoop bulk-loads history; Spark aggregates to (sku_id, date, units)</td></tr><tr><td>(b) Storage</td><td>Raw Parquet on HDFS/S3 partitioned by date; daily aggregate Hive table partitioned by date, bucketed by sku_id; forecasts partitioned by run_date</td></tr><tr><td>(c) Model</td><td><b>Prophet:</b> weekly and yearly seasonality, holidays (Eid, Puja, Pohela Boishakh), automatic changepoints, tolerates gaps. ARIMA needs hand tuning per series; LSTM needs much data, GPUs and is a black box</td></tr><tr><td>(d) Parallel fit</td><td><code>daily.groupBy(\"sku_id\").applyInPandas(fit, schema)</code>; each group goes to one task, Prophet fits inside the Pandas UDF</td></tr><tr><td>(e) Serve</td><td>Write Parquet to Hive/S3; load latest run into a serving table; dashboard (Superset/Grafana) shows yhat with bands and reorder alerts</td></tr></table><p><b>Numbers:</b> 8 h = 480 min sequential; 12 min on 20 executors; speedup = 480 / 12 = <b>40&times;</b>; 5.76 s per model; 250 models per executor.</p><p><b>Bottleneck:</b> model fitting (Prophet via Stan, the 8-hour step). Skewed SKUs with long histories finish last; cap history and add cores.</p>"
+   "a": "<table><tr><th>Stage</th><th>Design</th></tr><tr><td>(a) Ingest</td><td>Tills send sale events to Kafka topic <code>pos_sales</code>; Sqoop bulk-loads history; Spark aggregates to (sku_id, date, units)</td></tr><tr><td>(b) Storage</td><td>Raw Parquet on HDFS/S3 partitioned by date; daily aggregate Hive table partitioned by date, bucketed by sku_id; forecasts partitioned by run_date</td></tr><tr><td>(c) Model</td><td><b>Prophet:</b> weekly and yearly seasonality, holidays (Eid, Puja, Pohela Boishakh), automatic changepoints, tolerates gaps. ARIMA needs hand tuning per series; LSTM needs much data, GPUs and is a black box</td></tr><tr><td>(d) Parallel fit</td><td><code>daily.groupBy(\"sku_id\").applyInPandas(fit, schema)</code>; each group goes to one task, Prophet fits inside the Pandas UDF</td></tr><tr><td>(e) Serve</td><td>Write Parquet to Hive/S3; load latest run into a serving table; dashboard (Superset/Grafana) shows yhat with bands and reorder alerts</td></tr></table><p><b>Numbers:</b> 8 h = 480 min sequential; 12 min on 20 executors; speedup = 480 / 12 = <b>40&times;</b>; 5.76 s per model; 250 models per executor.</p><p><b>Bottleneck:</b> model fitting (Prophet via Stan, the 8-hour step). Skewed SKUs with long histories finish last; cap history and add cores.</p>",
+   "gh": {
+    "src": [
+     "plan"
+    ],
+    "clo": "CLO4",
+    "vl": true
+   }
   },
   {
    "src": "Discussion",
    "n": "1",
    "q": "Kwak et al. found Twitter's average shortest path is 4.12 hops over 41.7M users. If a misinformation tweet is retweeted by a high-PageRank account, estimate how many users it reaches within 3 hops assuming an average out-degree of 45. What graph property makes this estimate an overestimate? [CLO4 — Apply]",
    "topic": "social-graph",
-   "a": "<p><b>Estimate:</b> 45 + 45&sup2; + 45&sup3; = 45 + 2,025 + 91,125 = <b>93,195 users</b> (0.22% of 41.7M).</p><p><b>For an overestimate:</b> clustering. Followers overlap, so the tree counts the same people again; most viewers also do not retweet.</p><p><b>Against:</b> a high-PageRank account may have over a million followers, so hop 1 alone can beat 45.</p>"
+   "a": "<p><b>Estimate:</b> 45 + 45&sup2; + 45&sup3; = 45 + 2,025 + 91,125 = <b>93,195 users</b> (0.22% of 41.7M).</p><p><b>For an overestimate:</b> clustering. Followers overlap, so the tree counts the same people again; most viewers also do not retweet.</p><p><b>Against:</b> a high-PageRank account may have over a million followers, so hop 1 alone can beat 45.</p>",
+   "gh": {
+    "src": [
+     "v1"
+    ],
+    "clo": "CLO4",
+    "vl": true,
+    "note": "This discussion question appeared in the old (v1) slides' Part 2 too, with the same CLO tag."
+   }
   },
   {
    "src": "Discussion",
    "n": "2",
    "q": "A Prophet model for weekly hospital admissions has strong annual and weekly seasonality but misses a sudden COVID-19 wave onset. Identify which Prophet component should detect this changepoint and explain what prior hyperparameter controls the model's sensitivity to new changepoints. [CLO4 — Analyse]",
    "topic": "forecasting",
-   "a": "<p><b>Component:</b> the trend g(t). A wave is a structural break, not a repeating cycle or a listed holiday.</p><p><b>Hyperparameter:</b> <code>changepoint_prior_scale</code>, the scale of the sparse prior on the slope changes &delta;. Default 0.05 keeps the trend stiff and smooths over the wave; raising it (e.g. 0.5) lets the trend bend.</p><p><b>Against raising it:</b> the trend then chases noise and the forecast band widens, so tune on held-out weeks.</p>"
+   "a": "<p><b>Component:</b> the trend g(t). A wave is a structural break, not a repeating cycle or a listed holiday.</p><p><b>Hyperparameter:</b> <code>changepoint_prior_scale</code>, the scale of the sparse prior on the slope changes &delta;. Default 0.05 keeps the trend stiff and smooths over the wave; raising it (e.g. 0.5) lets the trend bend.</p><p><b>Against raising it:</b> the trend then chases noise and the forecast band widens, so tune on held-out weeks.</p>",
+   "gh": {
+    "src": [
+     "v1"
+    ],
+    "clo": "CLO4",
+    "vl": true,
+    "note": "This discussion question appeared in the old (v1) slides' Part 2 too, with the same CLO tag."
+   }
   },
   {
    "src": "Discussion",
    "n": "3",
    "q": "Design a dengue fever surveillance system for Bangladesh using BioSense-style ED data, Twitter signals, and Prophet forecasting. Specify: data sources, pipeline architecture (Kafka + Spark), model inputs, and how you would validate the system before policy use. [CLO4 — Design]",
    "topic": "flu-surveillance",
-   "a": "<ul><li><b>Sources:</b> ED visits (FHIR) as main signal, NS1 lab results, dengue tweets as leading signal, rainfall.</li><li><b>Pipeline:</b> Kafka topics &rarr; Spark Streaming de-identifies and aggregates per district &rarr; Parquet &rarr; nightly Prophet per district via applyInPandas &rarr; alerts + Grafana.</li><li><b>Inputs:</b> weekly dengue-like visits, yearly (monsoon) seasonality, Eid holidays, tweets and rainfall as regressors.</li><li><b>Validate:</b> backtest on past seasons and an unseen season; compare with and without Twitter.</li></ul><p><b>For:</b> earlier warning. <b>Against:</b> tweets skew urban and young, so ED data stays primary.</p>"
+   "a": "<ul><li><b>Sources:</b> ED visits (FHIR) as main signal, NS1 lab results, dengue tweets as leading signal, rainfall.</li><li><b>Pipeline:</b> Kafka topics &rarr; Spark Streaming de-identifies and aggregates per district &rarr; Parquet &rarr; nightly Prophet per district via applyInPandas &rarr; alerts + Grafana.</li><li><b>Inputs:</b> weekly dengue-like visits, yearly (monsoon) seasonality, Eid holidays, tweets and rainfall as regressors.</li><li><b>Validate:</b> backtest on past seasons and an unseen season; compare with and without Twitter.</li></ul><p><b>For:</b> earlier warning. <b>Against:</b> tweets skew urban and young, so ED data stays primary.</p>",
+   "gh": {
+    "src": [
+     "v1"
+    ],
+    "clo": "CLO4",
+    "vl": true,
+    "note": "This discussion question appeared in the old (v1) slides' Part 2 too, with the same CLO tag."
+   }
   },
   {
    "src": "Live Exercise",
