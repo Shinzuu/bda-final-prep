@@ -11,7 +11,7 @@ ROOT = os.path.dirname(os.path.abspath(__file__))
 PAGES = [
     ("1", "cheatsheet.html", "Cheat sheet", "Every topic in one line. Fast scan before the exam.", "cheatsheet"),
     ("2", "questions.html", "Question bank", "Every likely question with a clear answer, week by week.", "questionbank"),
-    ("3", "github.html", "Lecturer's GitHub Q&A", "His own questions (plan, pools, book), solved.", "github"),
+    ("3", "github.html", "Hidden gems", "45 questions from his GitHub that are not in your slides, plus exam signals. Solved.", "github"),
     ("4", "diagrams.html", "Diagrams", "The diagrams to draw in the exam, boxes and arrows.", "diagrams"),
 ]
 
@@ -101,6 +101,15 @@ def read_doc(src):
     return style, body
 
 
+def gems_body():
+    for f in ("gems.clean.html", "gems_raw.html"):
+        path = os.path.join(ROOT, "parts", f)
+        if os.path.exists(path):
+            body = open(path, encoding="utf-8").read()
+            return body + '<p class="sub" style="margin-top:24px">Want every GitHub question (239, about 4 h)? <a href="github-all.html">Open the full list</a>.</p>'
+    return github_body()
+
+
 def github_body():
     head = open(os.path.join(ROOT, "parts", "gh_head.html"), encoding="utf-8").read()
     out = [head]
@@ -139,7 +148,7 @@ def diagrams_grid(body):
 def page(key, href, title, src):
     style, body = read_doc(src)
     if src == "github":
-        body = github_body()
+        body = gems_body() if href == "github.html" else github_body()
     if src == "diagrams":
         body = re.sub(r"(<svg\b.*?</svg>)", r'<div class="sv">\1</div>', body, flags=re.S)
     body = add_week_ids(body)
@@ -172,7 +181,7 @@ h1 {{ font-size: 26px; margin: 18px 0 4px; }} p.lead {{ color: var(--muted); mar
 <h1>CSE 4345 BDA: quick revision, Weeks 5–10</h1>
 <p class="lead">Pick one. Keys 1–4 jump between pages on a PC, 0 comes back here.</p>
 {cards}
-<p class="lead">Suggested order: 1 the cheat sheet first, then 2 the ★ questions, then 4 the diagrams. Use 3 if time is left.</p>
+<p class="lead">Suggested order: 1 the cheat sheet first, then 2 the ★ questions, then 4 the diagrams. 3 is short: do it after 1.</p>
 <p class="lead"><a href="../">Full study guide</a></p>
 </div>{KEYS_JS}</body></html>"""
     open(os.path.join(ROOT, "index.html"), "w", encoding="utf-8").write(html)
@@ -181,5 +190,6 @@ h1 {{ font-size: 26px; margin: 18px 0 4px; }} p.lead {{ color: var(--muted); mar
 if __name__ == "__main__":
     for key, href, title, _, src in PAGES:
         page(key, href, title, src)
+    page("3", "github-all.html", "All GitHub questions", "github")
     hub()
     print("built", [p[1] for p in PAGES] + ["index.html"])
