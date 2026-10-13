@@ -1,0 +1,993 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Question bank · BDA Weeks 5–10</title>
+<style>
+
+* { box-sizing: border-box; }
+body { margin: 0; font: 11pt/1.34 "Inter", "Helvetica Neue", Arial, sans-serif; color: #111; background: #fff; }
+h1 { font-size: 14pt; margin: 0 0 1mm; } .intro p, .intro li { font-size: 10pt; } .intro ul { padding-left: 5mm; margin: 1mm 0; }
+section.week { break-before: page; }
+h2 { font-size: 12.5pt; margin: 0 0 2mm; padding: 1mm 2mm; background: #1c2430; color: #fff; break-after: avoid; }
+h3 { font-size: 10pt; margin: 4mm 0 1mm; color: #1c4f8a; text-transform: uppercase; letter-spacing: .03em; break-after: avoid;
+     border-bottom: 1px solid #c9d3e0; }
+.qa { margin: 0 0 2.5mm; }
+.q { font-weight: 700; margin: 0 0 1mm; break-after: avoid; } .q .no { color: #1c4f8a; }
+.mk { color: #b3261e; } .src { font-weight: 400; font-size: 8.5pt; color: #666; }
+.a { padding-left: 2.5mm; border-left: 2px solid #c9d3e0; }
+.a p, .a ul, .a ol { margin: 0 0 1mm; } .a ul, .a ol { padding-left: 5mm; }
+.fm { font-family: "DejaVu Sans Mono", monospace; font-size: 9.5pt; background: #f3f5f8; padding: 0.8mm 1.2mm; }
+.mn { font-style: italic; }
+pre { font: 8.2pt/1.25 "DejaVu Sans Mono", monospace; background: #f3f5f8; padding: 1.2mm; margin: 0 0 1mm; white-space: pre-wrap; overflow-wrap: anywhere; }
+.vs { margin: 0 0 2mm; padding: 1mm 1.5mm; border: 1px solid #d5dbe3; border-radius: 2mm; break-inside: avoid; }
+.vs p { margin: 0 0 0.6mm; padding-left: 3mm; text-indent: -3mm; } .vs .vt { font-weight: 700; color: #1c2430; text-indent: 0; padding: 0; }
+.qa, .vs { overflow-wrap: anywhere; }
+</style><style>
+:root { --ink:#111; --muted:#5a6573; --accent:#1c4f8a; --bar:#1c2430; --bg:#fff; --line:#d5dbe3; }
+html { scroll-padding-top: 96px; -webkit-text-size-adjust: 100%; }
+body { margin:0 !important; background:var(--bg) !important; color:var(--ink);
+  font: 17px/1.5 "Inter","Helvetica Neue",Arial,sans-serif !important; }
+.wrap { max-width: 880px; margin: 0 auto; padding: 12px 16px 80px; }
+.wide .wrap { max-width: 1500px; }
+body:not(.wide) .wrap { max-width: 1100px; }
+nav.top { position: sticky; top: 0; z-index: 10; background: var(--bar); color:#fff; box-shadow: 0 1px 4px rgba(0,0,0,.25); }
+nav.top .in { max-width: 1500px; margin: 0 auto; padding: 6px 12px; display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+nav.top a { color:#fff; text-decoration:none; padding:6px 10px; border-radius:6px; font-size:15px; white-space:nowrap; }
+nav.top a.on { background:#3a6db3; }
+nav.top a:hover { background:#2d3a4d; }
+nav.top .k { opacity:.6; font-size:12px; margin-right:3px; }
+nav.weeks { display:flex; gap:6px; overflow-x:auto; padding:6px 12px; background:#eef2f7; position: sticky; top: 44px; z-index: 9; }
+nav.weeks a { flex:none; padding:5px 12px; border-radius:14px; background:#fff; border:1px solid var(--line); color:var(--accent); text-decoration:none; font-size:14px; font-weight:600; }
+h2 { break-before: auto !important; scroll-margin-top: 100px; }
+img, svg, pre, table { max-width: 100%; }
+pre { overflow-x: auto; }
+a.totop { position: fixed; right: 14px; bottom: 14px; background: var(--bar); color:#fff; border-radius: 50%; width: 44px; height: 44px; display:grid; place-items:center; text-decoration:none; font-size:20px; opacity:.85; }
+@media (max-width: 700px) {
+  body { font-size: 16px !important; }
+  nav.top a .t { display:none; } nav.top a.on .t { display:inline; }
+  .wrap { padding: 10px 12px 80px; }
+}
+@media print { nav, a.totop { display:none; } }
+
+h1 { font-size: 24px !important; } h2 { font-size: 20px !important; padding: 6px 10px !important; margin: 26px 0 10px !important; }
+h3 { font-size: 14px !important; margin: 18px 0 8px !important; }
+.q { font-size: 17px; } .src { font-size: 13px !important; } .a { padding-left: 12px !important; }
+.qa { margin: 0 0 16px !important; }
+</style></head>
+<body><nav class="top"><div class="in"><a href="./">⌂ <span class="t">Home</span></a><a href="cheatsheet.html"><span class="k">1</span><span class="t">Cheat sheet</span></a><a href="questions.html" class="on"><span class="k">2</span><span class="t">Question bank</span></a><a href="github.html"><span class="k">3</span><span class="t">Lecturer's GitHub Q&A</span></a><a href="diagrams.html"><span class="k">4</span><span class="t">Diagrams</span></a></div></nav><nav class="weeks"><a href="#w5">W5</a><a href="#w6">W6</a><a href="#w7">W7</a><a href="#w8">W8</a><a href="#w9">W9</a><a href="#w10">W10</a></nav><div class="wrap" id="top"><div class="intro"><h1>CSE 4345 — Question Bank, Weeks 5–10</h1>
+<p>Every likely question for Weeks 5–10, with answers, week by week. Clear-English edition.</p>
+<ul><li><b class="mk">★</b> Very likely: flagged by the lecturer's files, his seed questions or a predicted paper.</li>
+<li><b>[New]</b> Not a slide sample question.</li><li><b>(D1), (A2)…</b> The slide question it comes from.</li></ul>
+<p>Each week: short questions (2 marks), differences, descriptive (4 marks), long / scenario (6 marks), numericals.
+Read the ★ items first. Bold words are the keywords to remember.</p></div><section class="week" data-week="5">
+<h2 id="w5">Week 5 — YARN, File Formats and Compression</h2>
+
+<h3>Short questions (2 marks)</h3>
+
+<div class="qa"><p class="q"><span class="no">1.</span> <span class="mk">★</span> Which YARN component allocates resources across the whole cluster?</p>
+<div class="a"><p>The <b>ResourceManager</b> (one per cluster). Only the RM sees the free resources on every node. The AM asks for resources for its own job only.</p></div></div>
+
+<div class="qa"><p class="q"><span class="no">2.</span> <span class="mk">★</span> In which Hadoop version did YARN arrive, and what did it replace?</p>
+<div class="a"><p><b>Hadoop 2.0</b> (2013). YARN split the single <b>JobTracker</b> into a global <b>ResourceManager</b> and one <b>ApplicationMaster</b> per job. The reason: one JobTracker could run only MapReduce, and it could not scale.</p></div></div>
+
+<div class="qa"><p class="q"><span class="no">3.</span> <span class="mk">★</span> What does "splittable" mean for a file format?</p>
+<div class="a"><p>Several Mappers can process different parts of the file at the same time. This works because reading can start anywhere in the file.</p></div></div>
+
+<div class="qa"><p class="q"><span class="no">4.</span> <span class="mk">★</span> Which format is columnar and best for read-heavy analytics?</p>
+<div class="a"><p><b>Parquet</b>. A query reads only the columns it needs. ORC is also columnar, but ORC is the format Hive prefers.</p></div></div>
+
+<div class="qa"><p class="q"><span class="no">5.</span> <span class="mk">★</span> True or false: Gzip files are natively splittable? Why?</p>
+<div class="a"><p><b>False.</b> A Gzip file must be decompressed from the start. So each file gets one Mapper, and the rest of the cluster sits idle.</p></div></div>
+
+<div class="qa"><p class="q"><span class="no">6.</span> <span class="mk">★</span> True or false: YARN lets Spark and Tez share one Hadoop cluster? Why?</p>
+<div class="a"><p><b>True.</b> Each framework brings its own ApplicationMaster. The RM hands out generic <b>containers</b> to any framework. Hadoop 1.x could run only MapReduce.</p></div></div>
+
+<div class="qa"><p class="q"><span class="no">7.</span> True or false: Parquet is row-oriented and write-optimised? Why?</p>
+<div class="a"><p><b>False.</b> Parquet is columnar and built for read-heavy analytics. "Row-based and append-friendly" describes <b>Avro</b>.</p></div></div>
+
+<div class="qa"><p class="q"><span class="no">8.</span> True or false: ORC is optimised for Hive and has among the highest compression? Why?</p>
+<div class="a"><p><b>True.</b> ORC is Hive's columnar format. It has the best compression, ACID support and vectorised reads.</p></div></div>
+
+<div class="qa"><p class="q"><span class="no">9.</span> <span class="mk">★ [New]</span> What is a container? How many AMs run for 12 active jobs?</p>
+<div class="a"><p>A <b>container</b> is a slice of one node: a fixed number of vcores plus a fixed amount of RAM. A task runs inside it. <b>12 AMs</b> run, because every job gets exactly one ApplicationMaster.</p></div></div>
+
+<div class="qa"><p class="q"><span class="no">10.</span> <span class="mk">★ [New]</span> What is predicate pushdown?</p>
+<div class="a"><p>The reader checks the <b>min/max stats</b> in the Parquet footer. It skips row groups that cannot match the filter. The skipped data is never read from disk.</p></div></div>
+
+<div class="qa"><p class="q"><span class="no">11.</span> <span class="mk">★ [New]</span> What is DRF (Dominant Resource Fairness)?</p>
+<div class="a"><p>DRF is fairness over several resources (CPU and RAM). It equalises each user's largest share, called the <b>dominant share</b>. So CPU-heavy jobs and RAM-heavy jobs are treated fairly.</p></div></div>
+
+<div class="qa"><p class="q"><span class="no">12.</span> <span class="mk">★ [New]</span> What is schema evolution? What happens to a new field?</p>
+<div class="a"><p><b>Schema evolution</b> means changing the schema (for example, adding a field) without breaking readers. In Avro, a reader ignores fields it does not know. A missing field takes its <b>default</b> value.</p></div></div>
+
+<div class="qa"><p class="q"><span class="no">13.</span> <span class="mk">[New]</span> How does the RM detect a dead NodeManager? Give the AM and RM limits.</p>
+<div class="a"><p>The node's <b>heartbeats</b> stop. After more than <b>10 min</b>, the RM declares the node lost. The AM gets at most <b>2 attempts</b>. With RM HA, the RM fails over through <b>ZooKeeper</b> in under 60 s.</p></div></div>
+
+<div class="qa"><p class="q"><span class="no">14.</span> <span class="mk">[New]</span> Give the Parquet layout and the splittable codecs.</p>
+<div class="a"><p>Layout: <b>row groups</b> (about 128 MB) contain <b>column chunks</b>, which contain <b>pages</b>. The stats sit in the footer. Splittable codecs: <b>bzip2</b>, and <b>LZO with an index</b>. Gzip, Snappy and Zstd are not splittable on their own.</p></div></div>
+
+<h3>Differences</h3>
+
+<div class="vs"><p class="vt">Hadoop 1.x vs YARN</p>
+<p><b>Hadoop 1.x:</b> one JobTracker, runs MapReduce only, about 4,000 nodes, fixed slots.</p>
+<p><b>YARN:</b> RM plus one AM per job, runs any framework, 10,000+ nodes, containers.</p></div>
+
+<div class="vs"><p class="vt">ResourceManager vs ApplicationMaster</p>
+<p><b>RM:</b> one per cluster. It grants containers.</p>
+<p><b>AM:</b> one per job. It requests containers, runs tasks and retries failed tasks.</p></div>
+
+<div class="vs"><p class="vt">NM failure vs AM failure</p>
+<p><b>NM failure:</b> the RM sees missed heartbeats. The AM then re-requests the lost containers.</p>
+<p><b>AM failure:</b> the RM restarts the AM (at most 2 attempts).</p></div>
+
+<div class="vs"><p class="vt">Capacity vs Fair scheduler</p>
+<p><b>Capacity:</b> each queue has a guaranteed share. Queues can borrow idle capacity. Good for SLAs.</p>
+<p><b>Fair:</b> each job gets an equal share. Short jobs finish fast.</p></div>
+
+<div class="vs"><p class="vt">Row vs columnar store</p>
+<p><b>Row (CSV, Avro):</b> reads whole records. Good for writes.</p>
+<p><b>Columnar (Parquet, ORC):</b> reads only the columns a query needs.</p></div>
+
+<div class="vs"><p class="vt">Avro vs Parquet</p>
+<p><b>Avro:</b> row-based, supports schema evolution, used for ingest.</p>
+<p><b>Parquet:</b> columnar, supports predicate pushdown, used for analytics.</p></div>
+
+<div class="vs"><p class="vt">Parquet vs ORC</p>
+<p>Both are columnar.</p>
+<p><b>Parquet:</b> used for Spark and ML.</p>
+<p><b>ORC:</b> used for Hive. Highest compression, ACID support.</p></div>
+
+<div class="vs"><p class="vt">Snappy vs Gzip</p>
+<p><b>Snappy:</b> fast, medium compression ratio. Used inside Parquet and Avro.</p>
+<p><b>Gzip:</b> slow, high compression ratio. Not splittable.</p></div>
+
+<h3>Descriptive (4 marks)</h3>
+
+<div class="qa"><p class="q"><span class="no">1.</span> <span class="mk">★</span> Explain YARN's RM, NM and AM, and how they interact for a Spark job. <span class="src">(D1)</span></p>
+<div class="a">
+<ul>
+<li><b>ResourceManager</b> (one per cluster): its <b>Scheduler</b> grants containers. Its <b>ApplicationsManager</b> accepts jobs and starts each job's AM.</li>
+<li><b>NodeManager</b> (one per node): launches and monitors containers. It sends heartbeats to the RM.</li>
+<li><b>ApplicationMaster</b> (one per job): requests containers, tells NMs what to launch, and retries failed tasks.</li>
+</ul>
+<p>Flow: the client submits the job to the RM. The RM starts the Spark AM. The AM asks for 100 containers of {4 cores, 8 GB}. The RM grants the 80 that are free. The NMs launch the executors. When the job ends, the AM unregisters.</p>
+<p>Exam sentence: the RM decides who gets resources, the NM runs them, and the AM manages one job.</p>
+<pre>Client -(1 submit)-&gt; RM [Scheduler | AppsManager]
+                       |(2 start AM)      ^(3 request 100, granted 80)
+                   Spark AM ---------------+   (6 unregister)
+                  (4 launch)/     |     \
+                         NM1     NM2    NM3   (5 heartbeat, status)</pre>
+</div></div>
+
+<div class="qa"><p class="q"><span class="no">2.</span> <span class="mk">★</span> What is columnar storage and why is it faster for few-column queries? Give numbers. <span class="src">(D2)</span></p>
+<div class="a"><p><b>Columnar storage</b> keeps each column's values together (Parquet, ORC). A row store (CSV) keeps whole records together. This makes columnar faster in three ways:</p>
+<ul>
+<li>A query reads only its own columns.</li>
+<li>Values of the same type sit side by side, so they compress better.</li>
+<li>Footer <b>min/max stats</b> allow <b>predicate pushdown</b>, which skips row groups.</li>
+</ul>
+<p>Example: 100 columns, 10 TB, and the query needs 3. CSV reads 10 TB. Parquet reads 10 × 3/100 = <b>300 GB</b>. That is 97% less I/O, about <b>33×</b>.</p>
+<p>Exam sentence: columnar means you read only what you need, and it is compressed.</p></div></div>
+
+<div class="qa"><p class="q"><span class="no">3.</span> <span class="mk">★</span> Compare Avro and Parquet; explain schema evolution and when to use each. <span class="src">(D3)</span></p>
+<div class="a"><p><b>Avro</b> is row-based and stores its JSON schema with the data, so appends are cheap. <b>Parquet</b> is columnar with min/max stats, so scans of a few columns are cheap.</p>
+<p><b>Schema evolution</b> means the schema changes while old files and readers keep working. Avro does this by matching the <b>writer schema</b> against the <b>reader schema</b>. Missing fields get their defaults. Extra fields are ignored.</p>
+<p>Use Avro for Kafka → HDFS ingest. Use Parquet for analytics in Spark, Presto and ML.</p>
+<p>Exam sentence: Avro to write and evolve, Parquet to read and analyse.</p></div></div>
+
+<div class="qa"><p class="q"><span class="no">4.</span> <span class="mk">[New]</span> YARN two-level scheduling vs Kubernetes one-level: when is two-level better?</p>
+<div class="a"><p><b>YARN:</b> the RM grants containers, then each AM places its own tasks. <b>Kubernetes:</b> one scheduler places every pod. Two-level scheduling wins in four cases:</p>
+<ul>
+<li>Many short tasks: the AM reuses its executors.</li>
+<li><b>Data locality</b>: the AM knows where its HDFS blocks are.</li>
+<li>Many frameworks on one cluster.</li>
+<li>Isolation: an AM crash hits only its own job.</li>
+</ul>
+<p>Exam sentence: two-level scheduling keeps the central scheduler simple and lets each framework schedule smartly.</p></div></div>
+
+<h3>Long / scenario (6 marks)</h3>
+
+<div class="qa"><p class="q"><span class="no">1.</span> <span class="mk">★</span> Telecom: 10 TB of daily CDR as gzip CSV. A Hive query on 4 of 80 columns takes 6 h. (a) Two reasons. (b) Migration. (c) I/O estimate. (d) Scheduler. <span class="src">(A1)</span></p>
+<div class="a">
+<p><b>(a)</b> First, CSV is a row store. All 80 columns are read from disk to use only 4. Second, gzip is not splittable. Each file gets one Mapper, and most of the cluster sits idle.</p>
+<p><b>(b)</b> Convert to <b>ORC + Zlib</b>, or <b>Parquet + Snappy</b>, partitioned by dt=/region=. For a filter like WHERE duration &gt; 600, the footer min/max stats skip row groups that cannot match.</p>
+<p><b>(c)</b> Columns read: 10 TB × 4/80 = <b>500 GB</b>. That is 95% less, or 20×. If the query is I/O-bound (assumed), 6 h ÷ 20 ≈ <b>18 min</b>.</p>
+<p><b>(d)</b> Use the <b>Capacity Scheduler</b>. Each team gets a guaranteed queue (for example ETL 60%, streaming 30%, ad-hoc 10%), and idle capacity can be borrowed. With FIFO, one 6-hour job would block everyone behind it.</p>
+</div></div>
+
+<div class="qa"><p class="q"><span class="no">2.</span> <span class="mk">★</span> NodeManager NM2, running 5 MapReduce containers, fails. Trace the detection, the RM state changes and the restart. <span class="src">(A2)</span></p>
+<div class="a">
+<p><b>(a)</b> Every NM sends heartbeats to the RM. When NM2 crashes, its heartbeats stop. The RM declares NM2 lost after the timeout of more than 10 min.</p>
+<p><b>(b)</b> The RM removes NM2's capacity from the scheduler. It marks NM2's 5 containers <b>FAILED</b>. It tells the job's AM in the next heartbeat/allocate exchange.</p>
+<p><b>(c)</b> The AM re-requests 5 containers. The RM grants them on healthy nodes such as NM1 or NM3, near the HDFS replicas. The tasks rerun from their splits. Finished map output on NM2's disk is also rerun, because reducers cannot fetch it. If the AM itself was on NM2, the RM restarts the AM (at most 2 attempts).</p>
+</div></div>
+
+<div class="qa"><p class="q"><span class="no">3.</span> <span class="mk">★ [New]</span> LinkedIn spark queue: a job needs 2,000 containers, but only 1,250 are free. What happens under (a) Capacity, (b) Fair, (c) FIFO?</p>
+<div class="a">
+<p><b>(a) Capacity:</b> the job gets the 1,250 free containers now. The other 750 come back by <b>pre-emption</b> from queues that borrowed the spark queue's guaranteed share (with a 30 s warning). Production keeps its 40%, so its SLA is safe.</p>
+<p><b>(b) Fair:</b> the job gets only its equal share among the running jobs. Its share grows as other jobs finish. Short jobs still finish quickly.</p>
+<p><b>(c) FIFO:</b> if the job was submitted first, it takes all 1,250 containers. Its last 750 tasks wait for a second wave. Every later job waits behind it. This is <b>starvation</b>.</p>
+</div></div>
+
+<div class="qa"><p class="q"><span class="no">4.</span> <span class="mk">★ [New]</span> LinkedIn case study (Part 2 lessons): three silos merged into one 5,000-node YARN cluster. (a) Why not Hadoop 1.x? (b) Utilisation and SLAs. (c) Pre-emption. (d) "YARN is the OS", and Samza.</p>
+<div class="a">
+<p><b>(a)</b> The Hadoop 1.x JobTracker ran only MapReduce (no Spark, no Samza). It was capped at about 4,000 nodes.</p>
+<p><b>(b)</b> The three silos were busy at different times, so each one sat idle part of the time. One shared cluster raised utilisation from <b>45% to 78%</b>. 78 ÷ 45 = 1.73, so the same hardware does 73% more work. Capacity queues (production 40%) protect the SLAs.</p>
+<p><b>(c)</b> Aggressive pre-emption killed long Spark jobs, and hours of work were lost. The fix was a <b>30 s grace period</b> plus <b>checkpoint-on-preempt</b>, so a job saves its state first.</p>
+<p><b>(d)</b> The RM is like an OS kernel, and the frameworks are like processes. <b>Samza</b> runs each stream task as a long-running container. If the container dies, YARN restarts it, and it continues from its <b>Kafka offset</b>.</p>
+</div></div>
+
+<div class="qa"><p class="q"><span class="no">5.</span> <span class="mk">★ [New]</span> bKash lake: Kafka → Avro; nightly Parquet + Snappy by dt=/region=; data older than 2 years → ORC + Zstd. The old system used gzip CSV. Justify.</p>
+<div class="a">
+<p><b>(a)</b> <b>Avro for ingest:</b> appends from Kafka are cheap. Schema evolution lets new fields be added safely.</p>
+<p><b>(b)</b> <b>Parquet + Snappy nightly:</b> queries read few columns, pushdown works, and the files are fast and splittable. Partition pruning works on dt=/region=.</p>
+<p><b>(c)</b> Cold data older than 2 years goes to <b>ORC + Zstd</b> for the best compression (60% smaller). 50 TB of CSV (assumed) × (1 − 0.60) = <b>20 TB</b>.</p>
+<p><b>(d)</b> The old gzip CSV was slow because gzip is not splittable (1 Mapper per file).</p>
+</div></div>
+
+<h3>Numericals</h3>
+
+<div class="qa"><p class="q"><span class="no">1.</span> <span class="mk">★</span> Live exercise: 5,000 nodes (64 GB, 16 vCPU each); queues 40/25/15/10/10%; Hive container {4 GB, 2 vCPU}, Spark {8, 4}, Samza {2, 1}. Find the max containers, the bottleneck, and the nodes needed for 10,000 Hive mappers.</p>
+<div class="a"><p class="fm">max = min(RAM ÷ c_ram, vCPU ÷ c_cpu); nodes = ceil(T ÷ per-node)</p>
+<ol>
+<li>Production (40%) = 2,000 nodes: by RAM 128,000/4 = 32,000; by CPU 32,000/2 = 16,000. Max is 16,000.</li>
+<li>Spark 5,000, samza 12,000, adhoc 4,000.</li>
+<li>CPU is the bottleneck: the container has 2 GB per vCPU, which is less than the node's 4 GB per vCPU.</li>
+<li>Per node: min(16, 8) = 8 containers. 10,000 ÷ 8 = <b>1,250 nodes</b>.</li>
+</ol>
+<p class="mn">Meaning: CPU runs out first. The 1,250 nodes fit inside production's 2,000.</p></div></div>
+
+<div class="qa"><p class="q"><span class="no">2.</span> <span class="mk">★</span> 100 columns, 10 TB, query on 3 columns; pushdown reads 50 GB.</p>
+<div class="a"><p class="fm">read = D × k/N</p>
+<ol>
+<li>10 TB × 3/100 = <b>300 GB</b>, so 33× less.</li>
+<li>50 GB of 10 TB = 0.5%, so <b>200×</b> less.</li>
+</ol>
+<p class="mn">Meaning: column pruning plus pushdown shrinks the scan hugely.</p></div></div>
+
+<div class="qa"><p class="q"><span class="no">3.</span> <span class="mk">★</span> A 10 GB file: how many Mappers as gzip CSV vs Parquet with 128 MB row groups?</p>
+<div class="a">
+<ol>
+<li>Gzip: <b>1</b> Mapper.</li>
+<li>Parquet: 10,240 / 128 = <b>80</b> Mappers.</li>
+</ol>
+<p class="mn">Meaning: Parquet gives 80-way parallelism. Gzip forces one slow Mapper.</p></div></div>
+
+<div class="qa"><p class="q"><span class="no">4.</span> <span class="mk">★</span> A Spark AM requests 100 containers {4 cores, 8 GB}; the RM grants 80.</p>
+<div class="a">
+<ol>
+<li>Granted: 80 × 4 = <b>320 cores</b> and 80 × 8 = <b>640 GB</b>. That is 80% of the request.</li>
+</ol>
+<p class="mn">Meaning: the job starts with whatever is free.</p></div></div>
+
+<div class="qa"><p class="q"><span class="no">5.</span> <span class="mk">★ [New]</span> a2i: 200 nodes (64 GB, 16 vCPU each); queue B (30%) runs executors {8 GB, 4 vCPU}.</p>
+<div class="a">
+<ol>
+<li>30% of 200 = 60 nodes → 3,840 GB and 960 vCPU.</li>
+<li>By RAM: 480 executors. By CPU: 240. So <b>240</b>, and the queue is CPU-bound.</li>
+</ol>
+<p class="mn">Meaning: half of the queue's RAM stays unused.</p></div></div>
+
+<div class="qa"><p class="q"><span class="no">6.</span> <span class="mk">[New]</span> PYMK: 600 executors of 8 GB on nodes with 64 GB / 16 vCPU. Total memory? Dominant resource?</p>
+<div class="a">
+<ol>
+<li>Memory: 600 × 8 = <b>4,800 GB</b>.</li>
+<li>Per executor: 8/64 = 12.5% of RAM, and 4/16 = 25% of CPU (4 vCPU assumed). So <b>CPU is dominant</b>. 4 executors fit per node → <b>150 nodes</b>.</li>
+</ol>
+<p class="mn">Meaning: DRF would count this job by its CPU share, not its RAM share.</p></div></div>
+
+</section>
+<section class="week" data-week="6">
+<h2 id="w6">Week 6 — Spark: RDDs, DataFrames, In-Memory Computing</h2>
+<h3>Short questions (2 marks)</h3>
+<div class="qa"><p class="q"><span class="no">1.</span> <span class="mk">★</span> Why is Spark much faster than MapReduce for iterative algorithms? <span class="src">(Q1)</span></p>
+<div class="a"><p>Spark <b>caches</b> intermediate data as RDDs in memory. MapReduce reads and writes HDFS in every iteration. The reason is not more cores or SSDs.</p></div></div>
+<div class="qa"><p class="q"><span class="no">2.</span> <span class="mk">★</span> How does Spark get RDD fault tolerance without full replication? <span class="src">(Q2)</span></p>
+<div class="a"><p>Spark uses <b>lineage</b>. It recomputes a lost partition from its parent RDDs by replaying the transformations. This works because RDDs are <b>immutable</b> and the steps are deterministic.</p></div></div>
+<div class="qa"><p class="q"><span class="no">3.</span> <span class="mk">★</span> Which is NOT part of the Spark ecosystem: MLlib, GraphX, Structured Streaming, HBase? <span class="src">(Q3)</span></p>
+<div class="a"><p><b>HBase</b>. It is a separate NoSQL database. The ecosystem is Spark SQL, MLlib, Structured Streaming and GraphX.</p></div></div>
+<div class="qa"><p class="q"><span class="no">4.</span> <span class="mk">★</span> When is a transformation like map() or filter() executed? <span class="src">(Q4)</span></p>
+<div class="a"><p><b>Lazily</b>. Spark only records it in the DAG. It runs when an <b>action</b> (count, collect) is called. This lets Spark optimise the whole plan.</p></div></div>
+<div class="qa"><p class="q"><span class="no">5.</span> <span class="mk">★</span> True or false: Spark can only run on Hadoop YARN? <span class="src">(TF1)</span></p>
+<div class="a"><p><b>False.</b> The Cluster Manager can be YARN, Kubernetes, Mesos or Standalone. A local[n] mode also exists.</p></div></div>
+<div class="qa"><p class="q"><span class="no">6.</span> <span class="mk">★</span> True or false: RDDs are mutable and can be changed in place? <span class="src">(TF2)</span></p>
+<div class="a"><p><b>False.</b> RDDs are <b>immutable</b>. A transformation creates a new RDD. This is why lineage recovery is safe.</p></div></div>
+<div class="qa"><p class="q"><span class="no">7.</span> <span class="mk">★</span> True or false: DataFrames give schema-aware, named-column operations like SQL tables? <span class="src">(TF3)</span></p>
+<div class="a"><p><b>True.</b> A DataFrame has named columns and a schema. You can query it with SQL. <b>Catalyst</b> optimises it.</p></div></div>
+<div class="qa"><p class="q"><span class="no">8.</span> <span class="mk">★</span> True or false: MapReduce beats Spark for many-iteration ML? <span class="src">(TF4)</span></p>
+<div class="a"><p><b>False.</b> Spark caches the data and reuses it, so it is <b>10–100×</b> faster. MapReduce re-reads HDFS in each iteration.</p></div></div>
+<div class="qa"><p class="q"><span class="no">9.</span> <span class="mk">[New]</span> True or false: rdd.collect() is a safe way to view a 300 GB result?</p>
+<div class="a"><p><b>False.</b> collect() pulls everything into <b>Driver</b> memory. Driver memory is far smaller, so the job fails with <b>OOM</b>. Use take(n) or saveAsTextFile().</p></div></div>
+<div class="qa"><p class="q"><span class="no">10.</span> <span class="mk">[New]</span> Which component builds the DAG and schedules tasks?</p>
+<div class="a"><p>The <b>Driver</b>. The Cluster Manager (YARN) gives resources. Executors run the tasks.</p></div></div>
+<div class="qa"><p class="q"><span class="no">11.</span> What changes in toDebugString() after cache()? <span class="src">(Live exercise Q1)</span></p>
+<div class="a"><p>The lineage stays the same. A <b>storage level</b> appears ([Memory Serialized 1x Replicated]). After an action, <b>CachedPartitions</b> also appear.</p></div></div>
+<div class="qa"><p class="q"><span class="no">12.</span> What do you see when you time count() uncached, then cached? <span class="src">(Live exercise Q2)</span></p>
+<div class="a"><p>Run 1 is slowest. Run 2 is faster because Spark reuses the shuffle files. The cached run is fastest. Speedup = uncached ÷ cached. On a README the speedup is small.</p></div></div>
+<div class="qa"><p class="q"><span class="no">13.</span> How do reduceByKey and groupByKey differ in the Spark UI? <span class="src">(Live exercise Q3)</span></p>
+<div class="a"><p>groupByKey <b>shuffles more bytes</b> because it has no local combine. reduceByKey sums inside each partition before the shuffle.</p></div></div>
+
+<h3>Differences</h3>
+<div class="vs"><p class="vt">MapReduce vs Spark</p>
+<p><b>MapReduce:</b> writes intermediate data to HDFS.</p><p><b>Spark:</b> keeps the working set in RAM, so it is 10–100× faster on iterative jobs.</p></div>
+<div class="vs"><p class="vt">HDFS replication vs RDD lineage</p>
+<p><b>HDFS replication:</b> always stores 3 copies.</p><p><b>RDD lineage:</b> stores only the recipe and recomputes lost partitions when a failure happens.</p></div>
+<div class="vs"><p class="vt">Narrow vs wide dependency</p>
+<p><b>Narrow:</b> one parent partition, same stage.</p><p><b>Wide:</b> many parent partitions, a shuffle, a new stage.</p></div>
+<div class="vs"><p class="vt">reduceByKey vs groupByKey</p>
+<p><b>Both:</b> shuffle.</p><p><b>reduceByKey:</b> pre-aggregates in each partition (like a Combiner), so it sends far less data over the network.</p></div>
+<div class="vs"><p class="vt">DataFrame vs RDD</p>
+<p><b>DataFrame:</b> named columns and a schema, optimised by Catalyst.</p><p><b>RDD:</b> schema-less objects.</p></div>
+<div class="vs"><p class="vt">Driver vs Executor</p>
+<p><b>Driver:</b> runs main(), builds the DAG and schedules tasks.</p><p><b>Executor:</b> a worker JVM that runs tasks and caches data.</p></div>
+<div class="vs"><p class="vt">MEMORY_ONLY vs MEMORY_AND_DISK</p>
+<p><b>MEMORY_ONLY:</b> drops partitions that do not fit and recomputes them.</p><p><b>MEMORY_AND_DISK:</b> spills those partitions to local disk.</p></div>
+<div class="vs"><p class="vt">coalesce vs repartition</p>
+<p><b>coalesce:</b> reduces partitions without a shuffle (narrow).</p><p><b>repartition:</b> reshuffles everything (wide).</p></div>
+<div class="vs"><p class="vt">Hash vs range partitioner</p>
+<p><b>Hash:</b> hashCode % n. It is the default. It can hot-spot on skewed keys.</p><p><b>Range:</b> ordered key ranges. sortByKey uses it.</p></div>
+
+<h3>Descriptive (4 marks)</h3>
+<div class="qa"><p class="q"><span class="no">1.</span> <span class="mk">★</span> What is an RDD, what does "resilient" mean, and how is a lost partition recovered without replication? <span class="src">(D1)</span></p>
+<div class="a"><p>An <b>RDD</b> (Resilient Distributed Dataset) is a read-only, partitioned collection of records. Spark creates it from stable storage (HDFS) or by transforming another RDD.</p>
+<p><b>Resilient</b> means the RDD rebuilds itself from <b>lineage</b>, the recorded chain of transformations. It does not rely on three copies.</p>
+<p>Example: an Executor crashes and partition 2 of mappedRDD is lost. The Driver traces the lineage (mappedRDD ← filteredRDD ← input). It re-reads only input partition 2 from HDFS. It re-applies filter, then map. The job continues.</p>
+<p>This works because RDDs are immutable and transformations are deterministic. Long chains should be <b>checkpointed</b> to HDFS.</p>
+<p>Exam sentence: "The computation is the backup."</p></div></div>
+<div class="qa"><p class="q"><span class="no">2.</span> <span class="mk">★</span> Differentiate transformations and actions, with two examples each. Why are transformations not run immediately? <span class="src">(D2)</span></p>
+<div class="a"><p>A <b>transformation</b> is lazy. It does no work. It only returns a new RDD and adds one node to the DAG. Examples: map, filter (also reduceByKey).</p>
+<p>An <b>action</b> is eager. It triggers execution of the whole DAG. It returns a value to the Driver or writes output. Examples: count, saveAsTextFile (also collect).</p>
+<p>Spark waits so that it sees the full plan. Then it can optimise the plan. It can pipeline narrow steps in memory without disk writes. It can compute only the partitions it needs.</p>
+<p>Exam sentence: "Transformations build the plan; actions run it."</p></div></div>
+<div class="qa"><p class="q"><span class="no">3.</span> <span class="mk">★</span> Describe lazy evaluation and its advantage using rdd.filter(x &gt; 1000).first(). <span class="src">(D3)</span></p>
+<div class="a"><p><b>Lazy evaluation</b> means transformations only add nodes to the DAG. Nothing is computed yet.</p>
+<p>When an action arrives, Spark analyses the DAG. It optimises it (DAG scheduler, or <b>Catalyst</b> for DataFrames). It pipelines the steps. It runs only the partitions it needs.</p>
+<p>In rdd.filter(x &gt; 1000).first(), the filter alone reads nothing. first() makes Spark scan the first partition and stop at the first value above 1000. Spark never reads the other partitions. An eager engine would filter everything first.</p>
+<p>Exam sentence: "Laziness lets Spark do the least work that answers the action."</p></div></div>
+
+<h3>Long / scenario (6 marks)</h3>
+<div class="qa"><p class="q"><span class="no">1.</span> <span class="mk">★ [New]</span> K-Means, 50 GB, 100 iterations, 100 ms per 128 MB block. (a) MapReduce I/O cost (b) Spark cost (c) compare (d) recovery when an executor crashes. <span class="src">(Teacher seed)</span></p>
+<div class="a"><p><b>(a)</b> 51,200 MB ÷ 128 = 400 blocks, so one pass takes 40 s. Every iteration reads and writes HDFS because MapReduce keeps no memory between jobs. One iteration = 80 s. 100 × 80 = <b>8,000 s ≈ 2.2 h</b>, with 10 TB of disk I/O.</p>
+<p><b>(b)</b> Spark reads the disk once (40 s). Then it caches the points as an RDD, so the other 99 iterations read RAM. Assume RAM is 10× faster: 99 × 400 × 10 ms = 396 s. Total ≈ <b>436 s ≈ 7.3 min</b>, with only 50 GB of disk I/O.</p>
+<p><b>(c)</b> Spark does <b>200× less disk I/O</b> and takes about <b>18× less time</b>. MapReduce pays the disk cost 100 times. Spark pays it once.</p>
+<p><b>(d)</b> The Driver sees missed <b>heartbeats</b> and marks that executor's tasks as failed. It follows the <b>lineage</b>. It recomputes only the lost partitions from HDFS on healthy executors. Wide dependencies cost more to recover, so checkpoint long chains.</p></div></div>
+<div class="qa"><p class="q"><span class="no">2.</span> <span class="mk">★</span> Same K-Means with HDFS 500 MB/s and RAM 5,000 MB/s: (a) MR I/O (b) Spark I/O (c) wall-clock (d) when Spark does not win. <span class="src">(A1)</span></p>
+<div class="a"><p><b>(a)(b)</b> MapReduce reads and writes 50 GB in each iteration: 100 × (50 + 50) = <b>10 TB</b>. Spark reads 50 GB once and caches it. That is <b>200× less disk I/O</b>.</p>
+<p><b>(c)</b> MapReduce: 10,000,000 MB ÷ 500 = <b>20,000 s ≈ 5.6 h</b>. Spark: 100 s (disk) + 99 × 10 s (RAM) = <b>1,090 s ≈ 18 min</b>. Spark is about <b>18× faster</b> because 99 passes come from memory.</p>
+<p><b>(d)</b> Spark gains little in these cases: single-pass jobs (2–5×, no reuse), data larger than RAM, too little executor memory, or shuffle-bound jobs.</p></div></div>
+<div class="qa"><p class="q"><span class="no">3.</span> <span class="mk">★</span> input → filteredRDD → mappedRDD → reducedRDD, 10 partitions. The executor holding partitions 3 and 7 crashes. (a) detection (b) what is recomputed (c) worst case with groupByKey. <span class="src">(A2)</span></p>
+<div class="a"><p><b>(a)</b> The executor stops sending <b>heartbeats</b>. The Driver marks it lost. It records partitions 3 and 7 and the executor's shuffle files as gone. The DAG scheduler reads the lineage.</p>
+<p><b>(b)</b> The chain is <b>narrow</b>, so Spark rebuilds only partitions 3 and 7 of input, filteredRDD and mappedRDD. That is 2/10 = <b>20%</b> of the work. With groupByKey, reduced partition 3 needs keys from all 10 mappedRDD partitions.</p>
+<p><b>(c)</b> Suppose the lost map outputs covered all 10 partitions. Then Spark re-reads all input and redoes filter, map and the whole shuffle. That is almost the whole job for 20% of the output. Recovery cost depends on <b>fan-in</b>, so checkpoint after the shuffle.</p></div></div>
+<div class="qa"><p class="q"><span class="no">4.</span> <span class="mk">★ [New]</span> Fraud pipeline on 8 partitions: textFile → map(parse) → filter → map((sender,1)) → reduceByKey → filter → count(). (a) transformations vs action (b) stages (c) partition for hash 1,234,567 (d) recovery of a lost parsed partition. <span class="src">(Mock paper A)</span></p>
+<div class="a"><p><b>(a)(b)</b> Only <b>count()</b> is an action. The rest are lazy transformations, so work starts at count(). reduceByKey is <b>wide</b> because it needs a shuffle. So there are <b>2 stages</b>, with the boundary at the shuffle.</p>
+<p><b>(c)</b> 1,234,567 % 8 = <b>7</b>.</p>
+<p><b>(d)</b> Spark re-reads that HDFS block and re-applies map(parse). A narrow step has one parent. After reduceByKey, each partition needs all 8 parents, so a loss there costs much more.</p></div></div>
+<div class="qa"><p class="q"><span class="no">5.</span> <span class="mk">★</span> Case study (Part 2): Spark's rise, GraySort and the five lessons. <span class="src">(Discussion)</span></p>
+<div class="a"><p><b>(a) Multiplier, not panacea.</b> Memory helps only when data is reused. Iterative jobs get 10–100× (132× for logistic regression). Single-pass ETL bigger than RAM gets only 2–5×.</p>
+<p><b>(b) Lineage beats 3× replication.</b> Replication always costs storage, RAM and network. Lineage stores a small recipe. It costs something only when a failure happens, and failures are rare.</p>
+<p><b>(c) Shuffle is the bottleneck.</b> GraySort (100 TB, 23 min, 206 nodes) won through a sort-based shuffle and SSDs, not caching. Tune with reduceByKey and fewer wide steps.</p>
+<p><b>(d) Benchmark marketing.</b> GraySort hid JVM issues (many small files, high-cardinality groupBy). <b>Open source:</b> Databricks sells cloud and support, so it improves free Spark.</p></div></div>
+<div class="qa"><p class="q"><span class="no">6.</span> <span class="mk">[New]</span> groupByKey on 1 billion records, 500 keys: two skew cases that cause OOM, and a fix for each. <span class="src">(Lecturer textbook)</span></p>
+<div class="a"><p><b>(a)</b> On average a key has 2 M records. A <b>hot key</b> (30% = 300 M) sends all its values to one task, and that task runs out of memory. Fix: use reduceByKey/aggregateByKey, or <b>salt</b> the key and group in two phases.</p>
+<p><b>(b)</b> <b>Hash collisions:</b> several heavy keys land in the same partition (hashCode % n). Fix: use a custom partitioner or more partitions.</p></div></div>
+<div class="qa"><p class="q"><span class="no">7.</span> <span class="mk">[New]</span> Logistic regression, 50 GB, 10 nodes × 32 GB. (a) MEMORY_ONLY? (b) which StorageLevel? (c) when does caching pay (130× speedup)? <span class="src">(Old slides)</span></p>
+<div class="a"><p><b>(a)</b> 320 GB holds 50 GB of raw data. But Java objects are 2–5× bigger. Partitions that overflow are evicted and recomputed in every iteration.</p>
+<p><b>(b)</b> <b>MEMORY_AND_DISK</b> (or MEMORY_ONLY_SER).</p>
+<p><b>(c)</b> n = 2 + (n − 1)/130 → n ≈ 2.01. So caching pays from the <b>3rd iteration</b>. Cache any data that is reused more than twice.</p></div></div>
+
+<h3>Numericals</h3>
+<div class="qa"><p class="q"><span class="no">1.</span> <span class="mk">★</span> GraySort: Hadoop took 72 min on 2,100 nodes. Spark took 23 min on 206 nodes. What is the per-node efficiency?</p>
+<div class="a"><p class="fm">efficiency = (T_old × N_old) ÷ (T_new × N_new)</p><ol><li>Speed: 72 ÷ 23 = 3.1×. Nodes: 2,100 ÷ 206 = 10.2×.</li><li>151,200 ÷ 4,738 → ≈ <b>32×</b>.</li></ol><p class="mn">Meaning: each Spark node did about 32 times the work of a Hadoop node.</p></div></div>
+<div class="qa"><p class="q"><span class="no">2.</span> <span class="mk">★ [New]</span> LR: Hadoop takes 127 s per iteration, Spark takes 0.96 s. What is the speedup, and what are the 10-iteration totals? <span class="src">(Mock A)</span></p>
+<div class="a"><p class="fm">speedup = T_old ÷ T_new</p><ol><li>127 ÷ 0.96 = <b>132×</b>.</li><li>1,270 s vs 9.6 s.</li></ol><p>K-means: 150 ÷ 5 = 30×.</p><p class="mn">Meaning: caching turns minutes of iterations into seconds.</p></div></div>
+<div class="qa"><p class="q"><span class="no">3.</span> <span class="mk">★ [New]</span> Check the claim "10 iterations over 100 GB at 100 MB/s ≈ 3 hours". <span class="src">(Mock B)</span></p>
+<div class="a"><ol><li>Reads: 1,000,000 MB ÷ 100 = 10,000 s ≈ 2.8 h ≈ <b>3 h</b>.</li><li>With writes: <b>5.6 h</b>.</li></ol><p class="mn">Meaning: the claim counts only reads. Disk cost alone makes MapReduce slow.</p></div></div>
+<div class="qa"><p class="q"><span class="no">4.</span> <span class="mk">★ [New]</span> Word count: 6 partitions × 2,000 (word,1) pairs, 40 distinct words. How many records are shuffled? <span class="src">(Mock final)</span></p>
+<div class="a"><ol><li>groupByKey: 6 × 2,000 = <b>12,000</b>.</li><li>reduceByKey: 6 × 40 = <b>240</b>.</li><li>That is <b>98% fewer</b>.</li></ol><p class="mn">Meaning: the local combine is why reduceByKey is preferred.</p></div></div>
+<div class="qa"><p class="q"><span class="no">5.</span> <span class="mk">[New]</span> Lineage vs 3× replication: 10 iterations of 60 s, replication adds 20% (assumed). When does lineage lose?</p>
+<div class="a"><ol><li>Replication: 12 s × 10 = <b>120 s per job</b>, always.</li><li>A narrow loss costs ≈ 6 s, so break-even is <b>20 failures</b>.</li><li>A wide loss without a checkpoint costs ≈ 300 s, so break-even is <b>0.4 failures per job</b>.</li></ol><p class="mn">Meaning: lineage wins for narrow chains. It loses on wide chains unless you checkpoint.</p></div></div>
+</section>
+<section class="week" data-week="7">
+<h2 id="w7">Week 7 — Hive, HiveQL and SQL-on-Hadoop</h2>
+
+<h3>Short questions (2 marks)</h3>
+
+<div class="qa"><p class="q"><span class="no">1.</span> <span class="mk">★</span> Where does Hive store table schema metadata (columns, types, partitions)?</p>
+<div class="a"><p>Hive stores it in the <b>Hive Metastore</b>. The Metastore is a relational DB (MySQL/PostgreSQL). It is not the NameNode. The NameNode holds only HDFS file and block metadata.</p></div></div>
+
+<div class="qa"><p class="q"><span class="no">2.</span> <span class="mk">★</span> What does "schema-on-read" mean in Hive?</p>
+<div class="a"><p>Hive applies the schema when you query the data, not when you store it. This works because Hive copies files raw to HDFS. The user still writes <code>CREATE TABLE</code>. Schema-on-read is <b>not schema inference</b>.</p></div></div>
+
+<div class="qa"><p class="q"><span class="no">3.</span> <span class="mk">★</span> Which technique stores data in HDFS sub-directories by column value to avoid full scans?</p>
+<div class="a"><p><b>Partitioning</b>. A WHERE on that column opens only the matching folders. Bucketing is different. It splits files inside a partition by hash, and it skips no directories.</p></div></div>
+
+<div class="qa"><p class="q"><span class="no">4.</span> <span class="mk">★</span> What is Presto's main speed advantage over Hive+MapReduce?</p>
+<div class="a"><p>Presto runs <b>in memory</b> and writes no intermediate data to disk. Hive+MR writes to HDFS between every stage. The result is minutes for Hive+MR and seconds for Presto.</p></div></div>
+
+<div class="qa"><p class="q"><span class="no">5.</span> True or false: HiveQL supports full ACID on all table types, like MySQL? Why?</p>
+<div class="a"><p><b>False.</b> ACID (UPDATE/DELETE) works only on <b>transactional ORC tables</b>.</p></div></div>
+
+<div class="qa"><p class="q"><span class="no">6.</span> True or false: partitioning cuts query time by skipping irrelevant partitions? Why?</p>
+<div class="a"><p><b>True.</b> A WHERE on the partition key reads only the matching sub-directories. This is called <b>partition pruning</b>.</p></div></div>
+
+<div class="qa"><p class="q"><span class="no">7.</span> True or false: Hive executes HiveQL directly on HDFS with no translation? Why?</p>
+<div class="a"><p><b>False.</b> The <b>Driver</b> parses, plans and optimises the query. It then compiles it into MR, Tez or Spark jobs that run on YARN.</p></div></div>
+
+<div class="qa"><p class="q"><span class="no">8.</span> True or false: bucketing is especially useful for joining two large tables? Why?</p>
+<div class="a"><p><b>True.</b> Both tables use the same join key and the same bucket count. Hive can then join bucket i with bucket i (<b>bucket map join</b>). So there is no full shuffle.</p></div></div>
+
+<div class="qa"><p class="q"><span class="no">9.</span> <span class="mk">★ [New]</span> Why can HiveQL not replace MySQL for quick queries?</p>
+<div class="a"><p>Every HiveQL query becomes <b>batch jobs</b>. These take minutes, not milliseconds. For example, COUNT(*) on 1 TB takes 5–10 min on MapReduce.</p></div></div>
+
+<div class="qa"><p class="q"><span class="no">10.</span> <span class="mk">[New]</span> True or false: Presto is 10× faster, so move the 50 TB nightly ETL to it? Why?</p>
+<div class="a"><p><b>False.</b> Presto restarts the whole job if it outgrows RAM or loses a worker. Hive retries only the failed tasks. So Hive suits big ETL.</p></div></div>
+
+<div class="qa"><p class="q"><span class="no">11.</span> <span class="mk">★ [New]</span> What problem did Hive solve?</p>
+<div class="a"><p>Before Hive, a query was a Java MapReduce program of 100+ lines. Writing one took days. Hive (Facebook, 2008) lets analysts write <b>SQL</b> instead.</p></div></div>
+
+<div class="qa"><p class="q"><span class="no">12.</span> <span class="mk">★ [New]</span> Why run the Metastore as a highly available service?</p>
+<div class="a"><p>If the <b>Metastore</b> fails, no table can be queried. The HDFS data stays intact, but Hive cannot use it.</p></div></div>
+
+<div class="qa"><p class="q"><span class="no">13.</span> <span class="mk">★ [New]</span> Moving to Presto, must the team redefine its tables?</p>
+<div class="a"><p>No. Presto reads the same <b>Hive Metastore</b>. So the tables work as they are.</p></div></div>
+
+<h3>Differences</h3>
+
+<div class="vs"><p class="vt">Schema-on-write vs schema-on-read <span class="mk">★</span></p>
+<p><b>Schema-on-write:</b> the schema is checked at INSERT. Bad rows are rejected.</p>
+<p><b>Schema-on-read:</b> data is copied raw. The schema is applied at SELECT. Bad values become NULL.</p></div>
+
+<div class="vs"><p class="vt">SQL (RDBMS) vs HiveQL <span class="mk">★</span></p>
+<p><b>RDBMS:</b> full ACID, indexes, milliseconds.</p>
+<p><b>HiveQL:</b> batch jobs, limited ACID, partitions/buckets instead of indexes, minutes.</p></div>
+
+<div class="vs"><p class="vt">Partitioning vs bucketing</p>
+<p><b>Partitioning:</b> one directory per low-cardinality value. It prunes on WHERE.</p>
+<p><b>Bucketing:</b> N files by hash(col) % N. It helps joins.</p></div>
+
+<div class="vs"><p class="vt">Hive+MR vs Presto</p>
+<p><b>Hive+MR:</b> writes intermediate results to HDFS (5–15 min).</p>
+<p><b>Presto:</b> pipelines data in memory (5–60 s, "10×").</p></div>
+
+<div class="vs"><p class="vt">MapReduce vs Tez</p>
+<p><b>MapReduce:</b> a chain of jobs, with HDFS writes between them.</p>
+<p><b>Tez:</b> one DAG with no HDFS writes. Same answer, lower latency.</p></div>
+
+<div class="vs"><p class="vt">Metastore vs NameNode</p>
+<p><b>Metastore:</b> table schemas, partitions, SerDe.</p>
+<p><b>NameNode:</b> file and block locations only.</p></div>
+
+<div class="vs"><p class="vt">Static vs dynamic partition insert</p>
+<p><b>Static:</b> the statement names the partition value.</p>
+<p><b>Dynamic:</b> Hive takes the value from the last SELECT columns. It fills many partitions at once.</p></div>
+
+<div class="vs"><p class="vt">Hive vs Spark SQL</p>
+<p><b>Hive:</b> batch jobs (minutes).</p>
+<p><b>Spark SQL:</b> Catalyst, in memory (seconds). Both share the Metastore.</p></div>
+
+<div class="vs"><p class="vt">Partition pruning vs predicate pushdown</p>
+<p><b>Partition pruning:</b> skips directories.</p>
+<p><b>Predicate pushdown:</b> skips ORC/Parquet row groups using min/max stats. The two stack.</p></div>
+
+<h3>Descriptive (4 marks)</h3>
+
+<div class="qa"><p class="q"><span class="no">1.</span> <span class="mk">★</span> Explain the Hive architecture (HiveServer2, Driver, Metastore) and query compilation. Draw it. <span class="src">(D1)</span></p>
+<div class="a">
+<p><b>HiveServer2</b> is the front door. It is a JDBC/ODBC server. It authenticates users and accepts HiveQL from Beeline and BI tools.</p>
+<p><b>Driver</b> is the brain. It manages the session and runs Parser → Semantic Analyser → Logical Planner → Optimizer → Physical Plan.</p>
+<p><b>Metastore</b> is the catalogue. It is a MySQL/PostgreSQL DB that holds schemas, partitions, HDFS paths and SerDe.</p>
+<p><b>Compile:</b> query → AST → check names and types in the Metastore → logical plan (Filter, GroupBy, Sort) → optimise (partition pruning) → MR/Tez/Spark jobs → YARN → HDFS.</p>
+<pre>Client -&gt; HiveServer2 -&gt; Driver --schema--&gt; Metastore
+                            | jobs
+          MR / Tez / Spark on YARN &lt;-&gt; HDFS</pre>
+</div></div>
+
+<div class="qa"><p class="q"><span class="no">2.</span> <span class="mk">★</span> Differentiate partitioning and bucketing; when to use each; a Bangladesh e-commerce example. <span class="src">(D2)</span></p>
+<div class="a">
+<p><b>Partitioning</b> makes one sub-directory per value of a low-cardinality column (date, division). A filter on that column reads only the matching folders. Use it for columns that appear in WHERE.</p>
+<p><b>Bucketing</b> splits each partition into N files by hash(col) % N on a join key. Two tables may use the same key and the same N. Hive then joins bucket i with bucket i (<b>bucket map join</b>). Use it for big joins.</p>
+<p>Never partition on user_id. Millions of folders cause <b>partition explosion</b>.</p>
+<p>Example: Daraz orders use <code>PARTITIONED BY (order_date)</code> for daily reports and <code>CLUSTERED BY (customer_id) INTO 32 BUCKETS</code>. This matches a 32-bucket customers table.</p>
+<p>Exam line: partition to skip, bucket to join.</p>
+</div></div>
+
+<div class="qa"><p class="q"><span class="no">3.</span> <span class="mk">★</span> What is schema-on-read? Pros and cons vs schema-on-write; one data-quality example. <span class="src">(D3)</span></p>
+<div class="a">
+<p>In <b>schema-on-read</b>, files are copied raw to HDFS. Hive applies the Metastore's schema at query time.</p>
+<p><b>Pros:</b> loading is fast (a plain copy). There is no ingest ETL. Data can land before the schema is final.</p>
+<p><b>Cons:</b> every query must parse the data, so queries are slower. Errors are silent.</p>
+<p><b>Schema-on-write</b> (MySQL) rejects bad rows at INSERT. Data is clean and queries are fast, but the design is rigid.</p>
+<p>Example: a bKash log has "abc" in <code>amount</code>. Hive returns NULL. So SUM(amount) silently under-reports.</p>
+<p>Exam line: Hive writes fast and reads slow. MySQL writes slow and reads fast.</p>
+</div></div>
+
+<div class="qa"><p class="q"><span class="no">4.</span> <span class="mk">★ [New]</span> Which design decisions make Presto faster for dashboards?</p>
+<div class="a">
+<ul>
+<li><b>In-memory pipeline:</b> stages pass data directly. No disk write happens between them.</li>
+<li><b>Vectorized execution:</b> Presto processes batches of 1,024 rows, not one row at a time.</li>
+<li><b>Cost-based optimizer:</b> it picks the cheapest plan.</li>
+<li><b>Connectors</b> (HDFS/Hive, Cassandra, MySQL, Kafka, S3): one SQL query can read many sources.</li>
+</ul>
+<p>Result: 5–60 s, against 5–15 min on Hive+MR.</p>
+</div></div>
+
+<div class="qa"><p class="q"><span class="no">5.</span> Live exercise: simulate Hive in PySpark on 10,000 play_events rows. Give the four goals.</p>
+<div class="a">
+<ul>
+<li><b>Partition:</b> <code>partitionBy("dt").saveAsTable</code> makes the folder <code>dt=2024-10-01/</code>.</li>
+<li><b>Co-occurrence:</b> time the self-join on playlist_id with <code>HAVING COUNT(*) &gt; 2</code>.</li>
+<li><b>Broadcast:</b> <code>/*+ BROADCAST(s) */</code> copies the small songs table to every executor. So the big table is not shuffled.</li>
+<li><b>EXPLAIN:</b> it shows pruning as PartitionFilters in FileScan.</li>
+</ul>
+</div></div>
+
+<h3>Long / scenario (6 marks)</h3>
+
+<div class="qa"><p class="q"><span class="no">1.</span> <span class="mk">★</span> 5 TB table (txn_id, user_id, product_id, amount, country, txn_date): (a) partitioning for daily reports by country, (b) bucketing for a join with a 10M-row user table, (c) DDL, (d) top 5 products, (e) monthly average per country. <span class="src">(A1 + teacher seed)</span></p>
+<div class="a">
+<p><b>(a)</b> Partition by txn_date and country. Both columns are filtered and both have low cardinality. With 365 × 5 (assumed) = 1,825 partitions, a report reads ≈ 2.7 GB instead of 5 TB. Never partition on user_id. Millions of folders mean partition explosion.</p>
+<p><b>(b)</b> Bucket both tables on user_id with 32 buckets. The same bucket count enables a <b>bucket map join</b> with no full shuffle. File size: 2.7 GB ÷ 32 ≈ 86 MB, which is near one HDFS block. Each user bucket holds 10M ÷ 32 ≈ 312,500 rows, which fits in a mapper's memory.</p>
+<p><b>(c)</b> Partition columns appear only in PARTITIONED BY, not in the column list. The user table uses the same CLUSTERED BY.</p>
+<pre><code>CREATE TABLE ecommerce_txn (txn_id BIGINT, user_id BIGINT,
+   product_id BIGINT, amount DOUBLE)
+PARTITIONED BY (txn_date STRING, country STRING)
+CLUSTERED BY (user_id) SORTED BY (user_id) INTO 32 BUCKETS
+STORED AS ORC;</code></pre>
+<p><b>(d)</b> Top 5 by revenue (A2). The WHERE on txn_date prunes the scan to the 2023 partitions only.</p>
+<pre><code>SELECT product_id, SUM(amount) AS total_revenue
+FROM ecommerce_txn
+WHERE txn_date BETWEEN '2023-01-01' AND '2023-12-31'
+GROUP BY product_id
+ORDER BY total_revenue DESC
+LIMIT 5;</code></pre>
+<p><b>(e)</b> See Long Q3.</p>
+</div></div>
+
+<div class="qa"><p class="q"><span class="no">2.</span> <span class="mk">★</span> Trace how Hive compiles the top-5 query into MapReduce; what changes on Tez? <span class="src">(A2)</span></p>
+<div class="a">
+<p><b>(a)</b> AST → Metastore check → plan Filter → GroupBy(SUM) → OrderBy → Limit. This needs <b>two MR jobs</b>. A global sort cannot happen in the same reduce stage as the GROUP BY.</p>
+<p><b>(b)</b> Job 1: the Map reads only the 2023 files and emits (product_id, amount). The combiner sums locally. The shuffle key is product_id, so all values for one product meet at one reducer. That reducer sums them and writes to temporary HDFS.</p>
+<p><b>(c)</b> Job 2: all totals go to one reducer. It sorts them in descending order and keeps 5.</p>
+<p><b>(d)</b> On <b>Tez</b>, the two jobs become one DAG (Map → Reducer SUM → Reducer sort/limit). It uses streaming edges and writes nothing intermediate to HDFS. The answer is the same, but it takes seconds instead of minutes.</p>
+</div></div>
+
+<div class="qa"><p class="q"><span class="no">3.</span> <span class="mk">★ [New]</span> Monthly average per country for Q1 2024: HiveQL, partitions read, MR stages. <span class="src">(lecturer's plan)</span></p>
+<div class="a">
+<pre><code>SELECT country, MONTH(txn_date) AS mon, AVG(amount) AS avg_amount
+FROM ecommerce_txn
+WHERE txn_date BETWEEN '2024-01-01' AND '2024-03-31'
+GROUP BY country, MONTH(txn_date)
+ORDER BY country, mon;</code></pre>
+<p><b>(a)</b> 91 days × 5 countries = 455 of 5,475 partitions (3 years assumed) ≈ 8.3%. Pruning skips all other dates.</p>
+<p><b>(b)</b> Job 1: the key is (country, month) and the value is (amount, 1). The combiner keeps (sum, count), never partial averages. An average of averages is wrong. The reducer computes sum ÷ count. Job 2: one reducer sorts.</p>
+<p><b>(c)</b> The question may ask for "average monthly revenue". Then first SUM per (country, month) in a sub-query. Then take the AVG of those monthly totals per country.</p>
+</div></div>
+
+<div class="qa"><p class="q"><span class="no">4.</span> <span class="mk">★</span> Case study: Spotify Discover Weekly (Part 2 discussion Q1–Q3, lessons).</p>
+<div class="a">
+<p><b>(a)</b> About 3 B events/day flow Kafka → HDFS. HiveQL computes song co-occurrence over 2 B playlists. Spark ALS builds the model. 30 M weekly playlists come out. Luigi schedules the steps.</p>
+<p><b>(b)</b> Q1: partition playlist_songs by week and bucket it by playlist_id. The self-join is on playlist_id, so it becomes bucket-local with no shuffle. Map-side aggregation shrinks the (song_a, song_b) shuffle.</p>
+<p><b>(c)</b> Q3: <b>Luigi</b> is target-based (<code>requires()</code>/<code>output()</code>). It has manual backfill and a simple UI. <b>Airflow</b> has a scheduler, built-in backfill, logs, retries and alerts. Choose Airflow for 100 steps because of its monitoring and reruns.</p>
+<p><b>(d)</b> Lessons: implicit feedback (playlists) beats star ratings. Weekly partitions cut the job from 8 h to 2 h.</p>
+</div></div>
+
+<h3>Numericals</h3>
+
+<div class="qa"><p class="q"><span class="no">1.</span> <span class="mk">★</span> Partition pruning: 36 monthly partitions, query one month; 365 days × 200 countries, query 1 day × 3 countries.</p>
+<div class="a"><p class="fm">fraction read = matched ÷ total</p>
+<ol><li>1 ÷ 36 ≈ 2.8%.</li><li>3 ÷ 73,000 ≈ 0.004%.</li><li>Mock: 2 of 30 × 50 = 0.13%; 1 of 730 × 20 = 0.0068%.</li></ol>
+<p class="mn">Meaning: Hive reads only that share of the table.</p></div></div>
+
+<div class="qa"><p class="q"><span class="no">2.</span> <span class="mk">★</span> Bucket of user_id 1,000,007 (32 buckets) and rider_id 1,000,003 (8 buckets); file size for 4 TB over 14,600 partitions × 8 buckets.</p>
+<div class="a"><p class="fm">bucket = key mod N; file = S ÷ (P × N)</p>
+<ol><li>1,000,007 − 32 × 31,250 = bucket 7.</li><li>1,000,003 mod 8 = 3.</li><li>4,000 GB ÷ 116,800 ≈ 34 MB.</li></ol>
+<p class="mn">Meaning: the same key always lands in the same bucket. So joins can match bucket to bucket.</p></div></div>
+
+<div class="qa"><p class="q"><span class="no">3.</span> <span class="mk">★</span> Map-side aggregation: 50 M rows, 200 countries; 30 M rows, 64 districts; 60 M rows, 300 regions.</p>
+<div class="a"><p class="fm">reduction = rows ÷ groups (one mapper)</p>
+<ol><li>250,000×.</li><li>468,750×.</li><li>200,000×.</li></ol>
+<p class="mn">Meaning: the shuffle shrinks by that factor.</p></div></div>
+
+<div class="qa"><p class="q"><span class="no">4.</span> <span class="mk">★</span> ALS: 75 M users, 30 M songs, k = 50, 4 B floats; fits 5,000 nodes? <span class="src">(Discussion Q2)</span></p>
+<div class="a"><p class="fm">size = (users + songs) × k × 4 B</p>
+<ol><li>105 M × 200 B = 21 GB.</li><li>Dense: 75 M × 30 M × 4 B = 9 PB.</li><li>5,000 × 64 GB (assumed) = 320 TB → fits.</li></ol>
+<p class="mn">Meaning: factorisation compresses a 9 PB matrix into a 21 GB model.</p></div></div>
+
+<div class="qa"><p class="q"><span class="no">5.</span> <span class="mk">★</span> Song pairs over 30 M songs; speed-ups 8 h → 2 h and 9 min → 27 s. <span class="src">(Discussion Q1)</span></p>
+<div class="a"><p class="fm">pairs = n(n − 1) ÷ 2; speed-up = old ÷ new</p>
+<ol><li>≈ 4.5 × 10<sup>14</sup> pairs.</li><li>4×, 75% saved.</li><li>540 ÷ 27 = 20×.</li></ol>
+<p class="mn">Meaning: the pair space is huge. So pruning and filtering are essential.</p></div></div>
+
+</section>
+<section class="week" data-week="8">
+<h2 id="w8">Week 8 — Kafka, Pipelines, Lambda/Kappa, Data Lakes</h2>
+<h3>Short questions (2 marks)</h3>
+<div class="qa"><p class="q"><span class="no">1.</span> <span class="mk">★</span> Which tool moves data in bulk between an RDBMS (e.g. MySQL) and HDFS? <span class="src">(Q1)</span></p>
+<div class="a"><p><b>Apache Sqoop</b> (SQL-to-Hadoop). It is built for bulk table import and export. Flume collects logs. Kafka streams events.</p></div></div>
+<div class="qa"><p class="q"><span class="no">2.</span> <span class="mk">★</span> Kafka's data model is based on which storage abstraction? <span class="src">(Q2)</span></p>
+<div class="a"><p>An <b>append-only, immutable, distributed log</b> (partitioned topics). New messages are only added at the end. Old messages stay readable and replayable.</p></div></div>
+<div class="qa"><p class="q"><span class="no">3.</span> <span class="mk">★</span> Which Lambda layer gives real-time, low-latency views? <span class="src">(Q3)</span></p>
+<div class="a"><p>The <b>Speed Layer</b>. Its views cover data since the last batch and are seconds old. The Serving Layer only merges and serves views. It does not process data.</p></div></div>
+<div class="qa"><p class="q"><span class="no">4.</span> <span class="mk">★</span> How does Kappa differ from Lambda? <span class="src">(Q4)</span></p>
+<div class="a"><p>Kappa <b>removes the batch layer</b>. It uses <b>Kafka log replay</b> for all reprocessing. So the team writes and maintains only one stream code path.</p></div></div>
+<div class="qa"><p class="q"><span class="no">5.</span> <span class="mk">★</span> True or false: Sqoop is designed for real-time streaming ingestion from transactional systems? Why? <span class="src">(T/F 1)</span></p>
+<div class="a"><p><b>False.</b> Sqoop is a <b>batch</b> tool. It runs MapReduce jobs on a schedule (e.g. nightly). Kafka handles real-time ingestion.</p></div></div>
+<div class="qa"><p class="q"><span class="no">6.</span> True or false: Kafka keeps messages for a set period, so consumers can replay from any past offset? Why? <span class="src">(T/F 2)</span></p>
+<div class="a"><p><b>True.</b> Kafka keeps the log for the <b>retention period</b> (e.g. 7 days). Each consumer controls its own <b>offset</b>. So a consumer can move its offset back and re-read.</p></div></div>
+<div class="qa"><p class="q"><span class="no">7.</span> <span class="mk">★</span> True or false: Lambda needs two separate code paths for the same logic? Why? <span class="src">(T/F 3)</span></p>
+<div class="a"><p><b>True.</b> The team writes the logic once for batch (Spark/Hive). It writes the same logic again for streaming (Flink/Spark Streaming). Both versions must stay in sync.</p></div></div>
+<div class="qa"><p class="q"><span class="no">8.</span> True or false: Flume is the preferred tool for collecting server logs into HDFS? Why? <span class="src">(T/F 4)</span></p>
+<div class="a"><p><b>True.</b> Flume agents run <b>Source → Channel → Sink</b>. They are built for continuous log collection. The channel buffers events between the web servers and HDFS.</p></div></div>
+<div class="qa"><p class="q"><span class="no">9.</span> <span class="mk">[New]</span> What happens to a message after it is read: queue vs Kafka?</p>
+<div class="a"><p>A <b>queue deletes</b> the message. A late consumer misses it. <b>Kafka keeps</b> the message until retention ends. A late consumer starts at <b>offset 0</b> and replays.</p></div></div>
+<div class="qa"><p class="q"><span class="no">10.</span> <span class="mk">★ [New]</span> How do the fraud, balance and audit services each get every event?</p>
+<div class="a"><p>Each service is its own <b>consumer group</b> with its own offsets. Inside one group, each partition goes to <b>exactly one consumer</b>.</p></div></div>
+<div class="qa"><p class="q"><span class="no">11.</span> <span class="mk">[New]</span> Why key GPS pings (or card swipes) by driver_id / card number?</p>
+<div class="a"><p>The same key always goes to the same partition: <b>hash(key) mod P</b>. So one driver's events stay in order. Kafka guarantees order <b>only within a partition</b>.</p></div></div>
+<div class="qa"><p class="q"><span class="no">12.</span> <span class="mk">[New]</span> A Flume HDFS sink rolls a new file every 10 s. What goes wrong? Fix?</p>
+<div class="a"><p>86,400 ÷ 10 = <b>8,640 small files per day</b>. They fill NameNode memory and create tiny map tasks. Fix: roll every 300–600 s or at 128 MB, or compact the files nightly.</p></div></div>
+<div class="qa"><p class="q"><span class="no">13.</span> <span class="mk">[New]</span> Live exercise: what do an offset reset and a new group ID show?</p>
+<div class="a"><p><b>seek_to_beginning</b> re-reads all 1,000 events and gives identical counts (idempotent). A <b>new group</b> has no committed offset. So with <b>earliest</b> it starts at offset 0.</p></div></div>
+
+<h3>Differences</h3>
+<div class="vs"><p class="vt">Point-to-point ETL vs message bus</p>
+<p><b>Point-to-point ETL:</b> O(N²) brittle nightly jobs, no replay.</p><p><b>Message bus:</b> N connections, decoupled, real-time, replayable.</p></div>
+<div class="vs"><p class="vt">Sqoop vs Flume</p>
+<p><b>Sqoop:</b> bulk tables RDBMS ↔ HDFS, batch.</p><p><b>Flume:</b> streaming log collection into HDFS.</p></div>
+<div class="vs"><p class="vt">Flume vs Kafka</p>
+<p><b>Flume:</b> pushes logs into Hadoop.</p><p><b>Kafka:</b> general any → any durable log, with replay and many consumers.</p></div>
+<div class="vs"><p class="vt">Lambda vs Kappa</p>
+<p><b>Lambda:</b> batch + speed + serving layers, two code paths.</p><p><b>Kappa:</b> one stream path; reprocesses by replaying the log.</p></div>
+<div class="vs"><p class="vt">Batch vs speed layer</p>
+<p><b>Batch:</b> all data, accurate, hours old.</p><p><b>Speed:</b> only recent data, approximate, seconds old.</p></div>
+<div class="vs"><p class="vt">Data lake vs warehouse</p>
+<p><b>Lake:</b> raw data, any format, schema-on-read, for ML and exploration.</p><p><b>Warehouse:</b> cleaned tables, schema-on-write, for BI reports.</p></div>
+<div class="vs"><p class="vt">Memory vs file channel (Flume)</p>
+<p><b>Memory:</b> fast, loses events on a crash.</p><p><b>File:</b> on disk, slower, survives a crash.</p></div>
+<div class="vs"><p class="vt">Kafka partition vs Hive partition</p>
+<p><b>Kafka:</b> ordered slice of the log, for parallelism.</p><p><b>Hive:</b> one directory per column value, for pruning.</p></div>
+
+<h3>Descriptive (4 marks)</h3>
+<div class="qa"><p class="q"><span class="no">1.</span> <span class="mk">★</span> Explain Lambda with a diagram. What are the three layers? What is its main disadvantage vs Kappa? <span class="src">(D1)</span></p>
+<div class="a"><p><b>Lambda</b> (Nathan Marz, 2011) serves accurate views and real-time views from the same immutable raw data. All new data goes to both layers at once.</p>
+<ul>
+<li><b>Batch layer:</b> keeps the full master dataset on HDFS. Spark/Hive jobs recompute batch views every hour or every night. The views are accurate but 1–24 h old.</li>
+<li><b>Speed layer:</b> Kafka + Flink/Spark Streaming process only the data since the last batch run. This gives real-time views that are seconds old and approximate.</li>
+<li><b>Serving layer:</b> answers a query as batch view + real-time view.</li>
+<li><b>Disadvantage: dual code paths.</b> The team writes the same logic twice and keeps both in sync (30–40% of engineering effort). It also runs two clusters.</li>
+</ul>
+<p>Exam sentence: Lambda = batch + speed + serving. Its weakness is dual code paths.</p></div></div>
+<div class="qa"><p class="q"><span class="no">2.</span> <span class="mk">★</span> How does Kafka get high throughput and fault tolerance? Give the roles of topic, partition, offset, broker and replication factor. <span class="src">(D2)</span></p>
+<div class="a"><ul>
+<li><b>Topic:</b> a named log for one event type (e.g. <code>bkash-txns</code>).</li>
+<li><b>Partition:</b> an ordered slice of a topic. Partitions allow parallel reads and writes.</li>
+<li><b>Offset:</b> a message's position. Each consumer tracks its own offset.</li>
+<li><b>Broker:</b> a server that stores partitions on disk.</li>
+<li><b>Replication factor R:</b> 1 leader + R − 1 followers on other brokers.</li>
+</ul>
+<p><b>Throughput:</b> sequential append-only writes (600 MB/s vs &lt; 1 MB/s for random writes). Zero-copy <b>sendfile()</b> cuts 4 copies to 2. Kafka also batches messages, and partition parallelism scales linearly.</p>
+<p><b>Fault tolerance:</b> if a broker dies, ZooKeeper/KRaft elects a follower as the new leader. So no data is lost. The log is durable on disk, and offsets let consumers resume.</p>
+<p>Exam sentence: Kafka is a distributed, partitioned, replicated commit log.</p></div></div>
+<div class="qa"><p class="q"><span class="no">3.</span> <span class="mk">★</span> What is a data lake? Compare lake vs warehouse (schema, format, use). What is a data swamp, and how is it prevented? <span class="src">(D3)</span></p>
+<div class="a"><p>A <b>data lake</b> stores raw data of any format at any scale. It needs no upfront schema.</p>
+<p>A <b>warehouse</b> uses <b>schema-on-write</b>: data must fit the tables before loading. It holds clean relational tables and serves BI reports.</p>
+<p>A <b>lake</b> uses <b>schema-on-read</b>: structure is applied at query time. It holds raw CSV, JSON, Parquet, logs and images on HDFS/S3. It serves data science and ML.</p>
+<p>A <b>data swamp</b> is a lake without governance. It has no catalogue, unknown owners, duplicate versions, and PII mixed in. Prevent it with a catalogue at ingest, owners, access control, quality checks and ACID formats (Iceberg/Delta Lake).</p>
+<p>Exam sentence: a lake without governance becomes a swamp.</p></div></div>
+
+<h3>Long / scenario (6 marks)</h3>
+<div class="qa"><p class="q"><span class="no">1.</span> <span class="mk">★ [New]</span> Bank: (a) sync 10 M records nightly Oracle → Hadoop, (b) make a fraud decision within 200 ms, (c) keep a risk dashboard ≤ 5 min old. Give a tool per stage with justification. (d) Lambda or Kappa? Compare. <span class="src">(A1 + teacher seed)</span></p>
+<div class="a"><p><b>(a) Sqoop.</b> The data is structured and moves once a night, so batch latency is fine. Parallel map tasks each read one primary-key range over JDBC (GB–TB per hour). <b>Incremental import</b> (check-column + last-value) copies only changed rows. A failed map task is simply re-run. The output is Parquet in HDFS for Hive.</p>
+<p><b>(b) Kafka + Spark Streaming.</b> Only Kafka delivers in milliseconds; Sqoop and Flume are batch tools. Swipes go to topic <code>card-swipes</code>, keyed by card number. So each card's swipes stay in order. R = 3 survives 2 broker failures. Offsets let a crashed job resume without losing swipes.</p>
+<p><b>(c)</b> A <b>second consumer group</b> on the same topic runs Spark Streaming with 1-minute windows and feeds the dashboard. The source needs no change (decoupling). If the job falls behind, retention lets it catch up.</p>
+<p><b>(d) Lambda.</b> The bank already has a natural batch path (Sqoop → HDFS → Hive for regulatory reports). It also has the speed path. The serving layer merges the two. Kappa (one path, replay) is simpler. But banks need auditable batch reconciliation.</p>
+<pre>Oracle -&gt; Sqoop (nightly) -&gt; HDFS/Hive -&gt; batch views --+
+Swipes -&gt; Kafka card-swipes -+- fraud group (&lt; 200 ms)  +-&gt; Serving -&gt; dashboard
+                             +- risk group (1-min windows)</pre></div></div>
+<div class="qa"><p class="q"><span class="no">2.</span> <span class="mk">★</span> A team wants to move from Lambda to Kappa to stop writing code twice. (a) What must the stream engine do? (b) What are the risks? (c) When is Kappa unsuitable (two Bangladesh examples)? <span class="src">(A2)</span></p>
+<div class="a"><p><b>(a)</b> The engine must reprocess history <b>faster than live data arrives</b>. Otherwise the new job never catches up. It must also do everything the batch jobs did: stateful joins, event-time windows and exactly-once results, as Flink does. The log must keep the full history (long retention or Iceberg on S3).</p>
+<p><b>(b)</b> History older than retention (e.g. 7 days) is lost unless it is back-filled first. Replaying terabytes is slow. Running v1 and v2 together doubles compute. The new logic may give different numbers, so the team must run both in parallel and reconcile them.</p>
+<p><b>(c)</b> Bangladesh Bank / bKash end-of-day regulatory reconciliation needs a separate, auditable batch system. DGHS/hospital retraining on 10 years of records (TB+) is too slow to replay through a stream. Teams that rely on batch SQL (Hive over loan history) also suit Lambda.</p></div></div>
+<div class="qa"><p class="q"><span class="no">3.</span> <span class="mk">★ [New]</span> Lambda: nightly Spark revenue reports + Flink live dashboard. (a) Layers and outputs. (b) Serving answer if batch = 1,200,000 orders up to 02:00 and speed = 85,000 since then. (c) How Kappa reprocesses after a bug fix. <span class="src">(mock A)</span></p>
+<div class="a"><p><b>(a)</b> The batch layer (Spark, nightly) produces accurate batch views. The speed layer (Flink) produces real-time views of orders since the last batch. The serving layer merges both for the dashboard.</p>
+<p><b>(b)</b> Serving answer = batch view + real-time view = 1,200,000 + 85,000 = <b>1,285,000 orders</b>.</p>
+<p><b>(c)</b> Deploy the fixed job v2 and start it at <b>offset 0</b>. Let it replay until it catches up with live events. Then swap it in and retire v1. The log holds the history.</p></div></div>
+<div class="qa"><p class="q"><span class="no">4.</span> Netflix case study: explain the lessons. <span class="src">(Part 2 discussion 1–5)</span></p>
+<div class="a"><ul>
+<li><b>Kafka as single source of truth:</b> both layers read one topic. So there is no inconsistent dual ingestion.</li>
+<li><b>Retention enables reprocessing:</b> 7 days of retention lets a buggy Flink job reset its offsets and recompute.</li>
+<li><b>Kappa simplification:</b> Flink reads historical S3 data as a bounded stream with the same code. There is one code path.</li>
+<li><b>Schema Registry:</b> 4,000 topics with changing schemas need Avro/Protobuf governance. Otherwise a renamed field breaks consumers.</li>
+<li><b>Backpressure:</b> a 5× Super Bowl spike waits in the durable log. Flink pulls at its own pace and catches up in minutes.</li>
+</ul></div></div>
+<div class="qa"><p class="q"><span class="no">5.</span> <span class="mk">★ [New]</span> Flink joins assignments, exposures and outcomes on user_id. Events arrive up to 30 s late. What window strategy? <span class="src">(lecturer file)</span></p>
+<div class="a"><p>Use <b>event time</b>, not arrival time. Use <b>5-minute tumbling windows</b> to match the 5-minute A/B results.</p>
+<p>Set the <b>watermark</b> lag to 30 s, so late events still land in the right window. Add <b>allowed lateness</b> of 1–2 min. Anything later goes to a <b>side output</b>, which the S3 batch fixes.</p></div></div>
+
+<h3>Numericals</h3>
+<div class="qa"><p class="q"><span class="no">1.</span> <span class="mk">★</span> 50 systems: how many point-to-point jobs vs bus connections?</p>
+<div class="a"><p class="fm">jobs = N × (N − 1)</p><ol><li>50 × 49 = 2,450 jobs</li><li>bus = 50 connections (1,225 if each pair is counted once)</li></ol><p class="mn">Meaning: a bus cuts integration work by about 49 times.</p></div></div>
+<div class="qa"><p class="q"><span class="no">2.</span> <span class="mk">★</span> Kappa replay: 7 days at 100 billion events/day. The engine does 10 M events/s (assumed). What is the catch-up time?</p>
+<div class="a"><p class="fm">t = H ÷ (S − L)</p><ol><li>H = 700 billion</li><li>L = 100 B ÷ 86,400 ≈ 1.157 M/s</li><li>S − L ≈ 8.84 M/s</li><li>700e9 ÷ 8.84e6 ≈ 22 h. If S ≤ L, it never catches up.</li></ol><p class="mn">Meaning: replay must be faster than live input.</p></div></div>
+<div class="qa"><p class="q"><span class="no">3.</span> <span class="mk">★ [New]</span> Netflix: 4,000 topics × 12 partitions, R = 3, 50,000 partitions per broker. Minimum brokers? <span class="src">(lecturer file)</span></p>
+<div class="a"><ol><li>4,000 × 12 = 48,000 partitions</li><li>× 3 = 144,000 copies</li><li>144,000 ÷ 50,000 = 2.88 → 3 brokers (R = 3 needs ≥ 3 brokers anyway)</li></ol><p class="mn">Meaning: always round up.</p></div></div>
+<div class="qa"><p class="q"><span class="no">4.</span> <span class="mk">★</span> Topic <code>bkash-txns</code>: P = 3, R = 2. How many copies? How many failures survived? What happens with a group of 5 consumers?</p>
+<div class="a"><p class="fm">copies = P × R; survives R − 1; active = min(C, P)</p><ol><li>3 × 2 = 6 copies</li><li>survives 1 failure</li><li>3 active, 2 idle</li></ol><p class="mn">Meaning: more consumers than partitions adds no speed.</p></div></div>
+<div class="qa"><p class="q"><span class="no">5.</span> <span class="mk">★</span> Kafka benchmark: 505,000 msgs/s of 100 bytes. What is that in MB/s?</p>
+<div class="a"><p class="fm">MB/s = msgs/s × bytes ÷ 10^6</p><ol><li>505,000 × 100 ÷ 10^6 = 50.5 MB/s (RabbitMQ 14.7, ActiveMQ 4.3)</li></ol><p class="mn">Meaning: Kafka is about 3.4× RabbitMQ.</p></div></div>
+</section>
+<section class="week" data-week="9">
+<h2 id="w9">Week 9 — Data Visualization</h2>
+<h3>Short questions (2 marks)</h3>
+<div class="qa"><p class="q"><span class="no">1.</span> <span class="mk">★</span> What does Tufte's data-ink ratio principle say? <span class="src">(Q1)</span></p>
+<div class="a"><p>Maximise the share of ink that shows data. Remove decoration, because decoration gives the reader nothing. <b>Ratio = data ink ÷ total ink</b>. The principle is about what the ink encodes. It is not about saving ink.</p></div></div>
+<div class="qa"><p class="q"><span class="no">2.</span> <span class="mk">★</span> How does Shneiderman's mantra begin? <span class="src">(Q3)</span></p>
+<div class="a"><p><b>Overview first</b>, then <b>zoom and filter</b>, then <b>details on demand</b>.</p></div></div>
+<div class="qa"><p class="q"><span class="no">3.</span> <span class="mk">★</span> Which tool suits a real-time ops dashboard (server metrics, error rates) with a 5-second refresh? <span class="src">(Q4)</span></p>
+<div class="a"><p><b>Grafana</b>. It supports time-series databases (InfluxDB, Prometheus) natively and polls every 5 s. Tableau and Power BI have limited refresh. D3.js needs custom code.</p></div></div>
+<div class="qa"><p class="q"><span class="no">4.</span> <span class="mk">★</span> Which chart best shows the distribution and spread of a continuous variable? <span class="src">(Q2)</span></p>
+<div class="a"><p>A <b>histogram</b>. It counts values into bins, so it shows the shape, centre and spread. A pie shows part-of-whole. A line shows time. A treemap shows hierarchy.</p></div></div>
+<div class="qa"><p class="q"><span class="no">5.</span> <span class="mk">★</span> True or false: a pie chart is a good choice for comparing more than 5 categories? Why? <span class="src">(TF1)</span></p>
+<div class="a"><p><b>False</b>. Readers judge angles badly. Pies suit only ≤ 4 categories that form a part-of-whole. Use <b>sorted horizontal bars</b> instead.</p></div></div>
+<div class="qa"><p class="q"><span class="no">6.</span> <span class="mk">★</span> True or false: hexbin plots reduce overplotting for millions of points? Why? <span class="src">(TF2)</span></p>
+<div class="a"><p><b>True</b>. Each hexagon is coloured by its point count. The reader sees density instead of a blob. 10 M points become ~10,000 cells.</p></div></div>
+<div class="qa"><p class="q"><span class="no">7.</span> <span class="mk">★</span> True or false: D3.js mainly outputs static PNG or PDF files? Why? <span class="src">(TF3)</span></p>
+<div class="a"><p><b>False</b>. D3.js binds data to <b>SVG DOM elements</b> in the browser. Its output is interactive, scalable and dynamic.</p></div></div>
+<div class="qa"><p class="q"><span class="no">8.</span> <span class="mk">★</span> True or false: choropleth maps show the geographic distribution of a quantitative variable? Why? <span class="src">(TF4)</span></p>
+<div class="a"><p><b>True</b>. Colour intensity on each region encodes a <b>rate</b> (dengue per 100,000). For absolute counts, use a <b>bubble map</b>.</p></div></div>
+<div class="qa"><p class="q"><span class="no">9.</span> <span class="mk">[New]</span> True or false: an auto-scaled y-axis on a Grafana availability panel is fine because the tick labels show true values? Why?</p>
+<div class="a"><p><b>False</b>. Readers judge bar height, not labels. A 0.01-point wobble fills half the chart (<b>lie factor</b> ≈ 20,000). Start the axis at zero.</p></div></div>
+<div class="qa"><p class="q"><span class="no">10.</span> <span class="mk">★ [New]</span> What does Anscombe's quartet (1973) teach?</p>
+<div class="a"><p>Four datasets share the same means, variance, r = 0.816 and fit y = 3 + 0.5x. Plotted, they look completely different. Summary statistics hide shape and outliers. <b>Always plot first.</b></p></div></div>
+<div class="qa"><p class="q"><span class="no">11.</span> <span class="mk">★ [New]</span> Define lie factor.</p>
+<div class="a"><p><b>Lie factor = effect shown ÷ effect in data.</b> 1 is truthful. Above 1 overstates. Below 1 understates. Bars must start at zero.</p></div></div>
+<div class="qa"><p class="q"><span class="no">12.</span> <span class="mk">★ [New]</span> Define small multiples and sparklines.</p>
+<div class="a"><p><b>Small multiples:</b> the same chart drawn for each subset on the same scale (NYT 50-state grid). <b>Sparklines</b> (Tufte 2006): word-sized line charts placed in text or tables.</p></div></div>
+<div class="qa"><p class="q"><span class="no">13.</span> <span class="mk">[New]</span> List Shneiderman's seven data types.</p>
+<div class="a"><p><b>Types:</b> 1-D, 2-D, 3-D, temporal, multi-dimensional, tree, network.</p><p><b>Seven tasks:</b> overview, zoom, filter, details on demand, relate, history, extract.</p></div></div>
+<div class="qa"><p class="q"><span class="no">14.</span> <span class="mk">[New]</span> What is a tumbling window, and why aggregate before the browser?</p>
+<div class="a"><p>A <b>tumbling window</b> is a fixed, non-overlapping window (e.g. 1 min). Each event counts once. The browser gets one point per window, not millions of raw events.</p></div></div>
+
+<h3>Differences</h3>
+<div class="vs"><p class="vt">Data-ink vs chartjunk</p>
+<p><b>Data-ink:</b> encodes values.</p><p><b>Chartjunk:</b> 3-D, gradients, heavy grids, borders. It encodes nothing and should be erased.</p></div>
+<div class="vs"><p class="vt">Small multiples vs animation</p>
+<p><b>Small multiples:</b> show all panels at once, so readers compare directly.</p><p><b>Animation:</b> shows one frame at a time, so readers rely on memory.</p></div>
+<div class="vs"><p class="vt">Alpha vs hexbin</p>
+<p><b>Alpha (α = 0.02):</b> shows relative density but saturates.</p><p><b>Hexbin:</b> gives exact counts per cell.</p></div>
+<div class="vs"><p class="vt">Hexbin vs KDE contour</p>
+<p><b>Hexbin:</b> counts per region.</p><p><b>KDE:</b> smooth shape, modes (peaks) and tails.</p></div>
+<div class="vs"><p class="vt">Data cube vs AQP</p>
+<p><b>Cube:</b> exact but stale (up to 24 h).</p><p><b>AQP</b> (sampling, DataSketches, BlinkDB): fresh but approximate. Not for finance.</p></div>
+<div class="vs"><p class="vt">Grafana poll vs WebSocket push</p>
+<p><b>Grafana poll:</b> every 5 s (ops).</p><p><b>WebSocket push:</b> sub-second updates to D3.js (tickers, election counts).</p></div>
+<div class="vs"><p class="vt">Tableau / Power BI vs D3.js</p>
+<p><b>Tableau / Power BI:</b> drag-and-drop business reports.</p><p><b>D3.js:</b> custom, coded, interactive web SVG.</p></div>
+<div class="vs"><p class="vt">7-day vs 14-day average</p>
+<p><b>7-day:</b> reacts faster to a new wave.</p><p><b>14-day:</b> smoother, but it delays and flattens peaks.</p></div>
+
+<h3>Descriptive (4 marks)</h3>
+<div class="qa"><p class="q"><span class="no">1.</span> <span class="mk">★</span> Explain the data-ink ratio with a before-and-after bar chart. <span class="src">(D1)</span></p>
+<div class="a"><p>Tufte says: maximise <b>data ink ÷ total ink</b>. Data ink encodes values (bar heights, lines). All other ink is a candidate for deletion. The test: "if erasing it loses no information, erase it."</p>
+<ul><li><b>Before:</b> 3-D bars, gradient fill, heavy gridlines, a thick border, a shouting title, and a legend for only one series. The 3-D effect even distorts the heights.</li>
+<li><b>After:</b> flat one-colour bars that start from zero. No grid (or one light reference line). No border or legend. A thin axis and a plain title.</li></ul>
+<p>Exam sentence: same data, less ink, clearer message.</p></div></div>
+<div class="qa"><p class="q"><span class="no">2.</span> <span class="mk">★</span> What is overplotting? Give three fixes and what each preserves. <span class="src">(D2)</span></p>
+<div class="a"><p>Millions of points stack into a solid blob. An area with 10 points and an area with 10,000 look equally black. Density, shape and outliers are lost. Fixes:</p>
+<ul><li><b>Alpha transparency</b> (α = 0.02): preserves relative density. It fails at very high density.</li>
+<li><b>Hexbin:</b> preserves counts per region (10 M points → ~10,000 cells).</li>
+<li><b>KDE 2-D contours:</b> preserve shape, modes and tails.</li></ul>
+<p>Exam sentence: overplotting hides density, so show transparency, counts or contours instead.</p></div></div>
+<div class="qa"><p class="q"><span class="no">3.</span> <span class="mk">★</span> What is a data cube, how does it give sub-second latency, and what is the trade-off? <span class="src">(D3)</span></p>
+<div class="a"><p>A <b>data cube</b> is a set of pre-computed aggregate tables for dimension combinations (district × date × product × channel). Hive over 100 B rows takes minutes. A nightly Spark/Hive job builds a cube of millions of rows. Tableau/Superset query that cube in under 1 s.</p>
+<p><b>Trade-off:</b> staleness (up to 24 h, because the cube is rebuilt nightly), extra storage, and filters only on pre-chosen dimensions.</p>
+<p>Exam sentence: a data cube trades freshness for speed.</p></div></div>
+<div class="qa"><p class="q"><span class="no">4.</span> <span class="mk">[New]</span> A Grafana error chart has 3-D bars, a y-axis from 500, a heavy grid and a gradient. Name the violations and redesign it. <span class="src">(lecturer v1-1)</span></p>
+<div class="a"><ul><li><b>3-D bars</b> distort heights → use flat bars or a line.</li>
+<li><b>Axis from 500:</b> lie factor &gt; 1. 600 vs 700 is drawn as +100% for a real +16.7%, so lie factor ≈ 6 → start at 0.</li>
+<li><b>Heavy grid, gradient:</b> chartjunk → no grid and a flat colour. Add a hover tooltip for exact values.</li></ul></div></div>
+<div class="qa"><p class="q"><span class="no">5.</span> Live exercise: build a D3.js bar chart with Tufte styling.</p>
+<div class="a"><p>Data: Kafka counts, 5 topics × 7 days. Use no gridlines, y from 0 (<code>domain([0, max])</code>), a flat colour, a hover tooltip (details on demand), and a sparkline per bar.</p>
+<p>Each rule maps to a principle. No grid and flat colour = <b>data-ink</b>. Zero baseline = honest <b>lie factor</b>. Tooltip = <b>details on demand</b>.</p>
+<p>Extension: a dropdown filter (zoom and filter) that shows one topic's 7-day line.</p></div></div>
+
+<h3>Long / scenario (6 marks)</h3>
+<div class="qa"><p class="q"><span class="no">1.</span> <span class="mk">★</span> DGHS dashboard: (a) COVID cases by district over 24 months, (b) hospitalisation rate every 5 min, (c) age/gender breakdown. Give the chart, data type, challenge, tool, and one chartjunk to remove. <span class="src">(A1)</span></p>
+<div class="a"><p><b>(a)</b> Use <b>small multiples</b> of 7-day line charts, one per district, on the same y-scale. Add a <b>choropleth</b> of cases per 100,000 as the overview. The data is temporal + 2-D (time and map). The challenge is latency: 24 months × 64 districts must filter in under 1 s. So a nightly <b>data cube</b> (district × date) is built, and Tableau/Superset read it.</p>
+<p><b>(b)</b> Use a single <b>line chart</b>. The data is temporal. The challenge is streaming, so the pipeline is Kafka → Spark 5-minute window → InfluxDB → <b>Grafana</b>. A 5 s poll is plenty for 5-minute data.</p>
+<p><b>(c)</b> Use <b>grouped bars</b> (age groups × gender). The data is multi-dimensional but small, so there is no big challenge. Power BI is fine. Avoid a 3-D pie, because angles and 3-D distort.</p>
+<p><b>Chartjunk:</b> remove 3-D effects (they make lie factor &gt; 1) and heavy gridlines, which encode no data.</p></div></div>
+<div class="qa"><p class="q"><span class="no">2.</span> <span class="mk">★</span> Streaming Twitter sentiment, 10,000 tweets/s: (a) window, (b) charts, (c) browser velocity, (d) pipeline. <span class="src">(A2)</span></p>
+<div class="a"><p><b>(a)</b> Use a <b>1-minute tumbling window</b>. Each window holds 600,000 tweets, which gives a stable average. Windows do not overlap, so each tweet is counted once.</p>
+<p><b>(b)</b> Sentiment drift is temporal, so a <b>line chart per topic</b> (small multiples on one scale) shows trends. Topic clusters from t-SNE/UMAP are dense scatters. Draw them as <b>hexbin/density</b> to avoid overplotting.</p>
+<p><b>(c)</b> Never send raw tweets. Send aggregates only (1,440 points/topic/day, not 864 M tweets). Keep a rolling buffer (last 60 min). Use <b>Canvas</b> for dense points.</p>
+<p><b>(d)</b> Twitter API → Kafka → Spark Structured Streaming → InfluxDB/Prometheus → Grafana (5 s poll), or WebSocket → D3.js.</p></div></div>
+<div class="qa"><p class="q"><span class="no">3.</span> <span class="mk">★ [New]</span> Case study: NYT COVID tracker (Part 2). (a) How do Tufte and Shneiderman appear? (b) Give the five lessons. (c) What does a 7-day average remove, and what can it hide that a 3-day one shows? <span class="src">(lecturer v1 scenario)</span></p>
+<div class="a"><p><b>(a)</b> <b>Tufte:</b> no gridlines, and a 50-state grid of small multiples. <b>Shneiderman:</b> national total as the overview → state dropdown (zoom and filter) → hover tooltip with the exact count (details on demand).</p>
+<p><b>(b)</b> The five lessons:</p>
+<ul><li>Data quality is a visualisation problem (50 state schemas, negative bars).</li>
+<li>Accessibility matters at 6 M readers/day.</li>
+<li>Small multiples beat animation (all states at once).</li>
+<li>Rolling averages are editorial choices.</li>
+<li>A GitHub CSV fed 1,000+ dashboards.</li></ul>
+<p><b>(c)</b> It removes day-of-week reporting artefacts (the weekend under-reporting zigzag). A 7-day average lags about 3 days (a 3-day one lags ≈ 1). So a surge appears later and gentler. Zoom and filter lets readers switch to a 3-day average or raw bars.</p></div></div>
+<div class="qa"><p class="q"><span class="no">4.</span> <span class="mk">★ [New]</span> (a) A GPS-ping map is a blob. (b) Hive filters on 80 B rows take minutes. (c) An election page has map → party dropdown → click result. Name the problem and the fix or rule. <span class="src">(mock)</span></p>
+<div class="a"><p><b>(a)</b> The problem is <b>overplotting</b>: millions of pings hide density. Fix: a <b>hexbin map</b> (count per area).</p>
+<p><b>(b)</b> The problem is <b>latency</b>: scanning 80 B rows cannot answer in under 1 s. Fix: a nightly <b>data cube</b> (up to 24 h stale).</p>
+<p><b>(c)</b> This is <b>Shneiderman's mantra</b>. Map = overview of 2-D data. Dropdown = zoom and filter. Click = details on demand. For sub-second live results, use <b>WebSocket push</b> to D3.js, because Grafana's 5 s poll is too slow.</p></div></div>
+<div class="qa"><p class="q"><span class="no">5.</span> <span class="mk">[New]</span> Design a Shneiderman dashboard for 1 M trips/day across 5 cities. <span class="src">(lecturer v1-3)</span></p>
+<div class="a"><p><b>(a) Overview:</b> a KPI row with sparklines, 5-city small multiples, and a pickup hexbin map.</p>
+<p><b>(b) Zoom and filter:</b> city, date and hour filters, served from a city × zone × hour cube (&lt; 1 s).</p>
+<p><b>(c) Details on demand:</b> hover for count, wait and fare. Click for trip rows.</p></div></div>
+
+<h3>Numericals</h3>
+<div class="qa"><p class="q"><span class="no">1.</span> <span class="mk">★ [New]</span> Lie factor: trips rise 1,000 → 1,050, but the bar grows 100 → 150 px (axis from 900). <span class="src">(mock)</span></p>
+<div class="a"><p class="fm">lie factor = effect shown ÷ effect in data</p>
+<ol><li>Data = 50 ÷ 1,000 = 5%.</li><li>Shown = 50 ÷ 100 = 50%.</li><li>50 ÷ 5 = 10. The chart overstates tenfold. (Slide: +10% drawn as doubled → ≈ 10.)</li></ol>
+<p class="mn">Meaning: the chart makes a small 5% rise look ten times bigger. Start the axis at zero.</p></div></div>
+<div class="qa"><p class="q"><span class="no">2.</span> <span class="mk">★ [New]</span> Data-ink: 800 ink units, 200 of them draw bars. Then 400 units of junk are erased. <span class="src">(mock)</span></p>
+<div class="a"><p class="fm">ratio = data ink ÷ total ink</p>
+<ol><li>Before: 200 ÷ 800 = 0.25.</li><li>After: 200 ÷ 400 = 0.5.</li></ol>
+<p class="mn">Meaning: half the ink now shows data.</p></div></div>
+<div class="qa"><p class="q"><span class="no">3.</span> <span class="mk">★ [New]</span> Cube: 64 districts × 365 days × 100 products × 4 channels vs 100 B fact rows.</p>
+<div class="a"><p class="fm">cells = product of cardinalities; cuboids = 2<sup>n</sup></p>
+<ol><li>64 × 365 × 100 × 4 = 9,344,000 rows.</li><li>100 B ÷ 9.344 M ≈ 10,700× fewer rows.</li><li>2<sup>4</sup> = 16 cuboids.</li></ol>
+<p>(Mock: 100 B ÷ 2 M = 50,000×.)</p>
+<p class="mn">Meaning: the dashboard scans millions of rows instead of billions, so filters answer in under 1 s.</p></div></div>
+<div class="qa"><p class="q"><span class="no">4.</span> <span class="mk">★ [New]</span> Streaming: 3,000 events/s, 1-minute tumbling window, Grafana 5 s refresh.</p>
+<div class="a"><p class="fm">events per window = rate × window length</p>
+<ol><li>3,000 × 60 = 180,000 events per window.</li><li>Refreshes per day = 86,400 ÷ 5 = 17,280.</li></ol>
+<p class="mn">Meaning: the browser draws one point per minute, not 180,000 events.</p></div></div>
+<div class="qa"><p class="q"><span class="no">5.</span> <span class="mk">★ [New]</span> Overplotting: 10 M points → 10,000 hexes; alpha 0.02 with 100 stacked points.</p>
+<div class="a"><p class="fm">darkness = 1 − (1 − α)<sup>n</sup></p>
+<ol><li>10,000,000 ÷ 10,000 = 1,000× fewer marks.</li><li>1 − 0.98<sup>100</sup> ≈ 0.87. Dense areas saturate to black.</li></ol>
+<p class="mn">Meaning: alpha saturates at high density, so hexbin is better.</p></div></div>
+</section>
+<section class="week" data-week="10">
+<h2 id="w10">Week 10 — Social media, time series, health data</h2>
+<h3>Short questions (2 marks)</h3>
+<div class="qa"><p class="q"><span class="no">1.</span> <span class="mk">★</span> What is Facebook's Prophet library designed for? <span class="src">(Q1)</span></p>
+<div class="a"><p><b>Time series forecasting.</b> It splits the series into trend, seasonality and holiday parts: <b>y(t) = g(t) + s(t) + h(t) + ε(t)</b>.</p></div></div>
+
+<div class="qa"><p class="q"><span class="no">2.</span> <span class="mk">★</span> Which algorithm is most used for community detection in large social graphs? <span class="src">(Q2)</span></p>
+<div class="a"><p><b>Louvain.</b> It greedily maximises <b>modularity</b> in about O(n log n), so it scales to huge graphs. PageRank measures importance. K-Means clusters vectors. ARIMA is for time series.</p></div></div>
+
+<div class="qa"><p class="q"><span class="no">3.</span> <span class="mk">★</span> What does HIPAA regulate? <span class="src">(Q3)</span></p>
+<div class="a"><p>The <b>privacy and security of healthcare data</b> (patient records, medical information) in the USA. Financial data falls under GLBA, not HIPAA.</p></div></div>
+
+<div class="qa"><p class="q"><span class="no">4.</span> <span class="mk">★</span> What did DeepMind's AlphaFold solve? <span class="src">(Q4)</span></p>
+<div class="a"><p><b>Protein structure prediction.</b> It predicts the 3D shape of a protein from its amino-acid sequence. It was trained on 170,000 PDB structures and won the Nobel Prize in 2024.</p></div></div>
+
+<div class="qa"><p class="q"><span class="no">5.</span> <span class="mk">★</span> True or false: Google Flu Trends successfully replaced CDC surveillance? Why? <span class="src">(TF1)</span></p>
+<div class="a"><p><b>False.</b> GFT over-predicted flu by 2× in 2012–13, and Google dropped it. Syndromic signals supplement clinical reporting. They do not replace it.</p></div></div>
+
+<div class="qa"><p class="q"><span class="no">6.</span> <span class="mk">★</span> True or false: shuffling a time series changes the analysis result? Why? <span class="src">(TF2)</span></p>
+<div class="a"><p><b>True.</b> The values are <b>autocorrelated</b> and carry trend and seasonality. Shuffling destroys this temporal signal.</p></div></div>
+
+<div class="qa"><p class="q"><span class="no">7.</span> <span class="mk">★</span> True or false: social network graphs are typically sparse? Why? <span class="src">(TF3)</span></p>
+<div class="a"><p><b>True.</b> Each user links to a few hundred users out of millions. Kwak's Twitter graph has a density of about <b>8.5 × 10<sup>−7</sup></b>.</p></div></div>
+
+<div class="qa"><p class="q"><span class="no">8.</span> <span class="mk">★</span> True or false: MRI and CT scans are structured because they are stored in files? Why? <span class="src">(TF4)</span></p>
+<div class="a"><p><b>False.</b> They are <b>unstructured</b> binary <b>DICOM</b> files. Deep learning (CNN) analyses them, not SQL.</p></div></div>
+
+<div class="qa"><p class="q"><span class="no">9.</span> <span class="mk">★ [New]</span> Give the steps of the Louvain algorithm.</p>
+<div class="a"><ol><li>Start with each node in its own community.</li><li>Move each node to the neighbouring community that gives the biggest <b>modularity gain</b>.</li><li>Collapse each community into a <b>super-node</b>.</li><li>Repeat until modularity stops rising.</li></ol></div></div>
+
+<div class="qa"><p class="q"><span class="no">10.</span> <span class="mk">★ [New]</span> Why VADER for social text? Classify compounds 0.31, −0.02, −0.47.</p>
+<div class="a"><p>VADER is a <b>lexicon-and-rule</b> tool tuned for social media. It handles CAPS, "!!!", "very", negation and emojis. It needs no training. The rule uses <b>±0.05</b>: 0.31 is <b>positive</b>, −0.02 is <b>neutral</b> and −0.47 is <b>negative</b>.</p></div></div>
+
+<div class="qa"><p class="q"><span class="no">11.</span> <span class="mk">★ [New]</span> Why did Google Flu Trends fail?</p>
+<div class="a"><ul><li><b>Big data hubris:</b> r² = 0.97 in training did not generalise.</li><li><b>Algorithm confounding:</b> Google's autocomplete changes altered searches.</li><li><b>Media amplification:</b> flu news drove searches.</li></ul></div></div>
+
+<div class="qa"><p class="q"><span class="no">12.</span> <span class="mk">★ [New]</span> Why is Twitter called a news medium, not a social network?</p>
+<div class="a"><p>Only <b>22.1% reciprocity</b>: most follows are one-way. Followers follow a <b>power law</b>, with a few huge hubs. <b>85%</b> of trending topics are headline news (Kwak 2010).</p></div></div>
+
+<div class="qa"><p class="q"><span class="no">13.</span> <span class="mk">★ [New]</span> How does Isolation Forest find anomalies?</p>
+<div class="a"><p>It builds random trees that split the data. Anomalies are isolated in fewer splits. So they have a <b>shorter average path length</b>.</p></div></div>
+
+<div class="qa"><p class="q"><span class="no">14.</span> Live exercise: why <code>weekly_seasonality=False</code>, and what does <code>changepoint_prior_scale</code> 0.05 → 0.5 change?</p>
+<div class="a"><p>The data has one point per week. So there is no day-of-week pattern to learn. At <b>0.5</b> the trend bends more and chases noise, and the future uncertainty band widens.</p></div></div>
+
+<h3>Differences</h3>
+<div class="vs"><p class="vt">Louvain vs PageRank</p>
+<p><b>Louvain:</b> finds which group a node belongs to (modularity).</p><p><b>PageRank:</b> scores how important a node is.</p></div>
+
+<div class="vs"><p class="vt">ARIMA vs Prophet</p>
+<p><b>ARIMA:</b> needs a stationary series, hand-tuned (p, d, q) and handles one seasonality.</p><p><b>Prophet:</b> fits trend automatically, handles several seasonalities and holidays, and scales to thousands of series.</p></div>
+
+<div class="vs"><p class="vt">Prophet vs LSTM</p>
+<p><b>Prophet:</b> interpretable and needs little data.</p><p><b>LSTM:</b> a black box that needs lots of data and GPUs.</p></div>
+
+<div class="vs"><p class="vt">Twitter vs Facebook</p>
+<p><b>Twitter:</b> directed, 22.1% mutual, a news medium.</p><p><b>Facebook:</b> mutual friendship (≈100%), a social network.</p></div>
+
+<div class="vs"><p class="vt">STL vs Isolation Forest</p>
+<p><b>STL:</b> splits the series into trend, season and residual, and flags a residual &gt; k × IQR.</p><p><b>Isolation Forest:</b> flags points that few random splits isolate.</p></div>
+
+<div class="vs"><p class="vt">ILINet vs syndromic surveillance</p>
+<p><b>ILINet:</b> confirmed physician reports. Accurate but 1–2 weeks late.</p><p><b>Syndromic</b> (tweets, pharmacy, ED): early but noisy proxies.</p></div>
+
+<div class="vs"><p class="vt">HIPAA vs GDPR</p>
+<p><b>HIPAA:</b> US health data only, 18 identifiers.</p><p><b>GDPR:</b> EU, all personal data. Requires minimisation, purpose limitation and erasure.</p></div>
+
+<div class="vs"><p class="vt">Differential privacy vs federated learning</p>
+<p><b>Differential privacy (DP):</b> adds noise to published aggregates.</p><p><b>Federated learning (FL):</b> trains at each hospital and shares only model weights.</p></div>
+
+<div class="vs"><p class="vt">Safe harbour vs expert determination</p>
+<p><b>Safe harbour:</b> removes the fixed 18 identifiers.</p><p><b>Expert determination:</b> uses statistical analysis to prove a low re-identification risk.</p></div>
+
+<h3>Descriptive (4 marks)</h3>
+<div class="qa"><p class="q"><span class="no">1.</span> <span class="mk">★</span> Describe three social media analyses and one ethical risk of each at scale. <span class="src">(D1)</span></p>
+<div class="a"><p><b>(a) Community detection</b> (Louvain, modularity) groups users who talk more to each other than to the rest. It reveals interest groups, political factions or bot networks. Risk: profiling religious minorities or dissenters for surveillance.</p>
+<p><b>(b) Sentiment analysis</b> (VADER compound, −1 to +1) scores each post with a Spark UDF. The scores are averaged by topic and time. Risk: a government flags negative posts to suppress dissent.</p>
+<p><b>(c) Influence maximisation</b> (Kempe greedy, (1 − 1/e) ≈ 63% guarantee, NP-hard) picks the k seed users who spread news furthest. Risk: microtargeting vulnerable users with ads or misinformation.</p>
+<p>Mitigation: transparency and purpose limitation.</p></div></div>
+
+<div class="qa"><p class="q"><span class="no">2.</span> <span class="mk">★</span> ARIMA vs Prophet: when prefer Prophet, when is ARIMA still better? <span class="src">(D2)</span></p>
+<div class="a"><p><b>ARIMA(p, d, q)</b> predicts today from the last p values (AR). It differences the series d times to make it stationary (I). It corrects with the last q errors (MA). An expert must choose p, d and q.</p>
+<p><b>Prophet</b> adds simple pieces, g + s + h + ε: a trend that bends at changepoints, Fourier seasonality and a holiday list. Stan fits the model.</p>
+<p><b>Prefer Prophet</b> for many series (nobody can hand-tune 10,000), multiple seasonalities, holidays (Eid), missing data, outliers and interpretability.</p>
+<p><b>ARIMA still wins</b> on short, stationary, non-seasonal, small datasets. There its few parameters fit well.</p>
+<p>Exam sentence: Prophet scales and explains; ARIMA suits small stationary series.</p></div></div>
+
+<div class="qa"><p class="q"><span class="no">3.</span> <span class="mk">★</span> Three healthcare integration and privacy challenges, each with a mitigation. <span class="src">(D3)</span></p>
+<div class="a"><p><b>(a) Re-identification</b> when linking EHR, genomics and wearables. Joined records expose names, NID and phone numbers. Mitigation: <b>de-identification</b> (safe harbour removes the 18 HIPAA identifiers; pseudonymous linking keys).</p>
+<p><b>(b) Data silos</b> across hospitals in different formats. Law and consent stop raw records leaving (PDPA Bangladesh requires consent for NID-linked data). Mitigation: <b>federated learning</b>, which trains at each hospital and shares only weights.</p>
+<p><b>(c) Leaks from small aggregate counts.</b> "2 deaths in one upazila" can reveal a person. Mitigation: <b>differential privacy</b> (calibrated noise on totals).</p>
+<p>Exam sentence: linkage → de-identification; silos → federated learning; aggregates → differential privacy.</p></div></div>
+
+<div class="qa"><p class="q"><span class="no">4.</span> <span class="mk">★</span> A Prophet model of weekly admissions misses a sudden COVID wave. Which component should catch it, and which hyperparameter controls it? <span class="src">(Discussion Q2)</span></p>
+<div class="a"><p>The <b>trend g(t)</b> must catch it. The trend is piecewise linear and changes slope at changepoints. Seasonality only repeats known yearly and weekly cycles, so it cannot explain a new wave.</p>
+<p>Prophet puts a sparse prior on the slope changes. This keeps most changes near 0 and avoids overfitting. <b>changepoint_prior_scale</b> (default 0.05) sets the width of that prior.</p>
+<p>At 0.05 the trend is stiff, and the model treats the sudden rise as noise. Raising it to 0.5 lets the trend bend fast, but risks overfitting.</p>
+<p>Exam sentence: trend g(t) detects it; changepoint_prior_scale controls sensitivity.</p></div></div>
+
+<h3>Long / scenario (6 marks)</h3>
+<div class="qa"><p class="q"><span class="no">1.</span> <span class="mk">★</span> Design a flu early-warning system for Bangladesh from Twitter/Facebook posts and pharmacy sales: (a) ingestion, (b) features, (c) model and validation, (d) ethics. <span class="src">(A1 + teacher seed)</span></p>
+<div class="a"><p><b>(a) Ingestion.</b> Posts arrive continuously. They come through the X/Facebook REST APIs into a <b>Kafka</b> topic, which buffers bursts. Pharmacy POS databases are relational, so a nightly <b>Sqoop incremental import</b> copies only new rows. <b>Flume</b> collects log files. Everything lands as <b>Parquet on HDFS/S3</b>, partitioned by date and district.</p>
+<p><b>(b) Features.</b> Social (Spark NLP): daily symptom-keyword counts ("fever", "jor", "kashi") per district, the share of first-person posts ("I have fever") versus news, VADER sentiment, and a spike ratio against the baseline. Pharmacy: paracetamol and cough syrup units per 1,000 people, as a z-score against a 4-week baseline.</p>
+<p><b>(c) Model and validation.</b> Fit one <b>Prophet</b> per district with yearly seasonality, Eid holidays and the features as extra regressors. Fit them in parallel with <b>applyInPandas</b>. Raise an alert when signals beat the forecast's upper band. Validate with a <b>time-ordered back-test</b> (never shuffled) against DGHS weekly counts. Report MAE, lead time gained and false-alarm rate.</p>
+<p><b>(d) Ethics.</b> Risks: identifying sick people, missing rural and elderly users without smartphones, and false alarms that cause panic (GFT over-predicted 2×). Mitigate with district-week aggregates, hashed IDs, differential privacy and human review of alerts. The system must supplement DGHS, not replace it.</p></div></div>
+
+<div class="qa"><p class="q"><span class="no">2.</span> <span class="mk">★</span> 90-day demand forecasts for 5,000 store–product SKUs: (a) ingestion, (b) storage, (c) ARIMA vs Prophet vs LSTM, (d) parallel fitting, (e) serving; name the bottleneck. <span class="src">(A2 + teacher seed)</span></p>
+<div class="a"><p><b>(a) Ingestion.</b> A nightly <b>Sqoop incremental import</b> from store POS databases. Sales already sit in relational tables, and only new rows are needed.</p>
+<p><b>(b) Storage.</b> <b>Parquet on HDFS/S3</b> with Hive Metastore, partitioned by <code>sale_date</code>. Each night adds one folder, and date queries skip the rest. Never partition by SKU: 5,000 × days would make millions of tiny files.</p>
+<p><b>(c) Model.</b> Choose <b>Prophet</b>. Demand has weekly (Friday shopping) and yearly cycles plus Eid/Puja spikes. g + s + h models these directly, and managers can read the parts. ARIMA needs hand-tuned p, d, q for 5,000 series. LSTM needs much data and GPUs and is a black box.</p>
+<p><b>(d) Parallel fitting.</b> <code>groupBy("sku_id").applyInPandas(fit_prophet)</code> sends each SKU's rows to one task, so the models fit in parallel. This works because the series are independent ("embarrassingly parallel"): 8 h → 12 min on 20 executors, 40×.</p>
+<p><b>(e) Serving.</b> Forecasts with upper and lower bounds → Parquet/Hive → serving DB → Superset/Grafana inventory dashboard.</p>
+<p><b>Bottleneck: model fitting.</b> Each Prophet fit is CPU-bound Stan, and 5,000 sequential fits take 8 h. After parallelising, the groupBy shuffle and skew remain.</p></div></div>
+
+<div class="qa"><p class="q"><span class="no">3.</span> <span class="mk">★</span> Case study: design a dengue surveillance system for Bangladesh using BioSense-style ED data, Twitter and Prophet; how do you validate it before policy use? <span class="src">(Discussion Q3 + Part 2 lessons)</span></p>
+<div class="a"><p><b>Sources.</b> ED chief complaints (fever, joint pain, rash) sent as <b>HL7 FHIR</b> messages, like BioSense (lag under 72 h). X/Facebook dengue posts. DGHS daily counts as ground truth.</p>
+<p><b>Pipeline.</b> Each source publishes to <b>Kafka</b> → <b>Spark Structured Streaming</b> runs NLP to tag dengue-like syndromes and counts them per district-day → Parquet on HDFS/S3.</p>
+<p><b>Model.</b> One <b>Prophet</b> per district with monsoon (yearly) seasonality, Eid holidays, and Twitter counts and rainfall as regressors. ED data is the main signal. Twitter adds lead time, not accuracy (2 weeks earlier but 30% higher error).</p>
+<p><b>Validation.</b> Run a <b>time-ordered back-test</b> against DGHS (MAE, lead time, false alarms). Then run the system silently beside official reporting for one season before policy use. GFT lesson: proxies supplement official data, they do not replace it.</p></div></div>
+
+<h3>Numericals</h3>
+<div class="qa"><p class="q"><span class="no">1.</span> <span class="mk">★</span> Twitter (Kwak): average out-degree 45. Reach of a misinformation tweet within 3 hops? Why an overestimate? <span class="src">(Discussion Q1)</span></p>
+<div class="a"><p class="fm">reach = d + d² + d³</p><ol><li>45 + 2,025 + 91,125 → <b>93,195 users</b> (about 0.22% of 41.7 M).</li><li>Overestimate: clustering means followers overlap, so the formula counts them twice. Low reciprocity also shrinks real spread.</li></ol><p class="mn">Meaning: the tree model is only an upper bound.</p></div></div>
+
+<div class="qa"><p class="q"><span class="no">2.</span> <span class="mk">★ [New]</span> 5,000 SKUs: 8 h sequential, 12 min on Spark. Speed-up? Also: 400 ward models at 2 s each, 20 at a time?</p>
+<div class="a"><p class="fm">speed-up = old ÷ new</p><ol><li>480 ÷ 12 → <b>40×</b>.</li><li>400 × 2 = 800 s sequential; 800 ÷ 20 = <b>40 s</b> parallel.</li></ol><p class="mn">Meaning: independent models scale with workers.</p></div></div>
+
+<div class="qa"><p class="q"><span class="no">3.</span> <span class="mk">★ [New]</span> "Fever" posts rise from 40 to 12,000 per hour. Spike ratio?</p>
+<div class="a"><p class="fm">spike = current ÷ baseline</p><ol><li>12,000 ÷ 40 → <b>300×</b>. It is trending, judged against its own baseline.</li></ol><p class="mn">Meaning: a topic is "hot" relative to its normal level, not by raw count.</p></div></div>
+
+<div class="qa"><p class="q"><span class="no">4.</span> <span class="mk">★ [New]</span> STL residuals have IQR = 4, k = 3. Are residuals 15 and −9 anomalies?</p>
+<div class="a"><p class="fm">anomaly if |residual| &gt; k × IQR</p><ol><li>Threshold = 3 × 4 = 12.</li><li>|15| &gt; 12 → <b>anomaly</b>; |−9| = 9 &lt; 12 → <b>normal</b>.</li></ol><p class="mn">Meaning: after trend and season are removed, only leftovers far beyond the normal spread raise alerts.</p></div></div>
+
+<div class="qa"><p class="q"><span class="no">5.</span> <span class="mk">★ [New]</span> Prophet components for one SKU in an Eid week: g = 500, s = +40, h = +150, ε = 0. Forecast?</p>
+<div class="a"><p class="fm">y = g + s + h + ε</p><ol><li>500 + 40 + 150 + 0 → <b>690 units</b>.</li></ol><p class="mn">Meaning: the store should stock 190 units above trend, mostly for Eid.</p></div></div>
+
+<div class="qa"><p class="q"><span class="no">6.</span> <span class="mk">★ [New]</span> Genomics study: 10,000 patients at 200 GB each. Storage?</p>
+<div class="a"><ol><li>200 × 10,000 = 2,000,000 GB = <b>2 PB</b>.</li></ol><p class="mn">Meaning: this needs distributed storage (HDFS/S3), not one server.</p></div></div>
+</section>
+</div>
+<a class="totop" href="#top" aria-label="Back to top">↑</a><script>
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey || e.altKey || /input|textarea/i.test(e.target.tagName)) return;
+  const map = {'0':'./','1':'cheatsheet.html','2':'questions.html','3':'github.html','4':'diagrams.html'};
+  if (map[e.key]) location.href = map[e.key];
+});
+</script></body></html>
