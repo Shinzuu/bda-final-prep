@@ -1888,7 +1888,7 @@ def checklist_view(chs, cmps, probs, pred, ctx, morning):
         '<p class="sub">CSE 4345 Big Data Analytics, weeks 5 to 10. Work down the list: in each chapter, learn, practise, then test. '
         'When the last box is ticked, you&rsquo;re ready.</p>'
         '<div class="todayp"><span id="allp"></span><span class="tbar"><i></i></span></div>'
-        '<a class="go" href="#ch5" id="nextopen"><span class="nt">Start with Week 5</span></a>'
+        '<a class="go" href="#ch5" id="nextopen"><span class="nt">Start with Week 5</span></a><a class="go" href="quick/" style="background:#1c2430"><span class="nt">Quick revision: cheat sheet, questions, GitHub Q&amp;A, diagrams</span></a>'
         '<p class="resume" id="resume" hidden>Or go back to <a href="#start"></a></p>'
         '<div class="complete" hidden><h2>Preparation complete</h2><p>Every item is ticked. Read the must-know list once more, then rest.</p></div>'
         '</header>'
@@ -1944,7 +1944,7 @@ def main():
             '<a href="#dayplan"><b>Day plan</b><span class="t">the earlier one-day plan</span></a><hr>'
             '<button data-focus="pick"><b>Focus mode</b><span class="t">flashcards for any set</span></button>'
             '<button id="all"><b>Show every answer</b><span class="t">open all answers on the page</span></button>'
-            '<a href="bda-final-guide.pdf"><b>Full guide</b><span class="t">PDF</span></a>'
+            '<a href="quick/"><b>Quick revision</b><span class="t">4 pages, phone and PC</span></a><a href="bda-final-guide.pdf"><b>Full guide</b><span class="t">PDF</span></a>'
             '<a href="bda-exam-pool.pdf"><b>Exam questions</b><span class="t">PDF</span></a>')
     page = (
         '<!doctype html><html lang="en"><head><meta charset="utf-8">'
@@ -1956,7 +1956,7 @@ def main():
         f"<title>BDA final checklist</title><style>{CSS}</style></head><body>"
         '<nav class="bar"><div class="bar-in"><a class="brand" href="#start">BDA final</a>'
         '<span class="sp"></span><span class="opct" title="Checklist progress"></span>'
-        '<button class="chip" id="menubtn" aria-haspopup="true">Menu</button>'
+        '<a class="chip" href="quick/" style="text-decoration:none">Quick</a><button class="chip" id="menubtn" aria-haspopup="true">Menu</button>'
         '<button class="chip ico" id="theme" aria-label="Toggle dark mode">&#9680;</button></div>'
         '<div class="obar"><i></i></div></nav>'
         f'<div class="wkmenu" id="wkmenu">{menu}</div>'
