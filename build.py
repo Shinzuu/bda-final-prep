@@ -1979,7 +1979,8 @@ def main():
         return figure(m.group(1)) if f.exists() else m.group(0)
     page = re.sub(r'<img[^>]*src="(diagrams/[^"]+\.svg)"[^>]*>', inline_img, page)
     page = re.sub(r'(?<!<div class="tw">)(<table.*?</table>)', r'<div class="tw">\1</div>', page, flags=re.S)
-    (ROOT / "index.html").write_text(page)
+    from line_reader import inject  # line-by-line reader, shared with other guides
+    (ROOT / "index.html").write_text(inject(page))
     for out, q in (("bda-final-guide.pdf", ""), ("bda-exam-pool.pdf", "?pool")):
         subprocess.run(
             ["nice", "-n", "10", "google-chrome-stable", "--headless=new", "--disable-gpu", "--mute-audio", "--no-pdf-header-footer", "--virtual-time-budget=3000",

@@ -4,7 +4,10 @@ Sources live in src/ (print-ready HTML from the PDF builds). For the GitHub Q&A,
 parts/gh_wN.clean.html (no-ai-slop pass) replaces the week when present.
 Run: python3 quick/build.py  (writes quick/*.html)
 """
-import os, re
+import os
+import sys, re
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from line_reader import inject  # line-by-line reader, shared with other guides
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 
@@ -160,7 +163,7 @@ def page(key, href, title, src):
 <style>{style}</style><style>{BASE_CSS}{PER_DOC_CSS[src]}</style></head>
 <body{wide}>{nav(href)}<nav class="weeks">{weeks}</nav><div class="wrap" id="top">{body}</div>
 <a class="totop" href="#top" aria-label="Back to top">↑</a>{KEYS_JS}</body></html>"""
-    open(os.path.join(ROOT, href), "w", encoding="utf-8").write(html)
+    open(os.path.join(ROOT, href), "w", encoding="utf-8").write(inject(html))
 
 
 def hub():
