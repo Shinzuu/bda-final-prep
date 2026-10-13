@@ -181,6 +181,9 @@ h1 {{ font-size: 26px; margin: 18px 0 4px; }} p.lead {{ color: var(--muted); mar
 <h1>CSE 4345 BDA: quick revision, Weeks 5–10</h1>
 <p class="lead">Pick one. Keys 1–4 jump between pages on a PC, 0 comes back here.</p>
 {cards}
+<a class="card" href="exam-answers.html"><span class="n">5</span><span><b>Exam answers</b><br><small>5 ten-mark scenario answers with full working.</small></span></a>
+<a class="card" href="last-hour.html"><span class="n">6</span><span><b>Last hour</b><br><small>Everything on one page, line by line with a pace marker.</small></span></a>
+<a class="card" href="github-all.html"><span class="n">+</span><span><b>All GitHub questions</b><br><small>All 239, about 4 h. Only if time is left.</small></span></a>
 <p class="lead">Suggested order: 1 the cheat sheet first, then 2 the ★ questions, then 4 the diagrams. 3 is short: do it after 1.</p>
 <p class="lead"><a href="../">Full study guide</a></p>
 </div>{KEYS_JS}</body></html>"""
