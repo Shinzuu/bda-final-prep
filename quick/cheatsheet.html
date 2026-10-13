@@ -84,7 +84,7 @@ document.addEventListener('keydown', e => {
 (function(){
 if(window.__lineReader)return;window.__lineReader=1;
 if(document.querySelector('.navb #nx'))return; // page already has its own reader
-var D=document,H=D.documentElement,B=D.body,KEY='lr:'+location.pathname;
+var D=document,H=D.documentElement,B=D.body,KEY='lr:'+location.pathname,vv=window.visualViewport;
 var st={i:-1,known:{},skip:true};try{var s=JSON.parse(localStorage.getItem(KEY)||'{}');for(var k in s)st[k]=s[k]}catch(e){}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(st))}catch(e){}}
 var SKIP='nav,header nav,script,style,noscript,button,#lr-bar,#lr-menu,.deckbar,.lr-no,[aria-hidden="true"],.navb,.weeks,.totop,input,select,textarea';
@@ -117,7 +117,7 @@ var $=function(id){return D.getElementById(id)};
 
 function knownN(){var n=0;for(var k in st.known)if(st.known[k])n++;return n}
 function ui(){var i=st.i;$('lr-pos').textContent=(i+1)+'/'+items.length;
- prog.style.width=(items.length?((i+1)/items.length*100):0)+'%';
+ prog.style.width=(items.length?((i+1)/items.length*(vv?vv.width:innerWidth)):0)+'px';
  var c=items[i];$('lr-k').classList.toggle('on',!!(c&&st.known[i]));
  $('lr-fm').textContent=H.classList.contains('lr-focus')?'Focus off':'Focus'}
 items.forEach(function(e,n){if(st.known[n])e.classList.add('lr-known')});
@@ -162,6 +162,10 @@ D.addEventListener('touchstart',function(e){if(e.touches.length!==1||!H.classLis
  t0={x:e.touches[0].clientX,y:e.touches[0].clientY,t:Date.now()}},{passive:true});
 D.addEventListener('touchend',function(e){if(!t0)return;var c=e.changedTouches[0],dx=c.clientX-t0.x,dy=c.clientY-t0.y;
  if(Math.abs(dx)>60&&Math.abs(dy)<45&&Date.now()-t0.t<600)step(dx<0?1:-1);t0=null},{passive:true});
+// keep the bar centred on what the reader sees, even when a page is wider than the phone screen
+function place(){if(!vv)return;var x=vv.offsetLeft+vv.width/2;bar.style.left=x+'px';menu.style.left=x+'px';
+ prog.style.left=vv.offsetLeft+'px';prog.style.maxWidth=vv.width+'px'}
+if(vv){vv.addEventListener('resize',place);vv.addEventListener('scroll',place);place()}
 ui();
 })();
 </script><!-- line-reader:end --></body></html>
