@@ -1965,6 +1965,7 @@ def main():
         + (cmp_view(cmps, cards) if cmps else "") + (prob_view(probs, cards) if probs else "") + mock_html + sheet(chs, pred)
         + plan_view(chs, days, len(sessions), total_min, dp, pred)
         + "</main>"
+        '<footer style="text-align:center;font-size:12px;color:var(--mute);padding:16px 16px 28px">© Nishadul Islam. All rights reserved.</footer>'
         '<button class="totop" id="totop" aria-label="Back to top">&uarr;</button>'
         '<div class="focus" id="focus" role="dialog" aria-label="Focus mode"><div class="f-top"><b id="f-title"></b>'
         '<span id="f-count"></span><button class="chip" data-fx="close">Close</button></div><div class="f-bar"><i></i></div>'
